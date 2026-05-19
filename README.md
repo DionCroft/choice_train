@@ -138,9 +138,73 @@ The prototype estimates learner attention using response timing and touch accura
 
 Per-task heatmaps also help practitioners review target engagement, touch clustering, and motor precision visually.
 
+Note:
+The attention score is an exploratory in-app indicator for practitioner reflection. It is not a validated diagnostic or clinical measure.
+
 ### Positive Reinforcement
 
 Each task is followed by feedback and reward elements designed to encourage continued engagement. These can include visual effects, progress markers, and star-based rewards.
+
+## V1.2.2 Additions
+
+The current published build includes the following stability and review improvements:
+
+- history-aware heatmap scopes for `Current session`, `Current learner history`, `All stored history`, and imported data when available
+- clearer heatmap labels showing question, attempt, task, and whether the answer was correct or needed support
+- richer heatmap captions with learner, session, selected answer, reaction time, and touch-distance context
+- repeat-aware scoring so dashboards and progression use the latest outcome per question instead of overcounting retries
+- corrected automatic task sequencing after single-target trials
+- touch selection on release rather than on initial contact, reducing accidental activations
+- browser storage warnings when local persistence is full or unavailable
+- a versioned release snapshot as `choice_train_V1.2.2.html`
+
+## Why These Changes Help SEND Learners
+
+The newer dashboard and interaction changes were chosen to make the prototype fairer, calmer, and more useful for practitioner decision-making.
+
+- Release-based touch confirmation helps reduce accidental answers for learners with variable motor control, impulsive touches, or exploratory hand movements.
+- Repeat-aware scoring gives a clearer picture of what a learner finally achieved, rather than mixing first attempts and retries into one mastery score.
+- Cross-session heatmap review helps practitioners notice patterns that are easy to miss in a single short session, such as consistent left-right bias, repeated near-misses, or improving target accuracy over time.
+- Session and learner labels make it easier for staff, families, and therapists to review data together without confusing one learner or session with another.
+- Storage warnings reduce the risk of silent data loss, which matters when practitioners are using logs to judge progress or plan next steps.
+
+## Research-Informed Rationale
+
+The design and the recent changes were informed by peer-reviewed literature. These papers do not validate ChoiceTrain itself, but they do support the direction of the interaction design, learner support approach, and practitioner review features.
+
+### Touch interaction and reducing unnecessary distraction
+
+- Kirkorian HL, Choi K, Pempek TA. *All Tapped Out: Touchscreen Interactivity and Young Children's Word Learning*. Front Psychol. 2016.
+  Link: https://pmc.ncbi.nlm.nih.gov/articles/PMC5388766/
+  Why it matters here: this paper supports the idea that simple, on-task interaction can help learning, while overly distracting or irrelevant interaction can get in the way. That fits ChoiceTrain's large targets, reduced clutter, guided prompts, and the move to a cleaner release-to-confirm touch flow.
+
+- *Ability of children to perform touchscreen gestures and follow prompting techniques when using mobile apps*. 2020.
+  Link: https://pmc.ncbi.nlm.nih.gov/articles/PMC7303424/
+  Why it matters here: this work supports choosing interaction patterns that match children's motor abilities and using practical prompting strategies. That aligns with single-target starts, scaffolded task progression, large tap areas, and the need to avoid punishing accidental contact.
+
+### Practitioner review, fidelity, and better progress decisions
+
+- Brady L, Padden C, McGill P. *Improving procedural fidelity of behavioural interventions for people with intellectual and developmental disabilities: A systematic review*. J Appl Res Intellect Disabil. 2019.
+  Link: https://pubmed.ncbi.nlm.nih.gov/30968529/
+  Why it matters here: the review found a positive relationship between implementation fidelity and client outcomes. In ChoiceTrain, clearer history-aware dashboards, repeat-aware scoring, and exportable review data are intended to help staff notice what support was actually working and keep delivery more consistent across sessions.
+
+- Wang T, Ma Y, Du X, et al. *Digital interventions for autism spectrum disorders: A systematic review and meta-analysis*. Pediatr Investig. 2024.
+  Link: https://pubmed.ncbi.nlm.nih.gov/39347529/
+  Why it matters here: the broader evidence base suggests digital interventions can be useful when carefully designed and monitored. That supports building transparent review tools, keeping the app simple, and treating analytics as practice-support information rather than as a black-box judgement.
+
+### Motivation, preference, and learner voice
+
+- DeLeon IG, Fisher WW, Rodriguez-Catter V, et al. *Examination of relative reinforcement effects of stimuli identified through pretreatment and daily brief preference assessments*. J Appl Behav Anal. 2001.
+  Link: https://pubmed.ncbi.nlm.nih.gov/11800185/
+  Why it matters here: this supports the idea that learner motivation can change and that preferred reinforcers matter. That fits ChoiceTrain's use of personalised images, reward flow, and the longer-term plan to strengthen preference-based session setup.
+
+- O'Brien MJ, Pauls AM, Schieltz KM, et al. *Mand Modality Preference Assessments among High- and Low-Tech Options for Individuals with Intellectual and Developmental Disabilities: A Systematic Review*. 2024.
+  Link: https://pubmed.ncbi.nlm.nih.gov/38405296/
+  Why it matters here: this review supports offering more than one communication or response route where possible. That is relevant to ChoiceTrain's longer-term direction around flexible response modes, personalised content, and not assuming one interaction style works for every learner.
+
+- Wehmeyer ML. *Self-determination in adolescents and adults with intellectual and developmental disabilities*. Curr Opin Psychiatry. 2020.
+  Link: https://pubmed.ncbi.nlm.nih.gov/31833947/
+  Why it matters here: this supports giving learners meaningful choice and some control over activity flow. That fits open-ended choice tasks, repeat/next options, and the broader goal of making the app supportive rather than purely compliance-driven.
 
 ## Session Structure
 
@@ -164,10 +228,18 @@ To run it locally:
 2. Use full screen if you want the learner interface to be more immersive.
 3. Configure the session in Practitioner Mode, then begin the activity.
 
+## Repository Workflow
+
+- early prototypes and experiments should live in `Experimental_Choice_Train`
+- stable builds that are ready to publish should then be promoted into `GitHub/choice-train`
+- `index.html` is the GitHub Pages entry point
+- versioned snapshots are kept alongside it for traceability
+
 ## Repository Files
 
-- `index.html` is the main published entry point for GitHub Pages.
-- `choice_train_V1.2.1.html` is the versioned snapshot of the same build.
+- `index.html` is the main published entry point for GitHub Pages
+- `choice_train_V1.2.1.html` is the earlier versioned snapshot
+- `choice_train_V1.2.2.html` is the current versioned snapshot
 
 ## GitHub Pages
 
