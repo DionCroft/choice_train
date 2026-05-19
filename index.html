@@ -1,0 +1,2263 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChoiceTrain Prototype (Offline)</title>
+  <style>
+    :root{
+      --bg:#0a1019; --panel:#121a27; --panel2:#0f1724; --text:#e8eefb; --muted:#9fb0d0;
+      --btn:#1d2a40; --btn2:#243654; --accent:#71d4ff; --good:#8ef0b1; --warn:#ffd27d; --bad:#ffb39b;
+      --card:#172334; --cardHi:#21324d; --shadow:0 12px 28px rgba(0,0,0,.24);
+    }
+    *{box-sizing:border-box}
+    html,body{min-height:100%;height:auto;margin:0;background:linear-gradient(180deg,#09111c,#070d15);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overscroll-behavior:none}
+    .wrap{display:grid;grid-template-columns:minmax(280px,330px) 1fr;min-height:100vh}
+    .panel{background:linear-gradient(180deg,#101a29,#0c1522);padding:14px;border-right:1px solid rgba(255,255,255,.06);overflow:auto;min-height:0}
+    .section{padding:12px 0;border-top:1px solid rgba(255,255,255,.06)}
+    .section:first-child{border-top:0;padding-top:0}
+    .title{font-size:22px;font-weight:800;letter-spacing:.2px}
+    .sub{font-size:12px;color:var(--muted);line-height:1.45}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type=text], select, input[type=number], textarea, input[type=file], input[type=range]{width:100%}
+    input[type=text], select, input[type=number], textarea, input[type=file]{background:var(--btn);color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px}
+    textarea{min-height:70px;resize:vertical}
+    button{background:var(--btn);color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;font-size:14px;cursor:pointer;box-shadow:var(--shadow)}
+    .playArea,.choice,button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+    button:hover{background:var(--btn2)}
+    .primary{background:linear-gradient(180deg,#29517f,#1d3960)}
+    .toggle{display:flex;align-items:center;gap:8px;background:var(--btn);padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
+    .toggle input{width:auto}
+    .stat{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin:4px 0}
+    .stat b{color:var(--text)}
+    .main{position:relative;overflow:auto;background:radial-gradient(circle at top,rgba(69,117,255,.12),transparent 35%),linear-gradient(180deg,#08111e,#040915);min-height:100vh}
+    .stage{position:absolute;inset:0;padding:18px 24px 24px;display:flex;flex-direction:column;gap:14px;min-height:100%}
+    .topBar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .trackWrap{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(7,11,18,.48);border:1px solid rgba(255,255,255,.08);border-radius:18px;backdrop-filter:blur(10px);max-width:900px}
+    .track{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+    .station{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;font-size:12px;font-weight:700;background:#1a2a43;border:2px solid rgba(255,255,255,.18);color:#bfd6ff;position:relative;z-index:1}
+    .station.done{background:#244f3a;color:#d7ffe6;border-color:rgba(142,240,177,.5)}
+    .station.current{background:#2e5f8f;color:#fff;border-color:rgba(113,212,255,.8);box-shadow:0 0 0 8px rgba(113,212,255,.12)}
+    .trackLine{height:6px;flex:1;min-width:24px;background:rgba(255,255,255,.08);border-radius:999px;position:relative;overflow:hidden}
+    .trackFill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#71d4ff,#8ef0b1);width:0%}
+    .badge{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px;color:#dce7ff}
+    .playArea{position:relative;flex:1;min-height:0;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);overflow:hidden;touch-action:none;display:flex;align-items:center;justify-content:center}
+    .screen{position:absolute;inset:0;padding:28px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;overflow:auto}
+    .screen.active{display:flex}
+    .hero{font-size:clamp(24px,3vw,40px);font-weight:800;line-height:1.1;max-width:900px}
+    .heroSub{font-size:clamp(14px,1.4vw,20px);color:var(--muted);max-width:780px;line-height:1.4}
+    .bigCard{min-width:220px;min-height:220px;max-width:340px;border-radius:28px;background:linear-gradient(180deg,#1c2c44,#132036);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px;box-shadow:var(--shadow)}
+    .faceCircle,.imgCircle{width:110px;height:110px;border-radius:24px;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:52px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+    .faceCircle.round{border-radius:999px}
+    .faceCircle img,.imgCircle img,.choiceMedia img{width:100%;height:100%;object-fit:cover}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:20px;width:min(100%,980px)}
+    .choice{position:relative;border-radius:26px;background:linear-gradient(180deg,#1c2b43,#142238);border:2px solid rgba(255,255,255,.11);padding:16px;min-height:230px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;gap:14px;transition:transform .12s ease,border-color .12s ease, background .12s ease; box-shadow:var(--shadow)}
+    .choice:active,.choice.pressed{transform:scale(.98)}
+    .choice:hover{border-color:rgba(113,212,255,.5)}
+    .choice.correct{border-color:rgba(142,240,177,.85);background:linear-gradient(180deg,#173b30,#142739)}
+    .choice.incorrect{border-color:rgba(255,179,155,.85);background:linear-gradient(180deg,#47312b,#1a2236)}
+    .choiceMedia{width:min(100%,150px);aspect-ratio:1/1;border-radius:22px;display:grid;place-items:center;background:rgba(255,255,255,.09);font-size:72px;overflow:hidden}
+    .choiceLabel{font-size:22px;font-weight:800}
+    .choiceSmall{font-size:12px;color:var(--muted)}
+    .promptBox{padding:14px 18px;border-radius:18px;background:rgba(7,11,18,.55);border:1px solid rgba(255,255,255,.08);max-width:860px;display:flex;flex-wrap:wrap;align-items:center;justify-content:center;gap:10px}
+    .promptText{font-size:clamp(24px,3vw,38px);font-weight:800;line-height:1.15;word-break:normal;overflow-wrap:anywhere}
+    .trailCanvas{position:absolute;inset:0;pointer-events:none}
+    .fx{position:absolute;inset:0;pointer-events:none}
+    .ripple{position:absolute;width:20px;height:20px;border-radius:999px;transform:translate(-50%,-50%) scale(.6);opacity:.95;animation:ripple 520ms ease-out forwards;border:2px solid rgba(255,255,255,.75);background:rgba(255,255,255,.12);box-shadow:0 0 18px rgba(255,255,255,.22)}
+    @keyframes ripple{to{transform:translate(-50%,-50%) scale(4.5);opacity:0}}
+    .pulseGood,.pulseTry{position:absolute;inset:0;opacity:0}
+    .pulseGood{background:rgba(142,240,177,.11);animation:pulse 380ms ease-out}
+    .pulseTry{background:rgba(255,210,125,.11);animation:pulse 380ms ease-out}
+    @keyframes pulse{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
+    .bigBadge{position:absolute;left:50%;top:12%;transform:translateX(-50%);padding:14px 18px;border-radius:18px;background:rgba(6,10,17,.72);border:1px solid rgba(255,255,255,.14);font-weight:800;opacity:0}
+    .badgeShow{animation:badge .7s ease-out}
+    @keyframes badge{0%{opacity:0;transform:translateX(-50%) scale(.96)}20%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(1.04)}}
+    .stars{display:flex;gap:10px;font-size:34px}
+    .stars span{opacity:.28}
+    .stars span.on{opacity:1;filter:drop-shadow(0 0 8px rgba(255,214,79,.3))}
+    .footerBar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:18px;background:rgba(7,11,18,.5);border:1px solid rgba(255,255,255,.08)}
+    .tiny{font-size:11px;color:var(--muted)}
+    .pillTag{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:11px;color:#d9e3fa}
+    .good{color:var(--good)} .warnText{color:var(--warn)}
+    .adminGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .locked{opacity:.55}
+    .helperList{margin:0;padding-left:18px;color:var(--muted);font-size:12px;line-height:1.45}
+     .navBtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .modeBar{display:flex;gap:10px;flex-wrap:wrap}
+    .modeBar button{flex:1 1 160px}
+    .ghostBtn{background:linear-gradient(180deg,#1b2940,#162338)}
+    .dashboard{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .dashCard{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+    .dashCard .k{font-size:11px;color:var(--muted);margin-bottom:4px}
+    .dashCard .v{font-size:14px;font-weight:700;color:var(--text)}
+    .analyticsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .compactNote{font-size:11px;color:var(--muted);line-height:1.4}
+    .dashboardTools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .dashboardTools input[type=file]{flex:1 1 180px}
+    .analyticsPanel{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .chartCard{padding:12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+    .chartCard h4{margin:0 0 8px 0;font-size:12px;color:var(--muted);font-weight:700}
+    .chartCard.span2{grid-column:1 / -1}
+    .miniCanvas{width:100%;height:140px;display:block;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));border-radius:12px}
+    .accuracyBar{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}
+    .accuracyFill{height:100%;width:0%;background:linear-gradient(90deg,#71d4ff,#8ef0b1)}
+    .tableWrap{max-height:220px;overflow:auto;border-radius:12px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left}
+    th{position:sticky;top:0;background:#111827;color:var(--muted);font-weight:700}
+    .ok{color:var(--good);font-weight:700}
+    .nope{color:var(--bad);font-weight:700}
+    .recommendList{margin:0;padding-left:18px;color:var(--text);font-size:12px;line-height:1.55}
+    .dashboardSource{font-size:11px;color:var(--muted);margin-top:6px}
+    .heatmapControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+    .heatmapCanvas{width:100%;height:auto;border-radius:14px;background:linear-gradient(180deg,#0e1726,#0a111b);border:1px solid rgba(255,255,255,.08)}
+    .heatMeta{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}
+    .attentionCall{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.08);margin-left:6px}
+    .learnerBanner{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+    .adminFab{position:absolute;right:14px;bottom:14px;z-index:5;border-radius:999px;padding:10px 14px;background:linear-gradient(180deg,#23486f,#18314f)}
+    .wrap.learner{grid-template-columns:1fr}
+    .wrap.learner .panel{display:none}
+    .wrap.learner .main{min-height:100vh}
+    @media (max-width: 980px){
+      .wrap{grid-template-columns:1fr;grid-template-rows:auto minmax(70vh,1fr);height:auto;min-height:100vh}
+      .panel{max-height:none;border-right:0;border-bottom:1px solid rgba(255,255,255,.06)}
+      .main{min-height:70vh}
+      .stage{padding:14px;gap:12px}
+      .topBar{flex-direction:column;align-items:stretch}
+      .trackWrap{max-width:none}
+      .playArea{min-height:64vh;border-radius:22px}
+      .grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;width:100%}
+      .choice{min-height:180px;padding:14px;border-radius:22px}
+      .choiceMedia{width:min(100%,120px)}
+      .choiceLabel{font-size:18px}
+      .bigCard{min-width:170px;min-height:170px}
+      .footerBar{flex-direction:column;align-items:flex-start}
+      .heroSub{max-width:none}
+    }
+    @media (max-width: 640px){
+      .panel{padding:12px}
+      .stage{padding:10px;gap:10px}
+      .screen{padding:16px}
+      .playArea{min-height:72vh}
+      .promptBox{padding:12px 14px}
+      .grid{grid-template-columns:1fr 1fr;gap:12px}
+      .choice{min-height:160px;padding:12px}
+      .choiceMedia{width:min(100%,96px);border-radius:18px;font-size:48px}
+      .choiceLabel{font-size:16px}
+      .trackWrap{padding:10px 12px;border-radius:16px}
+      .track{gap:6px}
+      .station{width:22px;height:22px;font-size:10px}
+      .trackLine{min-width:12px;height:4px}
+      .bigBadge{top:8%;max-width:80vw;text-align:center}
+      .navBtns{width:100%}
+      .navBtns button{flex:1 1 140px}
+      .row button{flex:1 1 120px}
+    }
+    @media (max-width: 640px){
+      .dashboard{grid-template-columns:1fr}
+      .analyticsGrid{grid-template-columns:1fr}
+      .adminGrid{grid-template-columns:1fr 1fr}
+      .footerBar .row{width:100%}
+      .trackWrap{overflow-x:auto;justify-content:flex-start}
+      .track{min-width:420px}
+    }
+    @media (max-width: 480px){
+      .adminGrid{grid-template-columns:1fr}
+      .hero{font-size:clamp(22px,7vw,30px)}
+      .heroSub{font-size:14px}
+      .screen{padding:12px}
+      .promptBox{width:100%}
+      .promptText{font-size:clamp(20px,7vw,28px)}
+      .grid{grid-template-columns:1fr;gap:10px}
+      .choice{min-height:148px;border-radius:18px}
+      .choiceMedia{width:min(100%,82px);font-size:42px}
+      .choiceLabel{font-size:15px}
+      .bigCard{min-width:150px;min-height:150px}
+      .playArea{min-height:74vh}
+      .adminFab{right:10px;bottom:10px;padding:9px 12px}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="panel">
+    <div class="section">
+      <div class="title">ChoiceTrain Prototype</div>
+      <div class="sub">Offline, touch-first choice-making app with progression, reward screens, personalisation, and touch tracking.</div>
+      <div class="modeBar" style="margin-top:10px">
+        <button id="learnerModeBtn" class="primary">Open learner mode</button>
+        <button id="practitionerModeBtn" class="ghostBtn">Practitioner view</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="row">
+        <button id="startBtn" class="primary">Start Session</button>
+        <button id="resetBtn">Reset Session</button>
+        <button id="exportBtn">Export Data</button>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <button id="nextBtn">Next</button>
+        <button id="repeatBtn">Repeat</button>
+        <button id="fullscreenBtn">Fullscreen</button>
+      </div>
+    </div>
+
+    <div class="section">
+      <label for="pupilSelect">Select pupil</label>
+      <select id="pupilSelect"></select>
+      <div class="row" style="margin-top:8px">
+        <input id="newPupilName" type="text" placeholder="New pupil name" style="flex:1 1 160px" />
+        <button id="addPupil">Add</button>
+      </div>
+      <label for="pupilAlias">Pupil alias</label>
+      <input id="pupilAlias" type="text" placeholder="e.g. Pupil A" />
+      <div class="adminGrid" style="margin-top:8px">
+        <div>
+          <label for="sessionMax">Max questions</label>
+          <input id="sessionMax" type="number" min="1" max="20" value="8" />
+        </div>
+        <div>
+          <label for="maxObjects">Max objects</label>
+          <input id="maxObjects" type="number" min="2" max="6" value="4" />
+        </div>
+        <div>
+          <label for="delaySec">Auto delay (sec)</label>
+          <input id="delaySec" type="number" min="0" max="5" step="0.5" value="1" />
+        </div>
+        <div>
+          <label for="sessionMinutes">Session duration (mins)</label>
+          <input id="sessionMinutes" type="number" min="1" max="10" value="3" />
+        </div>
+        <div>
+          <label for="targetScale">Touch scale (%)</label>
+          <input id="targetScale" type="number" min="80" max="220" value="100" />
+        </div>
+        <div>
+          <label for="startLevel">Starting level</label>
+          <input id="startLevel" type="number" min="1" max="6" value="1" />
+        </div>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="toggle"><input id="autoTouchScale" type="checkbox" checked /> Auto touch scaling</label>
+        <label class="toggle"><input id="showTouchDebug" type="checkbox" /> Touch debug</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="toggle"><input id="useTwoStage" type="checkbox" /> Two-stage prompt</label>
+        <label class="toggle"><input id="useReward" type="checkbox" checked /> Reward screen</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="toggle"><input id="useTextPrompt" type="checkbox" checked /> Text</label>
+        <label class="toggle"><input id="useImagePrompt" type="checkbox" checked /> Image</label>
+        <label class="toggle"><input id="useFace" type="checkbox" checked /> Familiar face</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="toggle"><input id="ttsToggle" type="checkbox" checked /> Enable speech</label>
+        <label class="toggle"><input id="ttsLabelsToggle" type="checkbox" /> Speak selected label</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="toggle"><input id="autoAdvance" type="checkbox" checked /> Auto advance</label>
+        <label class="toggle"><input id="trackTrail" type="checkbox" checked /> Live trail</label>
+      </div>
+      <div class="row" style="margin-top:8px">
+        <label class="toggle"><input id="singleTargetStart" type="checkbox" checked /> Single-target first stage</label>
+        <label class="toggle"><input id="autoLevelPath" type="checkbox" checked /> Auto level path</label>
+      </div>
+      <div class="adminGrid" style="margin-top:8px">
+        <div>
+          <label for="singleTargetReps">Single-target repetitions</label>
+          <input id="singleTargetReps" type="number" min="1" max="10" value="3" />
+        </div>
+        <div>
+          <label for="sessionTaskType">Session task</label>
+          <select id="sessionTaskType">
+            <option value="auto">Auto</option>
+            <option value="touch-object">Touch object</option>
+            <option value="find-object">Find object</option>
+            <option value="discriminate-object">Discriminate object</option>
+            <option value="find-category">Find category</option>
+            <option value="choice-preference">Choice preference</option>
+            <option value="attention-cpat">CPAT attention</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <label for="faceName">Familiar face label</label>
+      <input id="faceName" type="text" value="Mum" />
+      <label for="faceUpload" style="margin-top:8px">Familiar face image (optional)</label>
+      <input id="faceUpload" type="file" accept="image/*" />
+      <label for="customUpload" style="margin-top:8px">Custom images for a question set (optional)</label>
+      <input id="customUpload" type="file" accept="image/*" multiple />
+      <div class="sub" style="margin-top:8px">If images are not uploaded, the prototype uses built-in emoji objects so it works immediately offline.</div>
+    </div>
+
+    <div class="section">
+      <label for="notes">Practitioner notes</label>
+      <textarea id="notes" placeholder="Sensory preferences, supports used, observations..."></textarea>
+      <div class="sub" style="margin-top:8px">This prototype logs question type, selected object, correctness, timing, touch path, and session timestamps in line with the client brief.</div>
+    </div>
+
+    <div class="section">
+      <div class="dashboard">
+        <div class="dashCard"><div class="k">Current learner</div><div class="v" id="dashLearner">Not set</div></div>
+        <div class="dashCard"><div class="k">Session mode</div><div class="v" id="dashMode">Desktop</div></div>
+        <div class="dashCard"><div class="k">Questions set</div><div class="v" id="dashQuestions">8</div></div>
+        <div class="dashCard"><div class="k">Prompt style</div><div class="v" id="dashPrompt">2-stage</div></div>
+      </div>
+      <div class="analyticsGrid">
+        <div class="dashCard"><div class="k">Session task lock</div><div class="v" id="dashTaskLock">Auto</div></div>
+        <div class="dashCard"><div class="k">Single-target repetitions</div><div class="v" id="dashSingleTarget">3</div></div>
+        <div class="dashCard"><div class="k">Average reaction time</div><div class="v" id="dashAvgRt">—</div></div>
+        <div class="dashCard"><div class="k">Average touch distance</div><div class="v" id="dashAvgDistance">—</div></div>
+        <div class="dashCard"><div class="k">Adaptive touch scale</div><div class="v" id="dashTouchScale">—</div></div>
+        <div class="dashCard"><div class="k">Hit radius</div><div class="v" id="dashHitRadius">—</div></div>
+      </div>
+      <div class="compactNote">Basic analytics update during the session and are also included in the exported JSON for later dashboarding and heatmap work.</div>
+      <div class="dashboardTools">
+        <button id="refreshDashboardBtn">Refresh dashboard</button>
+        <button id="loadCurrentDashboardBtn">Use current session</button>
+        <input id="dashboardImport" type="file" accept=".json,.jsonl,application/json" />
+      </div>
+      <div class="analyticsPanel">
+        <div class="chartCard">
+          <h4>Reaction time trend</h4>
+          <canvas id="rtChart" class="miniCanvas" width="320" height="140"></canvas>
+        </div>
+        <div class="chartCard">
+          <h4>Touch distance trend</h4>
+          <canvas id="distChart" class="miniCanvas" width="320" height="140"></canvas>
+        </div>
+        <div class="chartCard span2">
+          <h4>Accuracy summary</h4>
+          <div class="dashboard"><div class="dashCard"><div class="k">Correct</div><div class="v" id="dashCorrect">0</div></div><div class="dashCard"><div class="k">Incorrect</div><div class="v" id="dashIncorrect">0</div></div><div class="dashCard"><div class="k">Accuracy</div><div class="v" id="dashAccuracyLarge">0%</div></div><div class="dashCard"><div class="k">Answered</div><div class="v" id="dashAnswered">0</div></div></div>
+          <div class="accuracyBar"><div id="accuracyFill" class="accuracyFill"></div></div>
+          <div class="dashboardSource" id="dashboardSource">Showing: current session</div>
+        </div>
+        <div class="chartCard span2">
+          <h4>Question-by-question results</h4>
+          <div class="tableWrap">
+            <table>
+              <thead><tr><th>Q</th><th>Task</th><th>Selected</th><th>Correct</th><th>RT</th><th>Distance</th><th>Attention</th></tr></thead>
+              <tbody id="questionTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="chartCard span2">
+          <h4>Per-task heat map</h4>
+          <div class="heatmapControls">
+            <label for="heatmapQuestionSelect">Task</label>
+            <select id="heatmapQuestionSelect"></select>
+          </div>
+          <canvas id="heatmapCanvas" class="heatmapCanvas" width="420" height="280"></canvas>
+          <div id="heatmapMeta" class="heatMeta">Select a task to view target position, touches, and attention call.</div>
+        </div>
+        <div class="chartCard span2">
+          <h4>Attention summary</h4>
+          <div class="dashboard"><div class="dashCard"><div class="k">Attention score</div><div class="v" id="dashAttentionScore">0</div></div><div class="dashCard"><div class="k">Attention call</div><div class="v" id="dashAttentionCall">—</div></div><div class="dashCard"><div class="k">Current level</div><div class="v" id="dashCurrentLevel">1</div></div><div class="dashCard"><div class="k">Next level rule</div><div class="v" id="dashNextRule">80%+ accuracy</div></div></div>
+          <div class="compactNote">Attention is estimated from reaction time and touch distance on each task. The prototype can move to the next level automatically when session accuracy reaches 80% or above.</div>
+        </div>
+        <div class="chartCard span2">
+          <h4>Suggested next settings</h4>
+          <ul id="recommendList" class="recommendList"></ul>
+        </div>
+      </div>
+    </div>
+
+    <div class="section">
+      <div class="stat"><span>Session ID</span><b id="sid">—</b></div>
+      <div class="stat"><span>Status</span><b id="status">idle</b></div>
+      <div class="stat"><span>Question</span><b id="qIndex">0 / 0</b></div>
+      <div class="stat"><span>Accuracy</span><b id="acc">0%</b></div>
+      <div class="stat"><span>Events</span><b id="evCount">0</b></div>
+      <div class="stat"><span>Current type</span><b id="qType">—</b></div>
+    </div>
+
+    <div class="section">
+      <div class="sub">Prototype goals reflected here:</div>
+      <ul class="helperList">
+        <li>Simple touch-first discrimination tasks with progression.</li>
+        <li>Use of familiar smiling faces to support a positive emotional state.</li>
+        <li>Short sessions with configurable rewards and repeat/next flow.</li>
+      </ul>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="stage">
+      <div class="topBar">
+        <div class="learnerBanner" id="learnerBanner"><b>Learner mode</b><span class="tiny">Calmer full-screen view for pupils</span></div>
+        <div class="trackWrap">
+          <div class="badge" id="stageLabel">Welcome</div>
+          <div class="track" id="progressTrack"></div>
+          <div class="badge" id="starBadge">★ 0</div>
+        </div>
+        <div class="badge" id="levelBadge">Level 1</div>
+      </div>
+
+      <div class="playArea" id="playArea">
+        <canvas id="trailCanvas" class="trailCanvas"></canvas>
+
+        <section class="screen active" id="screenWelcome">
+          <div class="hero">Welcome to ChoiceTrain</div>
+          <div class="heroSub">A personalised, touch-first journey for choice-making, repetition, progression, and positive feedback.</div>
+          <div class="navBtns">
+            <button id="beginFlow" class="primary">Play</button>
+          </div>
+        </section>
+
+        <section class="screen" id="screenPrompt">
+          <div class="hero" id="promptTitle">Touch the object</div>
+          <div class="heroSub" id="promptSubtitle">Get ready.</div>
+          <div class="row" id="promptPreviewRow" style="justify-content:center"></div>
+        </section>
+
+        <section class="screen" id="screenChoice">
+          <div class="promptBox">
+            <div class="promptText" id="questionText">Find Mum</div>
+          </div>
+          <div class="grid" id="choiceGrid"></div>
+        </section>
+
+        <section class="screen" id="screenReward">
+          <div class="hero" id="rewardTitle">Well Done!</div>
+          <div class="stars" id="rewardStars"><span>★</span><span>★</span><span>★</span></div>
+          <div class="heroSub" id="rewardSub">Next or repeat.</div>
+          <div class="navBtns">
+            <button id="rewardNext" class="primary">Next</button>
+            <button id="rewardRepeat">Repeat</button>
+          </div>
+        </section>
+
+        <section class="screen" id="screenSummary">
+          <div class="hero">Session Complete</div>
+          <div class="heroSub" id="summaryText">Ready to export results.</div>
+          <div class="navBtns">
+            <button id="summaryRestart" class="primary">Start Again</button>
+            <button id="summaryExport">Export Data</button>
+          </div>
+        </section>
+
+        <button id="adminModeFab" class="adminFab">Admin</button>
+        <div class="fx" id="fx">
+          <div class="pulseGood" id="pulseGood"></div>
+          <div class="pulseTry" id="pulseTry"></div>
+          <div class="bigBadge" id="badge"></div>
+        </div>
+      </div>
+
+      <div class="footerBar">
+        <div>
+          <div id="footerHint">Tap Play to begin.</div>
+          <div class="tiny">Questions can run in one or two stages, with reward, next, and repeat flow inspired by the client screenshots and settings deck.</div>
+        </div>
+        <div class="row">
+          <span class="pillTag" id="touchInfo">Touch ready</span>
+          <span class="pillTag" id="modeInfo">Unlock</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+(() => {
+  const nowMs = () => (window.performance && typeof window.performance.now === 'function' ? window.performance.now() : Date.now());
+  const wallMs = () => Date.now();
+  const clamp = (v,a,b) => Math.max(a, Math.min(b,v));
+  const rand = n => Math.floor(Math.random()*n);
+  const shuffle = arr => [...arr].sort(()=>Math.random()-0.5);
+  const uuid4 = () => 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, c => {
+    const r = Math.random()*16|0, v = c==='x'?r:(r&0x3|0x8); return v.toString(16);
+  });
+  const defined = (value, fallback) => value == null ? fallback : value;
+  if(!Array.prototype.find){
+    Array.prototype.find = function(predicate, thisArg){
+      for(let i=0;i<this.length;i++){
+        if(predicate.call(thisArg, this[i], i, this)) return this[i];
+      }
+      return undefined;
+    };
+  }
+  if(!Array.prototype.includes){
+    Array.prototype.includes = function(searchElement, fromIndex){
+      const start = fromIndex == null ? 0 : Math.max(0, Number(fromIndex) || 0);
+      for(let i=start;i<this.length;i++){
+        if(this[i] === searchElement || (Number.isNaN && Number.isNaN(this[i]) && Number.isNaN(searchElement))) return true;
+      }
+      return false;
+    };
+  }
+  if(!String.prototype.startsWith){
+    String.prototype.startsWith = function(searchString, position){
+      const start = position == null ? 0 : position;
+      return this.slice(start, start + searchString.length) === searchString;
+    };
+  }
+  if(!Number.isFinite){
+    Number.isFinite = function(value){
+      return typeof value === 'number' && isFinite(value);
+    };
+  }
+  const maxSafeInteger = Number.MAX_SAFE_INTEGER || 9007199254740991;
+  const buildUiMap = () => {
+    const map = {};
+    const nodes = document.querySelectorAll('[id]');
+    for(let i=0;i<nodes.length;i++){
+      map[nodes[i].id] = nodes[i];
+    }
+    return map;
+  };
+  const clearNode = (el) => {
+    while(el && el.firstChild) el.removeChild(el.firstChild);
+  };
+  const setNodeChildren = (el, ...children) => {
+    clearNode(el);
+    children.forEach(child => { if(child) el.appendChild(child); });
+  };
+  const removeNode = (el) => {
+    if(el && el.parentNode) el.parentNode.removeChild(el);
+  };
+  const isLikelyIOS = () => /iPad|iPhone|iPod/.test(window.navigator.userAgent || '') || (window.navigator.platform === 'MacIntel' && window.navigator.maxTouchPoints > 1);
+  const getInputFile = (event) => {
+    const files = event && event.target ? event.target.files : null;
+    return files && files.length ? files[0] : null;
+  };
+  const getInputFiles = (event) => {
+    const files = event && event.target ? event.target.files : null;
+    return files ? Array.prototype.slice.call(files) : [];
+  };
+  const getFullscreenElement = () => document.fullscreenElement || document.webkitFullscreenElement || document.msFullscreenElement || document.mozFullScreenElement || null;
+  const isFullscreenSupported = () => {
+    const root = document.documentElement;
+    return !!(root.requestFullscreen || root.webkitRequestFullscreen || root.msRequestFullscreen || root.mozRequestFullScreen);
+  };
+  const requestAppFullscreen = () => {
+    const root = document.documentElement;
+    const fn = root.requestFullscreen || root.webkitRequestFullscreen || root.msRequestFullscreen || root.mozRequestFullScreen;
+    if(!fn) return null;
+    return fn.call(root) || null;
+  };
+  const exitAppFullscreen = () => {
+    const fn = document.exitFullscreen || document.webkitExitFullscreen || document.msExitFullscreen || document.mozCancelFullScreen;
+    if(!fn) return null;
+    return fn.call(document) || null;
+  };
+  const updateFullscreenButton = () => {
+    if(!ui.fullscreenBtn) return;
+    const supported = isFullscreenSupported();
+    ui.fullscreenBtn.disabled = !supported;
+    ui.fullscreenBtn.textContent = supported ? 'Fullscreen' : 'Fullscreen unavailable';
+  };
+  const triggerBlobDownload = (blob, filename) => {
+    if(window.navigator && typeof window.navigator.msSaveOrOpenBlob === 'function'){
+      window.navigator.msSaveOrOpenBlob(blob, filename);
+      return;
+    }
+    const urlApi = window.URL || window.webkitURL;
+    const link = document.createElement('a');
+    if(urlApi && typeof urlApi.createObjectURL === 'function'){
+      const objectUrl = urlApi.createObjectURL(blob);
+      link.href = objectUrl;
+      if('download' in link) link.download = filename;
+      if(isLikelyIOS()){
+        try { window.open(objectUrl, '_blank'); } catch(_err) {
+          document.body.appendChild(link);
+          try { link.click(); } catch(_err2) {}
+          removeNode(link);
+        }
+      } else {
+        document.body.appendChild(link);
+        try { link.click(); } catch(_err) {}
+        removeNode(link);
+      }
+      if(!('download' in link) && !isLikelyIOS()){
+        try { window.open(objectUrl, '_blank'); } catch(_err) {}
+      }
+      setTimeout(() => {
+        try { urlApi.revokeObjectURL(objectUrl); } catch(_err) {}
+      }, 1000);
+      return;
+    }
+    if(typeof FileReader === 'function'){
+      const reader = new FileReader();
+      reader.onload = () => {
+        try { window.open(String(reader.result || ''), '_blank'); } catch(_err) {}
+      };
+      reader.readAsDataURL(blob);
+    }
+  };
+
+  const ui = buildUiMap();
+  const wrapEl = document.querySelector('.wrap');
+  let lastPointerType = 'mouse';
+  let isTouchDevice = false;
+  let ttsVoices = [];
+
+  function refreshVoices(){
+    if(!('speechSynthesis' in window)) return;
+    try { ttsVoices = window.speechSynthesis.getVoices() || []; } catch(_err) { ttsVoices = []; }
+  }
+
+  function speak(text){
+    if(!text || !('speechSynthesis' in window) || !('SpeechSynthesisUtterance' in window)) return;
+    if(!ui.ttsToggle || !ui.ttsToggle.checked) return;
+    try {
+      const utterance = new SpeechSynthesisUtterance(String(text));
+      utterance.rate = 0.9;
+      utterance.pitch = 1;
+      utterance.volume = 1;
+      if(!ttsVoices.length) refreshVoices();
+      const preferred = ttsVoices.find(v => String(v.lang || '').toLowerCase().startsWith('en'));
+      if(preferred) utterance.voice = preferred;
+      window.speechSynthesis.cancel();
+      window.speechSynthesis.speak(utterance);
+    } catch(_err) {}
+  }
+
+  if('speechSynthesis' in window){
+    refreshVoices();
+    if(typeof window.speechSynthesis.addEventListener === 'function'){
+      window.speechSynthesis.addEventListener('voiceschanged', refreshVoices);
+    } else {
+      window.speechSynthesis.onvoiceschanged = refreshVoices;
+    }
+  }
+
+  function speakFeedback(correct, label){
+    const feedback = correct ? 'Well done' : 'Good try';
+    speak(ui.ttsLabelsToggle && ui.ttsLabelsToggle.checked && label ? `${label}. ${feedback}` : feedback);
+  }
+
+  function applyViewMode(mode, options={}){
+    const persist = options.persist !== false;
+    state.viewMode = mode;
+    wrapEl.classList.toggle('learner', mode === 'learner');
+    ui.dashMode.textContent = mode === 'learner' ? 'Learner' : 'Desktop';
+    if(persist) saveProfile();
+  }
+
+  function refreshDashboard(){
+    ui.dashLearner.textContent = currentPupilName() === 'Unknown' ? 'Not set' : currentPupilName();
+    ui.dashQuestions.textContent = String(clamp(parseInt(ui.sessionMax.value || '8', 10), 1, 20));
+    ui.dashPrompt.textContent = ui.useTwoStage.checked ? '2-stage' : '1-stage';
+    ui.dashTaskLock.textContent = ui.sessionTaskType.value === 'auto' ? 'Auto' : ui.sessionTaskType.options[ui.sessionTaskType.selectedIndex].text;
+    ui.dashSingleTarget.textContent = String(clamp(parseInt(ui.singleTargetReps.value || '3', 10), 1, 10));
+    ui.dashCurrentLevel.textContent = String(state.currentLevel || clamp(parseInt(ui.startLevel.value || '1', 10), 1, 6));
+    const source = getDashboardData();
+    const avgRt = defined(source.summary && source.summary.average_rt_ms, (state.metrics.reactionTimes.length
+      ? Math.round(state.metrics.reactionTimes.reduce((a,b)=>a+b,0) / state.metrics.reactionTimes.length)
+      : null));
+    const avgDist = defined(source.summary && source.summary.average_touch_distance_px, (state.metrics.touchDistances.length
+      ? Number((state.metrics.touchDistances.reduce((a,b)=>a+b,0) / state.metrics.touchDistances.length).toFixed(1))
+      : null));
+    ui.dashAvgRt.textContent = avgRt == null ? '—' : `${avgRt} ms`;
+    ui.dashAvgDistance.textContent = avgDist == null ? '—' : `${avgDist} px`;
+    updateAdaptiveUi();
+    renderDashboard();
+  }
+
+  function currentQuestionRows(){
+    const choiceEvents = logs.filter(e => e.session_id === sessionId && e.type === 'choice_selected');
+    return choiceEvents.map(e => ({
+      index: e.question_index,
+      attempt: defined(e.question_attempt, 1),
+      task: e.task_label || e.kind || '—',
+      selected: e.selected_label || '—',
+      correct: !!e.correct,
+      rt: defined(e.rt_ms, null),
+      distance: defined(e.distance_to_target_px, null),
+      attention: defined(e.attention_score, null)
+    }));
+  }
+
+  function getDashboardData(){
+    if(state.importedDashboard){
+      return state.importedDashboard;
+    }
+    const summary = analyticsSummary();
+    return {
+      source: 'current session',
+      summary,
+      rows: currentQuestionRows(),
+      events: logs.filter(e => e.session_id === sessionId)
+    };
+  }
+
+  function attentionScore(rt, dist){
+    const rtNorm = clamp((rt || 0) / 5000, 0, 1);
+    const distNorm = clamp((dist || 0) / 220, 0, 1);
+    return Math.round((((1 - rtNorm) * 0.5) + ((1 - distNorm) * 0.5)) * 100);
+  }
+
+  function attentionCall(score){
+    if(score >= 80) return 'Strong';
+    if(score >= 60) return 'Moderate';
+    if(score >= 40) return 'Emerging';
+    return 'Needs support';
+  }
+
+  function levelSpec(level){
+    const scale = getAdaptiveTouchScale();
+    const specs = {
+      1: { kind:'touch-object', size: 280 * scale, movable:false, optionCount:1, subtitle:'Level 1: one identical large target.' },
+      2: { kind:'touch-object', size: 240 * scale, movable:false, optionCount:1, subtitle:'Level 2: repeat the same large target; 80%+ accuracy advances.' },
+      3: { kind:'touch-object', size: 170 * scale, movable:true, optionCount:1, subtitle:'Level 3: smaller moving target for fine motor skill.' },
+      4: { kind:'find-object', size: 150 * scale, movable:true, optionCount:2, subtitle:'Level 4: move from targeting into choosing.' },
+      5: { kind:'find-category', size: 140 * scale, movable:true, optionCount:3, subtitle:'Level 5: category work with smaller targets.' },
+      6: { kind:'attention-cpat', size: 135 * scale, movable:true, optionCount:4, subtitle:'Level 6: simple CPAT-style attention practice.' },
+    };
+    return specs[Math.min(6, Math.max(1, level || 1))];
+  }
+
+  function getTaskKindForQuestion(){
+    const selected = selectedSessionTaskMode();
+    if(selected !== 'auto') return selected;
+    if(!ui.autoLevelPath.checked) return chooseSessionTaskKind(state.questionIndex || 1);
+    return levelSpec(state.currentLevel).kind;
+  }
+
+  function shouldAdvanceLevel(summary){
+    const completedLevel = (summary.questions_answered || 0) >= state.totalQuestions;
+    return !!ui.autoLevelPath.checked
+      && selectedSessionTaskMode() === 'auto'
+      && completedLevel
+      && (state.currentLevel || 1) < 6
+      && (summary.accuracy_pct || 0) >= 80;
+  }
+
+  function recommendationItems(summary){
+    const items = [];
+    if(!summary || !summary.questions_answered){
+      items.push('Run a short session to generate baseline analytics.');
+      items.push('Keep the first task simple and familiar, for example “Touch Mum”.');
+      return items;
+    }
+    if(summary.accuracy_pct < 50) items.push('Keep the same task for the next session and reduce complexity or number of distractors.');
+    else if(summary.accuracy_pct < 80) items.push('Repeat the same task type again before increasing difficulty.');
+    else items.push('Consider progressing the next session slightly, for example by increasing distractors or reducing target size.');
+    if(summary.average_rt_ms && summary.average_rt_ms > 2500) items.push('Increase the delay or allow a calmer pace, as responses are currently taking longer.');
+    if(summary.average_touch_distance_px && summary.average_touch_distance_px > 80) items.push('Increase target size or keep a single-target layout until touch accuracy improves.');
+    if((summary.questions_answered || 0) < 5) items.push('Capture a few more repetitions before making progression decisions.');
+    if((summary.accuracy_pct || 0) >= 80) items.push('Accuracy is at or above 80%, so the learner can move to the next level automatically.');
+    if((summary.current_level || 1) >= 5) items.push('Consider introducing more CPAT-style attention training in the next phase.');
+    return items;
+  }
+
+  function drawMiniChart(canvas, values, options={}){
+    if(!canvas) return;
+    const c = canvas.getContext('2d');
+    const w = canvas.width, h = canvas.height;
+    c.clearRect(0,0,w,h);
+    c.fillStyle = 'rgba(255,255,255,0.02)';
+    c.fillRect(0,0,w,h);
+    c.strokeStyle = 'rgba(255,255,255,0.08)';
+    c.lineWidth = 1;
+    for(let i=1;i<=4;i++){
+      const y = (h-20) * i/4;
+      c.beginPath(); c.moveTo(30,y); c.lineTo(w-10,y); c.stroke();
+    }
+    if(!values.length){
+      c.fillStyle = 'rgba(255,255,255,0.45)';
+      c.font = '12px sans-serif';
+      c.fillText('No data yet', 30, h/2);
+      return;
+    }
+    const max = Math.max(...values, 1);
+    const min = Math.min(...values, 0);
+    const range = Math.max(max-min, 1);
+    c.strokeStyle = options.stroke || '#71d4ff';
+    c.lineWidth = 3;
+    c.beginPath();
+    values.forEach((v,i)=>{
+      const x = 30 + (values.length===1 ? 0 : (w-50) * (i/(values.length-1)));
+      const y = 10 + (h-30) * (1 - ((v-min)/range));
+      if(i===0) c.moveTo(x,y); else c.lineTo(x,y);
+    });
+    c.stroke();
+    c.fillStyle = options.stroke || '#71d4ff';
+    values.forEach((v,i)=>{
+      const x = 30 + (values.length===1 ? 0 : (w-50) * (i/(values.length-1)));
+      const y = 10 + (h-30) * (1 - ((v-min)/range));
+      c.beginPath(); c.arc(x,y,4,0,Math.PI*2); c.fill();
+    });
+    c.fillStyle = 'rgba(255,255,255,0.7)';
+    c.font = '11px sans-serif';
+    c.fillText(`${Math.round(min)}`, 4, h-10);
+    c.fillText(`${Math.round(max)}`, 4, 14);
+  }
+
+  function buildQuestionHeatmapData(data){
+    const events = data.events || [];
+    const grouped = new Map();
+    for(const ev of events){
+      const qIndex = ev.question_index;
+      const qAttempt = defined(ev.question_attempt, 1);
+      if(qIndex == null) continue;
+      const key = `${qIndex}:${qAttempt}`;
+      if(!grouped.has(key)) grouped.set(key, {heatmap_key:key, question_index:qIndex, question_attempt:qAttempt, touches:[], cue:null, choice:null});
+      const rec = grouped.get(key);
+      if(ev.type === 'cue_shown') rec.cue = ev;
+      else if(ev.type === 'choice_selected') rec.choice = ev;
+      else if(String(ev.type || '').startsWith('pointer_')) rec.touches.push(ev);
+    }
+    return [...grouped.values()].sort((a,b)=>(a.question_index-b.question_index) || ((a.question_attempt || 1) - (b.question_attempt || 1)));
+  }
+
+  function populateHeatmapSelector(data){
+    const tasks = buildQuestionHeatmapData(data);
+    ui.heatmapQuestionSelect.innerHTML = '';
+    tasks.forEach(task => {
+      const opt = document.createElement('option');
+      opt.value = task.heatmap_key;
+      const label = (task.choice && task.choice.task_label) || (task.cue && task.cue.task_label) || (task.cue && task.cue.kind) || 'Task';
+      const attemptLabel = (task.question_attempt || 1) > 1 ? ` Attempt ${task.question_attempt}` : '';
+      opt.textContent = '';
+      opt.textContent = `Q${task.question_index}${attemptLabel} ${String.fromCharCode(8212)} ${label}`;
+      ui.heatmapQuestionSelect.appendChild(opt);
+    });
+    if(tasks.length){
+      renderHeatmapForQuestion(tasks[0].heatmap_key, data);
+    } else {
+      const hc = ui.heatmapCanvas.getContext('2d');
+      hc.clearRect(0,0,ui.heatmapCanvas.width,ui.heatmapCanvas.height);
+      ui.heatmapMeta.textContent = 'No task heatmap available yet.';
+    }
+  }
+
+  function renderHeatmapMeta(task, details){
+    ui.heatmapMeta.textContent = '';
+    const attemptLabel = (task.question_attempt || 1) > 1 ? ` attempt ${task.question_attempt}` : '';
+    ui.heatmapMeta.appendChild(document.createTextNode(`Task ${task.question_index}${attemptLabel}: target shown in green, touches in blue. Reaction time: `));
+    const rt = document.createElement('b');
+    rt.textContent = String(details.rt);
+    ui.heatmapMeta.appendChild(rt);
+    ui.heatmapMeta.appendChild(document.createTextNode(' ms. Distance: '));
+    const dist = document.createElement('b');
+    dist.textContent = String(details.dist);
+    ui.heatmapMeta.appendChild(dist);
+    ui.heatmapMeta.appendChild(document.createTextNode(' px. '));
+    ['Attention ' + details.score, details.call, details.correctness].forEach(text => {
+      const pill = document.createElement('span');
+      pill.className = 'attentionCall';
+      pill.textContent = text;
+      ui.heatmapMeta.appendChild(pill);
+    });
+    if(details.missingTargetBox){
+      ui.heatmapMeta.appendChild(document.createTextNode(' '));
+      const note = document.createElement('span');
+      note.className = 'attentionCall';
+      note.textContent = 'Target box unavailable in this import';
+      ui.heatmapMeta.appendChild(note);
+    }
+  }
+
+  function renderHeatmapForQuestion(taskKey, data){
+    const ctxH = ui.heatmapCanvas.getContext('2d');
+    const W = ui.heatmapCanvas.width, H = ui.heatmapCanvas.height;
+    ctxH.clearRect(0,0,W,H);
+    ctxH.fillStyle = '#0b1320';
+    ctxH.fillRect(0,0,W,H);
+    const tasks = buildQuestionHeatmapData(data);
+    const task = tasks.find(t => String(t.heatmap_key) === String(taskKey));
+    if(!task){ ui.heatmapMeta.textContent = 'No data for this task.'; return; }
+    const bbox = task.choice && task.choice.target_canvas_bbox ? task.choice.target_canvas_bbox : null;
+    const missingTargetBox = !bbox && !!(task.choice && task.choice.target_bbox);
+    const all = task.touches.filter(t => Number.isFinite(t.x) && Number.isFinite(t.y));
+    const xs = all.map(t => t.x); const ys = all.map(t => t.y);
+    if(bbox){ xs.push(bbox.x, bbox.x + bbox.w); ys.push(bbox.y, bbox.y + bbox.h); }
+    const minX = xs.length ? Math.min(...xs) - 20 : 0;
+    const maxX = xs.length ? Math.max(...xs) + 20 : 100;
+    const minY = ys.length ? Math.min(...ys) - 20 : 0;
+    const maxY = ys.length ? Math.max(...ys) + 20 : 100;
+    const sx = (x) => 20 + ((x - minX) / Math.max(maxX - minX, 1)) * (W - 40);
+    const sy = (y) => 20 + ((y - minY) / Math.max(maxY - minY, 1)) * (H - 40);
+    if(bbox){
+      const x = sx(bbox.x), y = sy(bbox.y);
+      const w = Math.max(12, sx(bbox.x + bbox.w) - sx(bbox.x));
+      const h = Math.max(12, sy(bbox.y + bbox.h) - sy(bbox.y));
+      ctxH.strokeStyle = 'rgba(142,240,177,0.95)';
+      ctxH.lineWidth = 3;
+      ctxH.strokeRect(x, y, w, h);
+      ctxH.fillStyle = 'rgba(142,240,177,0.12)';
+      ctxH.fillRect(x, y, w, h);
+    }
+    for(const t of all){
+      const x = sx(t.x), y = sy(t.y);
+      const grad = ctxH.createRadialGradient(x,y,2,x,y,18);
+      grad.addColorStop(0,'rgba(113,212,255,0.55)');
+      grad.addColorStop(1,'rgba(113,212,255,0)');
+      ctxH.fillStyle = grad;
+      ctxH.beginPath(); ctxH.arc(x,y,18,0,Math.PI*2); ctxH.fill();
+      ctxH.fillStyle = 'rgba(255,255,255,0.82)';
+      ctxH.beginPath(); ctxH.arc(x,y,2.4,0,Math.PI*2); ctxH.fill();
+    }
+    const score = defined(task.choice && task.choice.attention_score, 0);
+    const call = defined(task.choice && task.choice.attention_call, attentionCall(score));
+    const rt = defined(task.choice && task.choice.rt_ms, '—');
+    const dist = defined(task.choice && task.choice.distance_to_target_px, '—');
+    const correctness = task.choice && task.choice.correct ? 'Correct' : 'Needs support';
+    renderHeatmapMeta(task, {score, call, rt, dist, correctness, missingTargetBox});
+  }
+
+  function appendTableCell(tr, text, className=''){
+    const td = document.createElement('td');
+    if(className) td.className = className;
+    td.textContent = text;
+    tr.appendChild(td);
+  }
+
+  function renderDashboard(){
+    const data = getDashboardData();
+    const summary = data.summary || {};
+    const rows = data.rows || [];
+    const accuracyPct = clamp(Number(defined(summary.accuracy_pct, 0)) || 0, 0, 100);
+    ui.dashCorrect.textContent = String(defined(summary.correct, 0));
+    ui.dashIncorrect.textContent = String(defined(summary.incorrect, 0));
+    ui.dashAccuracyLarge.textContent = `${accuracyPct}%`;
+    ui.dashAnswered.textContent = String(defined(summary.questions_answered, defined(rows.length, 0)));
+    ui.accuracyFill.style.width = `${accuracyPct}%`;
+    ui.dashAttentionScore.textContent = String(defined(summary.average_attention_score, 0));
+    ui.dashAttentionCall.textContent = defined(summary.attention_call, '—');
+    ui.dashCurrentLevel.textContent = String(defined(summary.current_level, defined(state.currentLevel, 1)));
+    ui.dashboardSource.textContent = `Showing: ${data.source || 'current session'}`;
+
+    const tbody = ui.questionTableBody;
+    tbody.innerHTML = '';
+    rows.slice().sort((a,b)=>{
+      const aIndex = Number(a.index);
+      const bIndex = Number(b.index);
+      const indexDiff = (Number.isFinite(aIndex) ? aIndex : maxSafeInteger) - (Number.isFinite(bIndex) ? bIndex : maxSafeInteger);
+      if(indexDiff) return indexDiff;
+      const aAttempt = Number(defined(a.attempt, 1));
+      const bAttempt = Number(defined(b.attempt, 1));
+      return (Number.isFinite(aAttempt) ? aAttempt : 1) - (Number.isFinite(bAttempt) ? bAttempt : 1);
+    }).forEach(r => {
+      const tr = document.createElement('tr');
+      tr.textContent = '';
+      const dash = String.fromCharCode(8212);
+      const qLabel = r.index == null ? dash : (defined(r.attempt, 1) > 1 ? `${r.index} (${r.attempt})` : String(r.index));
+      clearNode(tr);
+      appendTableCell(tr, qLabel);
+      appendTableCell(tr, defined(r.task, dash));
+      appendTableCell(tr, defined(r.selected, dash));
+      appendTableCell(tr, r.correct ? 'Yes' : 'No', r.correct ? 'ok' : 'nope');
+      appendTableCell(tr, r.rt == null ? dash : `${Math.round(r.rt)} ms`);
+      appendTableCell(tr, r.distance == null ? dash : `${Number(r.distance).toFixed(1)} px`);
+      appendTableCell(tr, r.attention == null ? dash : String(r.attention));
+      tbody.appendChild(tr);
+    });
+    if(!rows.length){
+      const tr = document.createElement('tr');
+      tr.innerHTML = '<td colspan="7" class="tiny">No question results yet.</td>';
+      tbody.appendChild(tr);
+    }
+
+    drawMiniChart(ui.rtChart, rows.map(r => Number(r.rt)).filter(v => Number.isFinite(v)), {stroke:'#71d4ff'});
+    drawMiniChart(ui.distChart, rows.map(r => Number(r.distance)).filter(v => Number.isFinite(v)), {stroke:'#ffd27d'});
+
+    ui.recommendList.innerHTML = '';
+    recommendationItems(summary).forEach(item => {
+      const li = document.createElement('li');
+      li.textContent = item;
+      ui.recommendList.appendChild(li);
+    });
+    populateHeatmapSelector(data);
+  }
+  const screens = {
+    welcome: ui.screenWelcome,
+    prompt: ui.screenPrompt,
+    choice: ui.screenChoice,
+    reward: ui.screenReward,
+    summary: ui.screenSummary,
+  };
+
+  const ctx = ui.trailCanvas.getContext('2d');
+  let dpr = 1;
+  function resizeCanvas(){
+    const rect = ui.playArea.getBoundingClientRect();
+    dpr = window.devicePixelRatio || 1;
+    ui.trailCanvas.width = Math.round(rect.width);
+    ui.trailCanvas.height = Math.round(rect.height);
+    ui.trailCanvas.style.width = `${Math.round(rect.width)}px`;
+    ui.trailCanvas.style.height = `${Math.round(rect.height)}px`;
+    ctx.setTransform(1,0,0,1,0,0);
+    drawTrail();
+  }
+
+  function getPlayAreaPoint(clientX, clientY){
+    const rect = ui.playArea.getBoundingClientRect();
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+      rect
+    };
+  }
+
+  function getCanvasPoint(clientX, clientY){
+    const rect = ui.trailCanvas.getBoundingClientRect();
+    return {
+      x: clientX - rect.left,
+      y: clientY - rect.top,
+      scaleX: 1,
+      scaleY: 1,
+      rect
+    };
+  }
+
+  function getAdaptiveTouchScale(){
+    const base = clamp(parseInt(ui.targetScale.value || '100', 10) / 100, 0.8, 2.2);
+    if(!ui.autoTouchScale.checked) return base;
+    const rect = ui.playArea.getBoundingClientRect();
+    const minDim = Math.max(240, Math.min(rect.width, rect.height));
+    let screenFactor = 1;
+    if(minDim < 360) screenFactor = 1.45;
+    else if(minDim < 480) screenFactor = 1.28;
+    else if(minDim < 640) screenFactor = 1.14;
+    let pointerFactor = 1;
+    if(lastPointerType === 'touch') pointerFactor = 1.18;
+    else if(lastPointerType === 'pen') pointerFactor = 1.08;
+    return Number(clamp(base * screenFactor * pointerFactor, 0.8, 2.4).toFixed(2));
+  }
+
+  function getAdaptiveHitRadius(){
+    const rect = ui.playArea.getBoundingClientRect();
+    const minDim = Math.max(240, Math.min(rect.width, rect.height));
+    const base = minDim < 360 ? 52 : minDim < 480 ? 44 : minDim < 640 ? 36 : 28;
+    const scaled = base * getAdaptiveTouchScale();
+    return Number(clamp(scaled, 24, 96).toFixed(1));
+  }
+
+  function updateAdaptiveUi(){
+    if(ui.dashTouchScale) ui.dashTouchScale.textContent = `${Math.round(getAdaptiveTouchScale()*100)}%`;
+    if(ui.dashHitRadius) ui.dashHitRadius.textContent = `${Math.round(getAdaptiveHitRadius())} px`;
+  }
+
+  window.addEventListener('resize', () => { resizeCanvas(); updateAdaptiveUi(); });
+  ['fullscreenchange','webkitfullscreenchange','msfullscreenchange','mozfullscreenchange'].forEach(eventName => {
+    document.addEventListener(eventName, updateFullscreenButton);
+  });
+
+  const STORAGE_KEY = 'choice_train_logs_v1';
+  const PROFILE_KEY = 'choice_train_profile_v1';
+  const PUPIL_PROFILES_KEY = 'ct_profiles';
+  let sessionId = uuid4();
+  let logs = [];
+  try { logs = JSON.parse(localStorage.getItem(STORAGE_KEY) || '[]'); } catch(_err) {}
+  ui.sid.textContent = sessionId.slice(0,8);
+  ui.evCount.textContent = String(logs.length);
+
+  function logEvent(type, data={}){
+    const e = {
+      v:1, session_id:sessionId, pupil_alias:currentPupilName(),
+      t_wall_ms:wallMs(), t_perf_ms:Math.round(nowMs()),
+      type, ...data
+    };
+    logs.push(e);
+    try { localStorage.setItem(STORAGE_KEY, JSON.stringify(logs)); } catch(_err) {}
+    ui.evCount.textContent = String(logs.length);
+    return e;
+  }
+
+  const builtInObjects = [
+    {id:'dog', label:'Dog', emoji:'🐶', category:'animals'},
+    {id:'cat', label:'Cat', emoji:'🐱', category:'animals'},
+    {id:'apple', label:'Apple', emoji:'🍎', category:'fruit'},
+    {id:'pear', label:'Pear', emoji:'🍐', category:'fruit'},
+    {id:'banana', label:'Banana', emoji:'🍌', category:'fruit'},
+    {id:'train', label:'Train', emoji:'🚂', category:'transport'},
+    {id:'car', label:'Car', emoji:'🚗', category:'transport'},
+    {id:'ball', label:'Ball', emoji:'⚽', category:'play'},
+    {id:'duck', label:'Duck', emoji:'🦆', category:'animals'},
+    {id:'fish', label:'Fish', emoji:'🐟', category:'animals'},
+    {id:'music', label:'Music', emoji:'🎵', category:'choice'},
+    {id:'star', label:'Star', emoji:'⭐', category:'shapes'},
+  ];
+
+  const state = {
+    screen:'welcome',
+    phase:'idle',
+    sessionStartMs:0,
+    currentQuestionStart:0,
+    questionIndex:0,
+    questionAttempt:0,
+    totalQuestions:8,
+    correct:0,
+    incorrect:0,
+    stations:8,
+    stars:0,
+    currentQuestion:null,
+    currentOptions:[],
+    previewTimeout:null,
+    autoTimeout:null,
+    touches:[],
+    trailOn:true,
+    familiarFace:null,
+    customImages:[],
+    profileLoaded:false,
+    viewMode:'desktop',
+    sessionTaskType:null,
+    sessionTaskLabel:'Auto',
+    singleTargetRepetitions:3,
+    targetLayouts:{},
+    metrics:{
+      reactionTimes:[],
+      touchDistances:[],
+      targetDistances:[]
+    },
+    pendingPointer:null,
+    dashboardSource:'current session',
+    importedDashboard:null,
+    currentLevel:1,
+    sessionTarget:null,
+    sessionDeadlineTimer:null,
+    currentPupil:null,
+  };
+
+  function normaliseProfile(name, profile={}){
+    return {
+      name: profile.name || name,
+      lastLevel: clamp(parseInt(profile.lastLevel || '1', 10), 1, 6),
+      sessions: Array.isArray(profile.sessions) ? profile.sessions : []
+    };
+  }
+
+  function getProfiles(){
+    try {
+      const parsed = JSON.parse(localStorage.getItem(PUPIL_PROFILES_KEY) || '{}');
+      if(!parsed || typeof parsed !== 'object' || Array.isArray(parsed)) return {};
+      const profiles = {};
+      Object.keys(parsed).forEach(name => {
+        const cleanName = String(name || '').trim();
+        if(cleanName) profiles[cleanName] = normaliseProfile(cleanName, parsed[name]);
+      });
+      return profiles;
+    } catch(_err) {
+      return {};
+    }
+  }
+
+  function saveProfiles(profiles){
+    try { localStorage.setItem(PUPIL_PROFILES_KEY, JSON.stringify(profiles)); } catch(_err) {}
+  }
+
+  function currentPupilName(){
+    return ((state.currentPupil && state.currentPupil.name) || ui.pupilAlias.value || 'Unknown').trim() || 'Unknown';
+  }
+
+  function selectPupil(name, options={}){
+    const profiles = getProfiles();
+    const profile = profiles[name];
+    if(!profile){
+      state.currentPupil = null;
+      return;
+    }
+    state.currentPupil = profile;
+    ui.pupilSelect.value = name;
+    ui.pupilAlias.value = profile.name;
+    ui.startLevel.value = profile.lastLevel;
+    if(state.phase === 'idle' || state.phase === 'complete' || !state.sessionStartMs){
+      state.currentLevel = profile.lastLevel;
+      updateStats();
+      rebuildTrack();
+    }
+    if(options.speakGreeting) speak(`Hello ${profile.name}`);
+  }
+
+  function loadPupilList(preferredName){
+    let profiles = getProfiles();
+    const existingAlias = (ui.pupilAlias.value || '').trim();
+    if(!Object.keys(profiles).length && existingAlias){
+      profiles[existingAlias] = normaliseProfile(existingAlias, {
+        lastLevel: clamp(parseInt(ui.startLevel.value || '1', 10), 1, 6),
+        sessions: []
+      });
+      saveProfiles(profiles);
+    }
+
+    ui.pupilSelect.innerHTML = '';
+    const names = Object.keys(profiles).sort((a,b) => a.localeCompare(b));
+    if(!names.length){
+      const opt = document.createElement('option');
+      opt.value = '';
+      opt.textContent = 'No pupils yet';
+      ui.pupilSelect.appendChild(opt);
+      state.currentPupil = null;
+      return;
+    }
+
+    names.forEach(name => {
+      const opt = document.createElement('option');
+      opt.value = name;
+      opt.textContent = name;
+      ui.pupilSelect.appendChild(opt);
+    });
+    const selected = preferredName && profiles[preferredName] ? preferredName : names[0];
+    selectPupil(selected);
+  }
+
+  function savePupilProgress(summary, progressedLevel){
+    const name = currentPupilName();
+    if(!name || name === 'Unknown') return;
+    const profiles = getProfiles();
+    const profile = normaliseProfile(name, profiles[name] || {name});
+    profile.lastLevel = state.currentLevel;
+    profile.sessions.push({
+      timestamp: new Date().toISOString(),
+      session_id: sessionId,
+      progressed_level: !!progressedLevel,
+      next_level: state.currentLevel,
+      summary
+    });
+    profiles[name] = profile;
+    saveProfiles(profiles);
+    state.currentPupil = profile;
+    loadPupilList(name);
+  }
+
+  function safeFilenamePart(value){
+    return String(value || 'Unknown').trim().replace(/\s+/g, '').replace(/[^a-z0-9_-]/gi, '') || 'Unknown';
+  }
+
+  function localTimestampForFile(date=new Date()){
+    const pad = n => String(n).padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth()+1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}`;
+  }
+
+  function saveProfile(){
+    const profile = {
+      pupilAlias: ui.pupilAlias.value,
+      sessionMax: ui.sessionMax.value,
+      maxObjects: ui.maxObjects.value,
+      delaySec: ui.delaySec.value,
+      sessionMinutes: ui.sessionMinutes.value,
+      useTwoStage: ui.useTwoStage.checked,
+      useReward: ui.useReward.checked,
+      useTextPrompt: ui.useTextPrompt.checked,
+      useImagePrompt: ui.useImagePrompt.checked,
+      useFace: ui.useFace.checked,
+      ttsToggle: ui.ttsToggle.checked,
+      ttsLabelsToggle: ui.ttsLabelsToggle.checked,
+      autoAdvance: ui.autoAdvance.checked,
+      trackTrail: ui.trackTrail.checked,
+      singleTargetStart: ui.singleTargetStart.checked,
+      singleTargetReps: ui.singleTargetReps.value,
+      sessionTaskType: ui.sessionTaskType.value,
+      targetScale: ui.targetScale.value,
+      startLevel: ui.startLevel.value,
+      autoLevelPath: ui.autoLevelPath.checked,
+      autoTouchScale: ui.autoTouchScale.checked,
+      showTouchDebug: ui.showTouchDebug.checked,
+      viewMode: state.viewMode || 'desktop',
+      selectedPupil: (state.currentPupil && state.currentPupil.name) || ui.pupilSelect.value || '',
+      faceName: ui.faceName.value,
+      notes: ui.notes.value,
+      familiarFace: state.familiarFace,
+      customImages: state.customImages,
+    };
+    try { localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch(_err) {}
+  }
+
+  function loadProfile(){
+    try {
+      const p = JSON.parse(localStorage.getItem(PROFILE_KEY) || 'null');
+      if (!p) return null;
+      ui.pupilAlias.value = p.pupilAlias || '';
+      ui.sessionMax.value = p.sessionMax || 8;
+      ui.maxObjects.value = p.maxObjects || 4;
+      ui.delaySec.value = p.delaySec || 1;
+      ui.sessionMinutes.value = p.sessionMinutes || 3;
+      ui.useTwoStage.checked = !!p.useTwoStage;
+      ui.useReward.checked = p.useReward !== false;
+      ui.useTextPrompt.checked = p.useTextPrompt !== false;
+      ui.useImagePrompt.checked = p.useImagePrompt !== false;
+      ui.useFace.checked = p.useFace !== false;
+      ui.ttsToggle.checked = p.ttsToggle !== false;
+      ui.ttsLabelsToggle.checked = !!p.ttsLabelsToggle;
+      ui.autoAdvance.checked = p.autoAdvance !== false;
+      ui.trackTrail.checked = p.trackTrail !== false;
+      ui.singleTargetStart.checked = p.singleTargetStart !== false;
+      ui.singleTargetReps.value = p.singleTargetReps || 3;
+      ui.sessionTaskType.value = p.sessionTaskType || 'auto';
+      ui.targetScale.value = p.targetScale || 100;
+      ui.startLevel.value = p.startLevel || 1;
+      ui.autoLevelPath.checked = p.autoLevelPath !== false;
+      ui.autoTouchScale.checked = p.autoTouchScale !== false;
+      ui.showTouchDebug.checked = !!p.showTouchDebug;
+      ui.faceName.value = p.faceName || 'Mum';
+      ui.notes.value = p.notes || '';
+      state.viewMode = p.viewMode === 'learner' ? 'learner' : 'desktop';
+      state.familiarFace = p.familiarFace || null;
+      state.customImages = p.customImages || [];
+      return p;
+    } catch(_err) {}
+    return null;
+  }
+
+  function showScreen(name){
+    Object.keys(screens).forEach(key => screens[key].classList.remove('active'));
+    screens[name].classList.add('active');
+    state.screen = name;
+    ui.modeInfo.textContent = name[0].toUpperCase() + name.slice(1);
+  }
+
+  function updateStats(){
+    const totalAnswered = state.correct + state.incorrect;
+    const acc = totalAnswered ? Math.round((state.correct / totalAnswered) * 100) : 0;
+    ui.status.textContent = state.phase;
+    ui.qIndex.textContent = `${state.questionIndex} / ${state.totalQuestions}`;
+    ui.acc.textContent = `${acc}%`;
+    ui.acc.className = acc >= 80 ? 'good' : acc >= 40 ? 'warnText' : '';
+    ui.qType.textContent = (state.currentQuestion && state.currentQuestion.kind) || '—';
+    ui.starBadge.textContent = `★ ${state.stars}`;
+    ui.levelBadge.textContent = `Level ${state.currentLevel || clamp(parseInt(ui.startLevel.value || '1', 10), 1, 6)}`;
+    refreshDashboard();
+  }
+
+  function rebuildTrack(){
+    ui.progressTrack.innerHTML = '';
+    for(let i=1;i<=state.totalQuestions;i++){
+      const st = document.createElement('div');
+      st.className = 'station' + (i < state.questionIndex ? ' done' : i === state.questionIndex ? ' current' : '');
+      st.textContent = i;
+      ui.progressTrack.appendChild(st);
+      if(i < state.totalQuestions){
+        const line = document.createElement('div');
+        line.className = 'trackLine';
+        const fill = document.createElement('div');
+        fill.className = 'trackFill';
+        const pct = i < state.questionIndex ? 100 : 0;
+        fill.style.width = pct + '%';
+        line.appendChild(fill);
+        ui.progressTrack.appendChild(line);
+      }
+    }
+  }
+
+  function showRipple(x,y,color='rgba(255,255,255,.75)'){
+    const r = document.createElement('div');
+    r.className = 'ripple';
+    r.style.left = x + 'px';
+    r.style.top = y + 'px';
+    r.style.borderColor = color;
+    r.style.boxShadow = `0 0 18px ${color}`;
+    ui.fx.appendChild(r);
+    setTimeout(()=>removeNode(r),600);
+  }
+
+  function flash(kind,text){
+    const pulse = kind === 'good' ? ui.pulseGood : ui.pulseTry;
+    pulse.style.animation = 'none'; void pulse.offsetWidth; pulse.style.animation = '';
+    ui.badge.textContent = text;
+    ui.badge.classList.remove('badgeShow'); void ui.badge.offsetWidth; ui.badge.classList.add('badgeShow');
+  }
+
+  function addTouchPoint(x,y,type='move'){
+    if(!ui.trackTrail.checked) return;
+    const t = nowMs();
+    state.touches.push({x,y,type,t});
+    state.touches = state.touches.filter(p => t - p.t < 5000);
+    drawTrail();
+  }
+
+  function drawTrail(){
+    const rect = ui.playArea.getBoundingClientRect();
+    ctx.clearRect(0,0,rect.width,rect.height);
+    if(!ui.trackTrail.checked || state.touches.length < 2) return;
+    const now = nowMs();
+    for(let i=1;i<state.touches.length;i++){
+      const a = state.touches[i-1], b = state.touches[i];
+      const age = clamp(1 - ((now - b.t)/5000), 0, 1);
+      ctx.strokeStyle = `rgba(113,212,255,${0.18 + age*0.45})`;
+      ctx.lineWidth = 4 + age*6;
+      ctx.lineCap = 'round';
+      ctx.beginPath(); ctx.moveTo(a.x,a.y); ctx.lineTo(b.x,b.y); ctx.stroke();
+    }
+  }
+
+  function clearTrail(){ state.touches = []; drawTrail(); }
+
+  function drawTouchDebug(x, y, currentTarget){
+    drawTrail();
+    ctx.save();
+    ctx.strokeStyle = 'rgba(255,99,132,0.95)';
+    ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.arc(x, y, 8, 0, Math.PI*2); ctx.stroke();
+    const hitRadius = getAdaptiveHitRadius();
+    ctx.strokeStyle = 'rgba(255,210,125,0.55)';
+    ctx.beginPath(); ctx.arc(x, y, hitRadius, 0, Math.PI*2); ctx.stroke();
+    if(currentTarget){
+      const target = getElementPlayAreaCentre(currentTarget);
+      if(target){
+        ctx.strokeStyle = 'rgba(142,240,177,0.95)';
+        ctx.beginPath(); ctx.arc(target.x, target.y, 10, 0, Math.PI*2); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(target.x, target.y); ctx.stroke();
+      }
+    }
+    ctx.restore();
+  }
+
+  function setFooter(text, tag='Touch ready'){
+    ui.footerHint.textContent = text;
+    ui.touchInfo.textContent = tag;
+  }
+
+  function buildChoiceMediaElement(item, className){
+    const media = document.createElement('div');
+    media.className = className;
+    if(item && item.src){
+      const img = document.createElement('img');
+      img.src = String(item.src);
+      img.alt = String(item.label || '');
+      media.appendChild(img);
+      return media;
+    }
+    media.textContent = (item && item.emoji) || String.fromCharCode(11044);
+    return media;
+  }
+
+  function makePromptPreview(question){
+    ui.promptPreviewRow.innerHTML = '';
+    const items = [];
+    if(ui.useImagePrompt.checked && question.target) items.push(question.target);
+    if(ui.useFace.checked && question.face) items.push(question.face);
+    items.forEach(it => {
+      const card = document.createElement('div');
+      const cls = it.kind === 'face' ? 'faceCircle round' : 'imgCircle';
+      card.className = 'bigCard';
+      card.textContent = '';
+      const label = document.createElement('div');
+      label.style.fontSize = '22px';
+      label.style.fontWeight = '800';
+      label.textContent = it.label;
+      setNodeChildren(card, buildChoiceMediaElement(it, cls), label);
+      ui.promptPreviewRow.appendChild(card);
+    });
+  }
+
+  function getFaceObject(){
+    const label = ui.faceName.value || 'Mum';
+    return { id:'familiar-face', label, kind:'face', src:state.familiarFace, emoji:'🙂', category:'people' };
+  }
+
+  function objectPool(){
+    const pool = [...builtInObjects];
+    for(const c of state.customImages){ pool.push(c); }
+    return pool;
+  }
+
+  function pickDistinct(pool, n, excludeIds=[]){
+    const filtered = pool.filter(p => !excludeIds.includes(p.id));
+    return shuffle(filtered).slice(0, n);
+  }
+
+  function optionsWithTarget(target, candidates, count){
+    const limit = clamp(parseInt(count || candidates.length + 1, 10), 1, 6);
+    if(!target) return shuffle(candidates.filter(Boolean)).slice(0, limit);
+    const opts = [target];
+    const seen = new Set([target.id]);
+    for(const item of candidates){
+      if(!item || seen.has(item.id) || opts.length >= limit) continue;
+      opts.push(item);
+      seen.add(item.id);
+    }
+    return shuffle(opts);
+  }
+
+  function categoryLabel(category){
+    return {
+      fruit: 'fruit',
+      animals: 'animal',
+      transport: 'vehicle',
+    }[category] || category;
+  }
+
+  function selectedSessionTaskMode(){
+    if(state.sessionStartMs) return state.sessionTaskType || 'auto';
+    return ui.sessionTaskType.value || 'auto';
+  }
+
+
+  function taskLabel(kind){
+    return {
+      'touch-object':'Touch object',
+      'find-object':'Find object',
+      'discriminate-object':'Discriminate object',
+      'find-category':'Find category',
+      'choice-preference':'Choice preference',
+      'attention-cpat':'CPAT attention',
+      'auto':'Auto'
+    }[kind] || kind;
+  }
+
+  function chooseSessionTaskKind(index){
+    const selected = selectedSessionTaskMode();
+    if(selected !== 'auto') return selected;
+    if(index <= state.singleTargetRepetitions && ui.singleTargetStart.checked) return 'touch-object';
+    const typeCycle = ['find-object','discriminate-object','find-category','choice-preference'];
+    return typeCycle[(Math.max(index, state.singleTargetRepetitions + 1)-2) % typeCycle.length];
+  }
+
+  function getSingleTargetLayout(index){
+    const key = `q-${index}`;
+    if(!state.targetLayouts[key]){
+      state.targetLayouts[key] = {
+        left: 10 + Math.random() * 60,
+        top: 18 + Math.random() * 46,
+        size: 170 + Math.random() * 110
+      };
+    }
+    return state.targetLayouts[key];
+  }
+
+  function getElementCentre(el){
+    const rect = el.getBoundingClientRect();
+    return { x: rect.left + rect.width / 2, y: rect.top + rect.height / 2, rect };
+  }
+
+  function getElementPlayAreaCentre(el){
+    if(!el) return null;
+    const rect = el.getBoundingClientRect();
+    const playRect = ui.playArea.getBoundingClientRect();
+    return {
+      x: (rect.left - playRect.left) + rect.width / 2,
+      y: (rect.top - playRect.top) + rect.height / 2,
+      rect
+    };
+  }
+
+  function getElementCanvasBox(el){
+    if(!el) return null;
+    const rect = el.getBoundingClientRect();
+    const canvasRect = ui.trailCanvas.getBoundingClientRect();
+    return {
+      x: rect.left - canvasRect.left,
+      y: rect.top - canvasRect.top,
+      w: rect.width,
+      h: rect.height,
+      cx: (rect.left - canvasRect.left + rect.width / 2),
+      cy: (rect.top - canvasRect.top + rect.height / 2)
+    };
+  }
+
+  function computeDistance(clientX, clientY, el){
+    if(!el) return null;
+    const pt = getPlayAreaPoint(clientX, clientY);
+    const centre = getElementPlayAreaCentre(el);
+    return Math.hypot(pt.x - centre.x, pt.y - centre.y);
+  }
+
+  function effectiveTouchDistance(rawDistance){
+    if(rawDistance == null) return null;
+    return Math.max(0, rawDistance - getAdaptiveHitRadius());
+  }
+
+  function analyticsSummary(){
+    const answered = state.correct + state.incorrect;
+    const avgRt = state.metrics.reactionTimes.length
+      ? Math.round(state.metrics.reactionTimes.reduce((a,b)=>a+b,0) / state.metrics.reactionTimes.length)
+      : 0;
+    const avgTouchDistance = state.metrics.touchDistances.length
+      ? Number((state.metrics.touchDistances.reduce((a,b)=>a+b,0) / state.metrics.touchDistances.length).toFixed(2))
+      : null;
+    const avgTargetDistance = state.metrics.targetDistances.length
+      ? Number((state.metrics.targetDistances.reduce((a,b)=>a+b,0) / state.metrics.targetDistances.length).toFixed(2))
+      : null;
+    return {
+      learner: currentPupilName(),
+      task_kind: state.sessionTaskType || 'auto',
+      task_label: taskLabel(state.sessionTaskType || 'auto'),
+      questions_answered: answered,
+      correct: state.correct,
+      incorrect: state.incorrect,
+      accuracy_pct: answered ? Math.round(state.correct / answered * 100) : 0,
+      average_rt_ms: avgRt,
+      average_touch_distance_px: avgTouchDistance,
+      average_target_distance_px: avgTargetDistance,
+      average_attention_score: state.metrics.reactionTimes.length ? Math.round(state.metrics.reactionTimes.map((rt,i)=>attentionScore(rt, state.metrics.touchDistances[i] || avgTouchDistance || 0)).reduce((a,b)=>a+b,0) / state.metrics.reactionTimes.length) : 0,
+      attention_call: attentionCall(state.metrics.reactionTimes.length ? Math.round(state.metrics.reactionTimes.map((rt,i)=>attentionScore(rt, state.metrics.touchDistances[i] || avgTouchDistance || 0)).reduce((a,b)=>a+b,0) / state.metrics.reactionTimes.length) : 0),
+      current_level: state.currentLevel,
+      single_target_repetitions: state.singleTargetRepetitions
+    };
+  }
+
+  function buildQuestion(index){
+    const pool = objectPool();
+    const face = getFaceObject();
+    const spec = levelSpec(state.currentLevel);
+    const maxObjects = clamp(parseInt(ui.maxObjects.value || String(spec.optionCount || 4), 10), 2, 6);
+    const currentKind = getTaskKindForQuestion();
+    state.sessionTaskLabel = taskLabel(currentKind);
+
+    if(currentKind === 'touch-object'){
+      if(!state.sessionTarget){ state.sessionTarget = (ui.useFace.checked ? face : null) || pool[rand(pool.length)]; }
+      const target = state.sessionTarget;
+      return {
+        kind:'touch-object',
+        prompt:`Touch ${target.label}`,
+        subtitle:spec.subtitle,
+        target,
+        face: ui.useFace.checked ? face : null,
+        options:[target],
+        correctId: target.id,
+        layout:(() => { const base = getSingleTargetLayout(index); return { ...base, size: spec.size, left: spec.movable ? base.left : 50, top: spec.movable ? base.top : 56 }; })()
+      };
+    }
+
+    if(currentKind === 'find-object'){
+      const target = shuffle(pool)[0];
+      const optionCount = clamp(2 + Math.floor(index/2), 2, maxObjects);
+      const others = pickDistinct(pool, optionCount - 1, [target.id]);
+      return {
+        kind:currentKind,
+        prompt:`Find ${target.label}`,
+        subtitle:'Touch the correct item to continue.',
+        target, face: ui.useFace.checked ? face : null,
+        options: optionsWithTarget(target, others, optionCount),
+        correctId: target.id,
+      };
+    }
+
+    if(currentKind === 'discriminate-object'){
+      const sameCat = shuffle(pool.filter(p => p.category === 'fruit' || p.category === 'animals'));
+      const target = sameCat[0] || pool[0];
+      const distractor = sameCat.find(p => p.id !== target.id) || pickDistinct(pool,1,[target.id])[0];
+      return {
+        kind:currentKind,
+        prompt:`Which is ${target.label}?`,
+        subtitle:'Discriminate between similar choices.',
+        target, face: ui.useFace.checked ? face : null,
+        options: optionsWithTarget(target, [distractor], 2),
+        correctId: target.id,
+      };
+    }
+
+    if(currentKind === 'find-category'){
+      const categories = ['fruit','animals','transport'];
+      const cat = categories[rand(categories.length)];
+      const label = categoryLabel(cat);
+      const article = /^[aeiou]/i.test(label) ? 'an' : 'a';
+      const catItems = shuffle(pool.filter(p => p.category === cat)).slice(0,2);
+      const nonCat = pickDistinct(pool.filter(p => p.category !== cat), clamp(maxObjects - catItems.length, 1, 3));
+      const target = catItems[0] || pool[0];
+      return {
+        kind:currentKind,
+        prompt:`Which is ${article} ${label}?`,
+        subtitle:'A category question.',
+        target, face: ui.useFace.checked ? face : null,
+        options: optionsWithTarget(target, nonCat, 1 + nonCat.length),
+        correctId: target.id,
+      };
+    }
+
+    if(currentKind === 'attention-cpat') {
+      const target = {id:'attention-star', label:'Star', emoji:'⭐', category:'attention'};
+      const distractors = [
+        {id:'attention-circle', label:'Circle', emoji:'⚪', category:'attention'},
+        {id:'attention-square', label:'Square', emoji:'🟦', category:'attention'},
+        {id:'attention-triangle', label:'Triangle', emoji:'🔺', category:'attention'},
+      ];
+      const optionCount = selectedSessionTaskMode() === 'auto'
+        ? clamp(spec.optionCount || 4, 2, 4)
+        : clamp(maxObjects, 2, 4);
+      const opts = optionsWithTarget(target, shuffle(distractors), optionCount);
+      return { kind:currentKind, prompt:`Touch ${target.label}`, subtitle:spec.subtitle, target, face: ui.useFace.checked ? face : null, options: opts, correctId: target.id };
+    }
+
+    const choices = [
+      {id:'choice-music', label:'Music', emoji:'🎵', category:'choice'},
+      {id:'choice-stars', label:'Stars', emoji:'✨', category:'choice'},
+      {id:'choice-train', label:'Train', emoji:'🚂', category:'choice'},
+      {id:'choice-bubbles', label:'Bubbles', emoji:'🫧', category:'choice'},
+    ];
+    const optionCount = clamp(2 + Math.floor(index/3), 2, 4);
+    const shuffledChoices = shuffle(choices);
+    const target = shuffledChoices[0];
+    const opts = optionsWithTarget(target, shuffledChoices.filter(item => item.id !== target.id), optionCount);
+    return {
+      kind:currentKind,
+      prompt:`Choose ${target.label}`,
+      subtitle:'Preference-style selection.',
+      target, face: ui.useFace.checked ? face : null,
+      options: opts,
+      correctId: target.id,
+    };
+  }
+
+  function renderChoiceScreen(question){
+    ui.questionText.textContent = ui.useTextPrompt.checked ? question.prompt : 'Touch the correct item';
+    ui.choiceGrid.innerHTML = '';
+    ui.choiceGrid.style.position = question.kind === 'touch-object' ? 'relative' : '';
+    ui.choiceGrid.style.width = question.kind === 'touch-object' ? '100%' : '';
+    ui.choiceGrid.style.maxWidth = question.kind === 'touch-object' ? '100%' : '';
+    ui.choiceGrid.style.minHeight = question.kind === 'touch-object' ? '420px' : '';
+    question.options.forEach((opt, idx) => {
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.dataset.id = opt.id;
+      btn.textContent = '';
+      const adaptiveScale = getAdaptiveTouchScale();
+      if(question.kind === 'touch-object' && question.layout){
+        btn.style.position = 'absolute';
+        btn.style.left = `${question.layout.left}%`;
+        btn.style.top = `${question.layout.top}%`;
+        btn.style.width = `${Math.round(question.layout.size)}px`;
+        btn.style.minHeight = `${Math.round(question.layout.size)}px`;
+        btn.style.transform = 'translate(-50%, -50%)';
+      } else {
+        btn.style.minHeight = `${Math.round(148 * adaptiveScale)}px`;
+      }
+      btn.style.setProperty('--adaptive-touch-scale', adaptiveScale);
+      btn.addEventListener('click', ev => handleChoice(opt, btn, ev));
+      btn.addEventListener('touchstart', ev => {
+        ev.preventDefault();
+        isTouchDevice = true;
+        lastPointerType = 'touch';
+        if(ev.touches && ev.touches[0]){
+          handleChoice(opt, btn, ev.touches[0]);
+        }
+      }, {passive:false});
+      const label = document.createElement('div');
+      label.className = 'choiceLabel';
+      label.textContent = opt.label;
+      const hint = document.createElement('div');
+      hint.className = 'choiceSmall';
+      hint.textContent = `Choice ${idx+1}`;
+      setNodeChildren(btn, buildChoiceMediaElement(opt, 'choiceMedia'), label, hint);
+      ui.choiceGrid.appendChild(btn);
+    });
+  }
+
+  function logCueShown(question, repeated=false){
+    logEvent('cue_shown', {
+      question_index: state.questionIndex,
+      question_attempt: state.questionAttempt || 1,
+      level: state.currentLevel,
+      kind: question.kind,
+      task_label: state.sessionTaskLabel,
+      prompt: question.prompt,
+      target: question.target.label,
+      target_layout: question.layout || null,
+      repeated
+    });
+  }
+
+  function presentQuestion(question, options={}){
+    clearTimeout(state.previewTimeout); clearTimeout(state.autoTimeout);
+    state.currentQuestion = question;
+    state.questionAttempt = Math.max(1, parseInt(options.questionAttempt || '1', 10));
+    updateStats();
+    rebuildTrack();
+    ui.stageLabel.textContent = question.kind;
+    setFooter(question.subtitle, question.kind);
+
+    const revealChoice = () => {
+      renderChoiceScreen(question);
+      state.currentQuestionStart = wallMs();
+      showScreen('choice');
+      state.phase = 'choice';
+      updateStats();
+    };
+
+    if(ui.useTwoStage.checked){
+      ui.promptTitle.textContent = ui.useTextPrompt.checked ? question.prompt : 'Look';
+      ui.promptSubtitle.textContent = question.subtitle;
+      makePromptPreview(question);
+      showScreen('prompt');
+      speak(question.prompt);
+      logCueShown(question, !!options.repeated);
+      state.phase = 'prompt';
+      updateStats();
+      state.previewTimeout = setTimeout(() => {
+        revealChoice();
+      }, parseFloat(ui.delaySec.value || '1') * 1000);
+    } else {
+      revealChoice();
+      speak(question.prompt);
+      logCueShown(question, !!options.repeated);
+    }
+  }
+
+  function startQuestion(){
+    const q = buildQuestion(state.questionIndex);
+    presentQuestion(q, { questionAttempt: 1 });
+  }
+
+  function scoreToStars(correct, total){
+    const pct = total ? Math.round(correct/total*100) : 0;
+    if(pct >= 80) return 3;
+    if(pct >= 40) return 2;
+    return 1;
+  }
+
+  function updateReward(correct){
+    const answered = state.correct + state.incorrect;
+    const stars = scoreToStars(state.correct, answered);
+    state.stars = stars;
+    [...ui.rewardStars.children].forEach((s, i) => s.classList.toggle('on', i < stars));
+    ui.rewardTitle.textContent = correct ? 'Well Done!' : 'Good Try!';
+    ui.rewardSub.textContent = correct ? 'Next or repeat.' : 'Repeat or move on with support.';
+  }
+
+  function handleChoice(opt, btn, ev){
+    if(state.phase !== 'choice') return;
+    const q = state.currentQuestion;
+    const rt = wallMs() - state.currentQuestionStart;
+    const targetEl = ui.choiceGrid.querySelector(`[data-id="${q.correctId}"]`);
+    const selectedCentre = getElementCentre(btn);
+    const targetCentre = targetEl ? getElementCentre(targetEl) : null;
+    const rawDistanceToTarget = targetEl ? computeDistance(ev.clientX, ev.clientY, targetEl) : null;
+    const hitRadius = getAdaptiveHitRadius();
+    const withinTargetHitRadius = rawDistanceToTarget !== null && rawDistanceToTarget < hitRadius;
+    const correct = opt.id === q.correctId;
+    const distanceToTarget = effectiveTouchDistance(rawDistanceToTarget);
+    const attScore = attentionScore(rt, distanceToTarget || 0);
+    const selectedToTargetDistance = targetEl && targetCentre
+      ? Math.hypot(selectedCentre.x - targetCentre.x, selectedCentre.y - targetCentre.y)
+      : null;
+
+    state.phase = 'feedback';
+    if(correct) { state.correct++; btn.classList.add('correct'); flash('good','Nice!'); }
+    else { state.incorrect++; btn.classList.add('incorrect'); flash('try','Good try'); }
+
+    state.metrics.reactionTimes.push(rt);
+    if(distanceToTarget != null) state.metrics.touchDistances.push(distanceToTarget);
+    if(selectedToTargetDistance != null) state.metrics.targetDistances.push(selectedToTargetDistance);
+
+    const playPt = getPlayAreaPoint(ev.clientX, ev.clientY);
+    const canvasPt = getCanvasPoint(ev.clientX, ev.clientY);
+    const targetBox = targetEl ? targetEl.getBoundingClientRect() : null;
+    const targetCanvasBox = targetEl ? getElementCanvasBox(targetEl) : null;
+    logEvent('choice_selected', {
+      question_index: state.questionIndex, question_attempt: state.questionAttempt || 1, level: state.currentLevel, kind:q.kind, task_label: state.sessionTaskLabel, prompt:q.prompt,
+      selected_id: opt.id, selected_label: opt.label,
+      correct_id: q.correctId, correct, rt_ms: rt,
+      pointer_client_x: Math.round(ev.clientX), pointer_client_y: Math.round(ev.clientY),
+      pointer_play_x: Number(playPt.x.toFixed(2)), pointer_play_y: Number(playPt.y.toFixed(2)),
+      pointer_canvas_x: Number(canvasPt.x.toFixed(2)), pointer_canvas_y: Number(canvasPt.y.toFixed(2)),
+      distance_to_target_px: distanceToTarget == null ? null : Number(distanceToTarget.toFixed(2)),
+      raw_distance_to_target_px: rawDistanceToTarget == null ? null : Number(rawDistanceToTarget.toFixed(2)),
+      adaptive_hit_radius_px: hitRadius,
+      within_target_hit_radius: withinTargetHitRadius,
+      attention_score: attScore,
+      attention_call: attentionCall(attScore),
+      selected_to_target_distance_px: selectedToTargetDistance == null ? null : Number(selectedToTargetDistance.toFixed(2)),
+      target_bbox: targetBox ? {
+        x: Math.round(targetBox.left), y: Math.round(targetBox.top),
+        w: Math.round(targetBox.width), h: Math.round(targetBox.height)
+      } : null,
+      target_canvas_bbox: targetCanvasBox ? {
+        x: Number(targetCanvasBox.x.toFixed(2)), y: Number(targetCanvasBox.y.toFixed(2)),
+        w: Number(targetCanvasBox.w.toFixed(2)), h: Number(targetCanvasBox.h.toFixed(2)),
+        cx: Number(targetCanvasBox.cx.toFixed(2)), cy: Number(targetCanvasBox.cy.toFixed(2))
+      } : null,
+      target_layout: q.layout || null
+    });
+    updateStats();
+    updateReward(correct);
+    speakFeedback(correct, opt.label);
+
+    if(ui.useReward.checked){
+      showScreen('reward');
+      if(ui.autoAdvance.checked){
+        state.autoTimeout = setTimeout(()=>advanceAfterReward(), parseFloat(ui.delaySec.value || '1') * 1000 + 600);
+      }
+    } else {
+      state.autoTimeout = setTimeout(()=>advanceAfterReward(), parseFloat(ui.delaySec.value || '1') * 1000);
+    }
+  }
+
+  function advanceAfterReward(){
+    clearTimeout(state.autoTimeout);
+    if(state.questionIndex >= state.totalQuestions || sessionTimedOut()) return endSession();
+    state.questionIndex++;
+    startQuestion();
+  }
+
+  function repeatQuestion(){
+    clearTimeout(state.autoTimeout); clearTimeout(state.previewTimeout);
+    if(!state.currentQuestion || !state.questionIndex) return;
+    const nextAttempt = (state.questionAttempt || 1) + 1;
+    flash('try','Repeat');
+    logEvent('question_repeat', {
+      question_index: state.questionIndex,
+      question_attempt: state.questionAttempt || 1,
+      next_question_attempt: nextAttempt,
+      kind: state.currentQuestion && state.currentQuestion.kind ? state.currentQuestion.kind : null
+    });
+    presentQuestion(state.currentQuestion, { repeated:true, questionAttempt: nextAttempt });
+  }
+
+  function sessionTimedOut(){
+    if(!state.sessionStartMs) return false;
+    const maxMs = parseFloat(ui.sessionMinutes.value || '3') * 60 * 1000;
+    return wallMs() - state.sessionStartMs >= maxMs;
+  }
+
+  function describeLevelOutcome(summary, advanced, autoStarting){
+    if(advanced){
+      return autoStarting
+        ? `Progressing to Level ${state.currentLevel}. Starting automatically.`
+        : `Progressing to Level ${state.currentLevel}.`;
+    }
+    if(selectedSessionTaskMode() !== 'auto') return 'Manual task mode complete; the level will stay fixed.';
+    if((state.currentLevel || 1) >= 6 && (summary.accuracy_pct || 0) >= 80) return 'Level 6 complete. Auto path is already at the final level.';
+    if((summary.questions_answered || 0) < state.totalQuestions) return 'Level was not completed, so the level will stay the same.';
+    return 'Remain on this level until 80%+ accuracy is reached.';
+  }
+
+  function endSession(){
+    clearTimeout(state.sessionDeadlineTimer);
+    state.phase = 'complete';
+    const summary = analyticsSummary();
+    const advanced = shouldAdvanceLevel(summary);
+    if(advanced){
+      state.currentLevel = Math.min(6, (state.currentLevel || 1) + 1);
+      ui.startLevel.value = state.currentLevel;
+      saveProfile();
+    }
+    savePupilProgress(summary, advanced);
+    const autoStarting = advanced && ui.autoAdvance.checked && selectedSessionTaskMode() === 'auto';
+    ui.summaryText.textContent = `${summary.correct} correct, ${summary.incorrect} incorrect, ${summary.accuracy_pct}% accuracy, avg RT ${summary.average_rt_ms || 0} ms, attention ${summary.average_attention_score || 0}. ${describeLevelOutcome(summary, advanced, autoStarting)}`;
+    showScreen('summary');
+    setFooter(autoStarting ? `Level ${state.currentLevel} starts automatically.` : 'Session complete. Export or restart.', autoStarting ? 'Auto level' : 'Complete');
+    logEvent('session_complete', { ...summary, progressed_level: advanced, next_level: state.currentLevel, notes: ui.notes.value || '' });
+    updateStats(); rebuildTrack();
+    if(autoStarting){
+      const delayMs = Math.max(1400, parseFloat(ui.delaySec.value || '1') * 1000 + 900);
+      logEvent('auto_level_start_scheduled', { next_level: state.currentLevel, delay_ms: delayMs });
+      state.autoTimeout = setTimeout(() => {
+        if(state.phase === 'complete' && selectedSessionTaskMode() === 'auto') startSession();
+      }, delayMs);
+    }
+  }
+
+  function resetSession(){
+    clearTimeout(state.previewTimeout); clearTimeout(state.autoTimeout); clearTimeout(state.sessionDeadlineTimer);
+    sessionId = uuid4();
+    ui.sid.textContent = sessionId.slice(0,8);
+    state.phase = 'idle'; state.sessionStartMs = 0; state.questionIndex = 0; state.questionAttempt = 0; state.correct = 0; state.incorrect = 0; state.stars = 0; state.currentQuestion = null; clearTrail();
+    state.sessionTaskType = null;
+    state.sessionTaskLabel = taskLabel(ui.sessionTaskType.value || 'auto');
+    state.singleTargetRepetitions = clamp(parseInt(ui.singleTargetReps.value || '3', 10), 1, 10);
+    state.targetLayouts = {};
+    state.metrics = { reactionTimes:[], touchDistances:[], targetDistances:[] };
+    state.currentLevel = clamp(parseInt(ui.startLevel.value || '1',10), 1, 6);
+    state.sessionTarget = null;
+    showScreen('welcome');
+    setFooter('Tap Play to begin.', 'Touch ready');
+    updateStats();
+    state.totalQuestions = clamp(parseInt(ui.sessionMax.value || '8',10), 1, 20);
+    rebuildTrack();
+  }
+
+  function startSession(){
+    clearTimeout(state.previewTimeout); clearTimeout(state.autoTimeout); clearTimeout(state.sessionDeadlineTimer);
+    if(ui.pupilSelect.value) selectPupil(ui.pupilSelect.value);
+    sessionId = uuid4();
+    ui.sid.textContent = sessionId.slice(0,8);
+    saveProfile();
+    state.totalQuestions = clamp(parseInt(ui.sessionMax.value || '8',10), 1, 20);
+    state.sessionStartMs = wallMs();
+    state.questionIndex = 1;
+    state.questionAttempt = 0;
+    state.correct = 0;
+    state.incorrect = 0;
+    state.stars = 0;
+    state.currentQuestion = null;
+    state.targetLayouts = {};
+    state.metrics = { reactionTimes:[], touchDistances:[], targetDistances:[] };
+    state.importedDashboard = null;
+    state.phase = 'running';
+    state.currentLevel = clamp(parseInt(ui.startLevel.value || '1',10), 1, 6);
+    state.sessionTaskType = ui.sessionTaskType.value === 'auto' ? null : ui.sessionTaskType.value;
+    state.sessionTaskLabel = taskLabel(ui.sessionTaskType.value || 'auto');
+    state.singleTargetRepetitions = clamp(parseInt(ui.singleTargetReps.value || '3', 10), 1, 10);
+    state.sessionTarget = null;
+    clearTrail();
+    state.sessionDeadlineTimer = setTimeout(() => {
+      if(state.phase !== 'complete' && state.phase !== 'idle'){
+        flash('try','Session time reached');
+        endSession();
+      }
+    }, parseFloat(ui.sessionMinutes.value || '3') * 60 * 1000);
+    logEvent('session_start', {
+      total_questions: state.totalQuestions,
+      max_objects: parseInt(ui.maxObjects.value || '4',10),
+      two_stage: ui.useTwoStage.checked,
+      reward_screen: ui.useReward.checked,
+      familiar_face: ui.useFace.checked,
+      session_task_kind: ui.sessionTaskType.value || 'auto',
+      session_task_label: taskLabel(ui.sessionTaskType.value || 'auto'),
+      single_target_repetitions: state.singleTargetRepetitions,
+      current_level: state.currentLevel,
+      touch_scale_pct: parseInt(ui.targetScale.value || '100',10),
+      adaptive_touch_scale: getAdaptiveTouchScale(),
+      adaptive_hit_radius_px: getAdaptiveHitRadius(),
+      auto_level_path: ui.autoLevelPath.checked,
+      notes: ui.notes.value || '',
+    });
+    startQuestion();
+  }
+
+  function exportLogs(){
+    const exportPayload = {
+      app: 'ChoiceTrain Prototype',
+      exported_at_wall_ms: wallMs(),
+      session_id: sessionId,
+      pupil: currentPupilName(),
+      summary: analyticsSummary(),
+      events: logs.filter(e => e.session_id === sessionId)
+    };
+    const jsonl = JSON.stringify(exportPayload, null, 2);
+    const blob = new Blob([jsonl], {type:'application/json'});
+    triggerBlobDownload(blob, `${safeFilenamePart(currentPupilName())}_${localTimestampForFile()}.json`);
+    logEvent('logs_exported', { bytes: jsonl.length, export_summary: analyticsSummary() });
+  }
+
+  function handleTouchPosition(clientX, clientY, type, pointerType='mouse'){
+    lastPointerType = pointerType || lastPointerType || 'mouse';
+    const playPt = getPlayAreaPoint(clientX, clientY);
+    const canvasPt = getCanvasPoint(clientX, clientY);
+    const rippleColor = type === 'down' ? '#8ef0b1' : '#71d4ff';
+    showRipple(playPt.x, playPt.y, rippleColor);
+    addTouchPoint(playPt.x, playPt.y, type);
+    const currentTarget = state.currentQuestion && state.currentQuestion.correctId
+      ? ui.choiceGrid.querySelector(`[data-id="${state.currentQuestion.correctId}"]`)
+      : null;
+    const rawDistance = currentTarget ? computeDistance(clientX, clientY, currentTarget) : null;
+    const distance = effectiveTouchDistance(rawDistance);
+    const targetCanvasBox = currentTarget ? getElementCanvasBox(currentTarget) : null;
+    const hitRadius = getAdaptiveHitRadius();
+    logEvent(`pointer_${type}`, {
+      x: Math.round(playPt.x), y: Math.round(playPt.y), screen: state.screen,
+      canvas_x: Number(canvasPt.x.toFixed(2)), canvas_y: Number(canvasPt.y.toFixed(2)),
+      question_index: state.questionIndex || null,
+      question_attempt: state.questionAttempt || null,
+      pointer_type: lastPointerType,
+      distance_to_target_px: distance == null ? null : Number(distance.toFixed(2)),
+      raw_distance_to_target_px: rawDistance == null ? null : Number(rawDistance.toFixed(2)),
+      adaptive_hit_radius_px: hitRadius,
+      adaptive_touch_scale: getAdaptiveTouchScale(),
+      target_canvas_bbox: targetCanvasBox ? {
+        x: Number(targetCanvasBox.x.toFixed(2)), y: Number(targetCanvasBox.y.toFixed(2)),
+        w: Number(targetCanvasBox.w.toFixed(2)), h: Number(targetCanvasBox.h.toFixed(2)),
+        cx: Number(targetCanvasBox.cx.toFixed(2)), cy: Number(targetCanvasBox.cy.toFixed(2))
+      } : null
+    });
+    if(ui.showTouchDebug && ui.showTouchDebug.checked){
+      drawTouchDebug(playPt.x, playPt.y, currentTarget);
+    }
+  }
+
+  ui.playArea.addEventListener('pointerdown', e => {
+    if(isTouchDevice || e.pointerType === 'touch') return;
+    handleTouchPosition(e.clientX, e.clientY, 'down', e.pointerType);
+    flash('good','I saw that');
+  });
+  let lastMove = 0;
+  ui.playArea.addEventListener('pointermove', e => {
+    if(isTouchDevice || e.pointerType === 'touch') return;
+    if(!(e.buttons & 1)) return;
+    const t = nowMs(); if(t - lastMove < 80) return; lastMove = t;
+    handleTouchPosition(e.clientX, e.clientY, 'move', e.pointerType);
+  }, {passive:true});
+  ui.playArea.addEventListener('pointerup', e => {
+    if(isTouchDevice || e.pointerType === 'touch') return;
+    handleTouchPosition(e.clientX, e.clientY, 'up', e.pointerType);
+  });
+
+  ui.playArea.addEventListener('touchstart', e => {
+    isTouchDevice = true;
+    const t = e.touches[0];
+    if(t) handleTouchPosition(t.clientX, t.clientY, 'down', 'touch');
+  }, {passive: true});
+
+  ui.playArea.addEventListener('touchmove', e => {
+    const t = e.touches[0];
+    if(t) handleTouchPosition(t.clientX, t.clientY, 'move', 'touch');
+  }, {passive: true});
+
+  ui.playArea.addEventListener('touchend', e => {
+    if(e.changedTouches && e.changedTouches[0]){
+      const t = e.changedTouches[0];
+      handleTouchPosition(t.clientX, t.clientY, 'up', 'touch');
+    }
+  });
+
+  function bindAction(el, handler){
+    if(!el) return;
+    let lastTouchAt = 0;
+    el.addEventListener('click', ev => {
+      if(lastTouchAt && nowMs() - lastTouchAt < 700){
+        ev.preventDefault();
+        return;
+      }
+      handler(ev);
+    });
+    el.addEventListener('touchend', ev => {
+      lastTouchAt = nowMs();
+      ev.preventDefault();
+      ev.stopPropagation();
+      handler(ev);
+    }, {passive:false});
+  }
+
+  bindAction(ui.startBtn, startSession);
+  bindAction(ui.beginFlow, startSession);
+  bindAction(ui.learnerModeBtn, () => applyViewMode('learner'));
+  bindAction(ui.practitionerModeBtn, () => applyViewMode('desktop'));
+  bindAction(ui.adminModeFab, () => applyViewMode('desktop'));
+  bindAction(ui.resetBtn, () => { logEvent('session_reset'); resetSession(); });
+  bindAction(ui.nextBtn, () => { if(state.phase === 'complete') startSession(); else if(state.questionIndex === 0) startSession(); else advanceAfterReward(); });
+  bindAction(ui.repeatBtn, repeatQuestion);
+  bindAction(ui.rewardNext, advanceAfterReward);
+  bindAction(ui.rewardRepeat, repeatQuestion);
+  bindAction(ui.summaryRestart, startSession);
+  bindAction(ui.exportBtn, exportLogs);
+  bindAction(ui.summaryExport, exportLogs);
+  bindAction(ui.fullscreenBtn, () => {
+    try {
+      if(!isFullscreenSupported()) return;
+      const fullscreenResult = !getFullscreenElement() ? requestAppFullscreen() : exitAppFullscreen();
+      if(fullscreenResult && typeof fullscreenResult.catch === 'function'){
+        fullscreenResult.catch(function(_err){});
+      }
+    } catch(_err) {}
+  });
+  bindAction(ui.addPupil, () => {
+    const name = ui.newPupilName.value.trim();
+    if(!name) return;
+    const profiles = getProfiles();
+    profiles[name] = normaliseProfile(name, profiles[name] || {name, lastLevel: 1, sessions: []});
+    saveProfiles(profiles);
+    ui.newPupilName.value = '';
+    loadPupilList(name);
+    saveProfile();
+    flash('good', `${name} added`);
+    speak(`Hello ${name}`);
+  });
+  ui.pupilSelect.addEventListener('change', () => {
+    selectPupil(ui.pupilSelect.value, {speakGreeting:true});
+    saveProfile();
+    refreshDashboard();
+  });
+  ui.ttsToggle.addEventListener('change', () => {
+    if(!ui.ttsToggle.checked && 'speechSynthesis' in window){
+      try { window.speechSynthesis.cancel(); } catch(_err) {}
+    }
+  });
+  ui.trackTrail.addEventListener('change', () => { drawTrail(); saveProfile(); });
+  [ui.pupilAlias, ui.sessionMax, ui.maxObjects, ui.delaySec, ui.sessionMinutes, ui.targetScale, ui.startLevel, ui.useTwoStage, ui.useReward, ui.useTextPrompt, ui.useImagePrompt, ui.useFace, ui.ttsToggle, ui.ttsLabelsToggle, ui.autoAdvance, ui.trackTrail, ui.singleTargetStart, ui.autoLevelPath, ui.autoTouchScale, ui.showTouchDebug, ui.singleTargetReps, ui.sessionTaskType, ui.faceName, ui.notes].forEach(el => {
+    el.addEventListener('change', () => { saveProfile(); refreshDashboard(); });
+    el.addEventListener('input', () => { saveProfile(); refreshDashboard(); });
+  });
+
+  ui.faceUpload.addEventListener('change', e => {
+    const file = getInputFile(e); if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => { state.familiarFace = reader.result; saveProfile(); flash('good','Face added'); };
+    reader.readAsDataURL(file);
+  });
+
+  ui.customUpload.addEventListener('change', e => {
+    const files = getInputFiles(e);
+    if(!files.length) return;
+    let remaining = files.length; const newItems = [];
+    files.forEach((file, idx) => {
+      const reader = new FileReader();
+      reader.onload = () => {
+        newItems.push({ id:`custom-${Date.now()}-${idx}`, label:file.name.replace(/\.[^.]+$/,''), src:reader.result, category:'custom' });
+        remaining--;
+        if(!remaining){ state.customImages = [...state.customImages, ...newItems]; saveProfile(); flash('good',`${newItems.length} images added`); }
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+
+  bindAction(ui.refreshDashboardBtn, () => { state.importedDashboard = null; state.dashboardSource = 'current session'; renderDashboard(); flash('good','Dashboard updated'); });
+  bindAction(ui.loadCurrentDashboardBtn, () => { state.importedDashboard = null; state.dashboardSource = 'current session'; renderDashboard(); flash('good','Using current session'); });
+  ui.heatmapQuestionSelect.addEventListener('change', () => renderHeatmapForQuestion(ui.heatmapQuestionSelect.value, getDashboardData()));
+  ui.dashboardImport.addEventListener('change', e => {
+    const file = getInputFile(e); if(!file) return;
+    const reader = new FileReader();
+    reader.onload = () => {
+      try {
+        const raw = String(reader.result || '').trim();
+        const parsed = (() => {
+          try {
+            return JSON.parse(raw);
+          } catch(_err) {
+            const lines = raw.split(/\r?\n/).map(line => line.trim()).filter(Boolean);
+            if(!lines.length) throw new Error('No import data');
+            const parsedLines = lines.map(line => JSON.parse(line));
+            if(parsedLines.length === 1) return parsedLines[0];
+            if(parsedLines.every(item => item && typeof item === 'object' && !Array.isArray(item) && typeof item.type === 'string')){
+              return { events: parsedLines };
+            }
+            const payload = { events: [] };
+            parsedLines.forEach(item => {
+              if(!item || typeof item !== 'object') return;
+              if(Array.isArray(item.events)) payload.events.push(...item.events);
+              else if(typeof item.type === 'string') payload.events.push(item);
+              if(!payload.summary && item.summary && typeof item.summary === 'object') payload.summary = item.summary;
+              if(!payload.learner && item.learner) payload.learner = item.learner;
+            });
+            if(!payload.events.length && !payload.summary) throw new Error('Unsupported import format');
+            return payload;
+          }
+        })();
+        let payload = parsed;
+        if(Array.isArray(parsed)) payload = {events: parsed};
+        const events = payload.events || [];
+        const rows = events.filter(ev => ev.type === 'choice_selected').map(ev => ({
+          index: ev.question_index,
+          attempt: defined(ev.question_attempt, 1),
+          task: ev.task_label || ev.kind || '—',
+          selected: ev.selected_label || '—',
+          correct: !!ev.correct,
+          rt: defined(ev.rt_ms, null),
+          distance: defined(ev.distance_to_target_px, null),
+          attention: defined(ev.attention_score, null)
+        }));
+        const summary = payload.summary || {
+          learner: payload.learner || (rows.length ? 'Imported learner' : 'Unknown'),
+          questions_answered: rows.length,
+          correct: rows.filter(r => r.correct).length,
+          incorrect: rows.filter(r => !r.correct).length,
+          accuracy_pct: rows.length ? Math.round(rows.filter(r => r.correct).length / rows.length * 100) : 0,
+          average_rt_ms: rows.filter(r => Number.isFinite(r.rt)).length ? Math.round(rows.filter(r => Number.isFinite(r.rt)).reduce((a,b)=>a+b.rt,0) / rows.filter(r => Number.isFinite(r.rt)).length) : null,
+          average_touch_distance_px: rows.filter(r => Number.isFinite(r.distance)).length ? Number((rows.filter(r => Number.isFinite(r.distance)).reduce((a,b)=>a+b.distance,0) / rows.filter(r => Number.isFinite(r.distance)).length).toFixed(2)) : null,
+          average_attention_score: rows.filter(r => Number.isFinite(r.attention)).length ? Math.round(rows.filter(r => Number.isFinite(r.attention)).reduce((a,b)=>a+b.attention,0) / rows.filter(r => Number.isFinite(r.attention)).length) : 0,
+          attention_call: attentionCall(rows.filter(r => Number.isFinite(r.attention)).length ? Math.round(rows.filter(r => Number.isFinite(r.attention)).reduce((a,b)=>a+b.attention,0) / rows.filter(r => Number.isFinite(r.attention)).length) : 0),
+          current_level: 1
+        };
+        state.importedDashboard = { source: `imported file: ${file.name}`, summary, rows, events };
+        renderDashboard();
+        flash('good','Imported dashboard');
+      } catch(err) {
+        flash('try','Import failed');
+      }
+    };
+    reader.readAsText(file);
+  });
+
+  const savedProfile = loadProfile();
+  loadPupilList((savedProfile && savedProfile.selectedPupil) || (savedProfile && savedProfile.pupilAlias) || '');
+  applyViewMode(savedProfile && savedProfile.viewMode === 'learner' ? 'learner' : 'desktop', {persist:false});
+  updateFullscreenButton();
+  resizeCanvas();
+  setTimeout(() => {
+    resizeCanvas();
+  }, 300);
+  updateAdaptiveUi();
+  refreshDashboard();
+  resetSession();
+  refreshDashboard();
+  logEvent('app_loaded', { stored_events: logs.length });
+})();
+</script>
+</body>
+</html>
