@@ -1,0 +1,13 @@
+{
+  "name": "choice-train-experimental-browser-tests",
+  "private": true,
+  "description": "Playwright browser regression tests for the ChoiceTrain experimental build.",
+  "scripts": {
+    "test:browser": "node scripts/run-browser-tests.js",
+    "test:browser:headed": "node scripts/run-browser-tests.js --headed",
+    "test:browser:ui": "node scripts/run-browser-tests.js --ui"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.54.1"
+  }
+}
