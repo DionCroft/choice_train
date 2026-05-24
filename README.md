@@ -147,7 +147,7 @@ Each task is followed by feedback and reward elements designed to encourage cont
 
 ## V1.2.2 Additions
 
-The current published build includes the following stability and review improvements:
+V1.2.2 introduced the following stability and review improvements:
 
 - history-aware heatmap scopes for `Current session`, `Current learner history`, `All stored history`, and imported data when available
 - clearer heatmap labels showing question, attempt, task, and whether the answer was correct or needed support
@@ -157,6 +157,16 @@ The current published build includes the following stability and review improvem
 - touch selection on release rather than on initial contact, reducing accidental activations
 - browser storage warnings when local persistence is full or unavailable
 - a versioned release snapshot as `choice_train_V1.2.2.html`
+
+## V1.2.3 Additions
+
+The current published build also adds clearer release visibility:
+
+- an active build label in the practitioner panel so it is easy to see which version is running
+- a footer version chip for quick at-a-glance confirmation during sessions
+- version metadata embedded into exported session files
+- imported dashboard files can show their originating build when that metadata is present
+- a new versioned release snapshot as `choice_train_V1.2.3.html`
 
 ## Why These Changes Help SEND Learners
 
@@ -239,7 +249,8 @@ To run it locally:
 
 - `index.html` is the main published entry point for GitHub Pages
 - `choice_train_V1.2.1.html` is the earlier versioned snapshot
-- `choice_train_V1.2.2.html` is the current versioned snapshot
+- `choice_train_V1.2.2.html` is the previous stable snapshot
+- `choice_train_V1.2.3.html` is the current versioned snapshot
 
 ## GitHub Pages
 
