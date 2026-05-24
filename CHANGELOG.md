@@ -8,6 +8,27 @@ The format is inspired by Keep a Changelog and is written to match the way this 
 
 Future prototypes continue in `Experimental_Choice_Train` before promotion into this repo.
 
+## [1.3.1] - 2026-05-24
+
+### Added
+
+- Published `V1.3.1` release with `index.html`, `choice_train_V1.3.1.html`, and the paired `choice_train_V1.3.1.js` runtime.
+- Four new CPAT-style game variants to improve engagement without changing the broader task families: `Signal Station`, `Ticket Hunt`, `Platform Pointer`, and `Traffic Lights`.
+- Visible learner-facing `Variant` and `Rule` cards so the current task and instruction stay stable on screen.
+- Trial export fields for `task_variant` and `variant_label` to support variant-level review.
+- Browser regression coverage for CPAT variant rotation and the corrected `Traffic Lights` behavior.
+
+### Changed
+
+- The current published build is now `V1.3.1`.
+- The browser regression harness now targets the `V1.3.1` snapshot.
+- README guidance now reflects the new published snapshot and the additional CPAT-style variants.
+
+### Fixed
+
+- `Traffic Lights` no longer auto-completes on a passive wait while staying red. It now shows a red wait phase, then a green tap phase so the learner performs a true wait-then-go interaction.
+- Transient success badges are cleared before the next auto-advanced question so the next learner item starts visually clean.
+
 ## [1.3.0] - 2026-05-24
 
 ### Added

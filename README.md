@@ -2,7 +2,7 @@
 
 ChoiceTrain is an offline, touch-first interactive learning prototype designed to support structured choice-making, attention training, and early cognitive development. It is aimed at SEND and neurodiverse learners, especially those who benefit from simplified interfaces, repetition, familiar stimuli, and immediate feedback.
 
-The published build runs as a browser-based HTML prototype with no cloud dependency. The current release (`V1.3.0`) uses a paired HTML and JavaScript snapshot so the runtime can stay cleaner, faster, and easier to validate before future prototypes are promoted from the experimental workspace into the live GitHub Pages copy.
+The published build runs as a browser-based HTML prototype with no cloud dependency. The current release (`V1.3.1`) uses a paired HTML and JavaScript snapshot so the runtime can stay cleaner, faster, and easier to validate before future prototypes are promoted from the experimental workspace into the live GitHub Pages copy.
 
 ## Live Site
 
@@ -10,7 +10,7 @@ GitHub Pages URL:
 https://dioncroft.github.io/choice_train/
 
 Current published build:
-`V1.3.0`
+`V1.3.1`
 
 Current experimental build:
 future prototypes continue in the local `Experimental_Choice_Train` workspace before promotion
@@ -153,7 +153,7 @@ The practitioner dashboard can present:
 
 ### Attention Modelling and Heatmaps
 
-The current published build keeps an exploratory engagement indicator for quick practitioner review, but `V1.3.0` also moves the analytics toward a more research-aligned model that emphasises task-family data such as omissions, commissions, mean reaction time, reaction time variability, and separate summaries for sustained, selective-spatial, orienting, and executive tasks.
+The current published build keeps an exploratory engagement indicator for quick practitioner review, but `V1.3.1` also uses a more research-aligned model that emphasises task-family data such as omissions, commissions, mean reaction time, reaction time variability, and separate summaries for sustained, selective-spatial, orienting, and executive tasks.
 
 Per-task heatmaps also help practitioners review target engagement, touch clustering, and motor precision visually.
 
@@ -197,9 +197,23 @@ V1.2.4 added a more professional build and release surface:
 - stronger release tracking through `CHANGELOG.md`
 - a new versioned release snapshot as `choice_train_V1.2.4.html`
 
+## V1.3.1 Release
+
+`V1.3.1` is the current published build and extends the research and production-readiness release with more engaging CPAT-style task variants.
+
+Major additions in this release:
+
+- a new versioned published snapshot as `choice_train_V1.3.1.html` with paired runtime `choice_train_V1.3.1.js`
+- one new themed-but-measurably comparable variant for each CPAT-style family:
+  `Signal Station`, `Ticket Hunt`, `Platform Pointer`, and `Traffic Lights`
+- visible in-task `Variant` and `Rule` cards so the active instruction stays stable on screen for learners and staff
+- richer trial export detail through `task_variant`, `variant_label`, and rule-aware logging across the new games
+- an updated Playwright regression suite covering the new variant rotation and the corrected `Traffic Lights` interaction
+- a corrected `Traffic Lights` flow that now uses a red wait phase before the learner taps on green, rather than ending the item automatically on a correct wait
+
 ## V1.3.0 Release
 
-`V1.3.0` is the current published build and marks the larger research and production-readiness release for ChoiceTrain.
+`V1.3.0` was the previous published build and marked the larger research and production-readiness release for ChoiceTrain.
 
 Major additions in this release:
 
@@ -268,7 +282,7 @@ The design and the recent changes were informed by peer-reviewed literature. The
 
 ### CPAT clarification and later-level attention tasks
 
-As of May 24, 2026, the published build in this repository is now `V1.3.0`, and it no longer treats `CPAT attention` as a single `Touch Star` screen.
+As of May 24, 2026, the published build in this repository is now `V1.3.1`, and it no longer treats `CPAT attention` as a single `Touch Star` screen.
 
 The live pathway now separates later attention work into four CPAT-style families:
 
@@ -276,6 +290,8 @@ The live pathway now separates later attention work into four CPAT-style familie
 - selective-spatial attention
 - orienting
 - executive control
+
+`V1.3.1` also adds themed variants inside those same families rather than turning them into unrelated mini-games. For example, sustained attention can appear as `Star Watch` or `Signal Station`, and executive control can appear as `Middle Arrow` or `Traffic Lights`.
 
 That structure is much closer to the CPAT papers than the earlier single target-detection snapshot, although it should still be described as `CPAT-style` rather than a formally validated CPAT implementation.
 
@@ -298,7 +314,7 @@ Practical design implication:
 
 ## Recommended Data To Collect
 
-The touch and timing data are useful, and the `V1.3.0` release now captures much more of the recommended foundation across the whole app. That includes omissions, commissions, mean reaction time, reaction time variability, prompt level, support code, independence status, attention-domain tags, maintenance status, generalisation status, teacher ratings, and classroom transfer notes.
+The touch and timing data are useful, and the `V1.3.1` release now captures much more of the recommended foundation across the whole app. That includes omissions, commissions, mean reaction time, reaction time variability, prompt level, support code, independence status, attention-domain tags, task variants, maintenance status, generalisation status, teacher ratings, and classroom transfer notes.
 
 The literature still suggests that a stronger SEND-facing training platform should continue to expand and validate broader behavioural, educational, and follow-up outcomes.
 
@@ -327,7 +343,7 @@ The literature still suggests that a stronger SEND-facing training platform shou
 
 If ChoiceTrain is later paired with EEG, the safest research framing is that repeated training may support neuroplasticity and functional improvement, but that claim should remain exploratory until it is supported by well-controlled neural and behavioural data.
 
-The `V1.3.0` release already logs a useful first set of event markers for EEG-linked studies. It records session start, cue onset, stimulus onset, prompt application, trial completion, repeats, exports, and session completion.
+The `V1.3.1` release already logs a useful first set of event markers for EEG-linked studies. It records session start, cue onset, stimulus onset, prompt application, trial completion, repeats, exports, and session completion.
 
 For later EEG-linked studies, it would still be helpful to keep or strengthen event markers for:
 
@@ -371,8 +387,8 @@ The project is fully offline and browser-based.
 To run it locally:
 
 1. Open `index.html` if you want the current published GitHub Pages build.
-2. Open `choice_train_V1.3.0.html` if you want the versioned published snapshot directly.
-3. Keep `choice_train_V1.3.0.js` beside the HTML file, because `V1.3.0` loads its runtime from the paired script file.
+2. Open `choice_train_V1.3.1.html` if you want the versioned published snapshot directly.
+3. Keep `choice_train_V1.3.1.js` beside the HTML file, because `V1.3.1` loads its runtime from the paired script file.
 4. Use full screen if you want the learner interface to be more immersive.
 5. Configure the session in Practitioner Mode, then begin the activity.
 
@@ -389,6 +405,7 @@ To run the suite locally:
 The current suite covers:
 
 - the full auto path across Levels `1-10`
+- CPAT-style variant rotation for sustained, selective-spatial, orienting, and executive tasks
 - reward-screen auto advance
 - omissions and commissions
 - prompt-level logging
@@ -410,9 +427,11 @@ The current suite covers:
 - `choice_train_V1.2.1.html` is the earlier versioned snapshot
 - `choice_train_V1.2.2.html` is the previous stable snapshot
 - `choice_train_V1.2.3.html` is the previous stable snapshot
-- `choice_train_V1.2.4.html` is the previous stable snapshot
-- `choice_train_V1.3.0.html` is the current versioned published snapshot
-- `choice_train_V1.3.0.js` is the paired runtime for the current published snapshot
+- `choice_train_V1.2.4.html` is the earlier stable snapshot
+- `choice_train_V1.3.0.html` is the previous published snapshot
+- `choice_train_V1.3.0.js` is the paired runtime for the previous published snapshot
+- `choice_train_V1.3.1.html` is the current versioned published snapshot
+- `choice_train_V1.3.1.js` is the paired runtime for the current published snapshot
 - `package.json`, `playwright.config.js`, `scripts/`, and `tests/` support the browser regression workflow
 - `stamp-build.ps1` stamps build metadata into inline or external runtime files during promotion work
 - `CHANGELOG.md` tracks released and unreleased version history

@@ -2,7 +2,7 @@ const fs = require('fs');
 const { test, expect } = require('@playwright/test');
 
 async function gotoApp(page) {
-  await page.goto('/choice_train_V1.3.0.html');
+  await page.goto('/choice_train_V1.3.1.html');
   await expect(page.locator('#beginFlow')).toBeVisible();
 }
 
@@ -217,6 +217,103 @@ test('selective attention target is always present when prompted', async ({ page
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
+test('sustained attention rotates to the Signal Station variant on question 2', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await startConfiguredSession(page, {
+    startLevel: 7,
+    sessionMax: 2,
+    autoAdvance: true,
+    autoLevelPath: false,
+    sessionTaskType: 'cpat-sustained',
+    responseWindowSec: 2
+  });
+
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#questionVariant')).toHaveText('Star Watch');
+  await clickCorrectChoice(page);
+  await expect(page.locator('.station.current')).toHaveText('2', { timeout: 5_000 });
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#questionVariant')).toHaveText('Signal Station');
+  await expect(page.locator('#questionText')).toContainText('green signal');
+  await expect(page.locator('#questionRule')).toContainText('Tap the green signal');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('selective attention rotates to the Ticket Hunt variant on question 2', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await startConfiguredSession(page, {
+    startLevel: 8,
+    sessionMax: 2,
+    autoAdvance: true,
+    autoLevelPath: false,
+    sessionTaskType: 'cpat-selective',
+    responseWindowSec: 2
+  });
+
+  await clickCorrectChoice(page);
+  await expect(page.locator('.station.current')).toHaveText('2', { timeout: 5_000 });
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#questionVariant')).toHaveText('Ticket Hunt');
+  await expect(page.locator('#questionText')).toContainText('gold ticket');
+  await expect(page.locator('#choiceGrid .choiceLabel').filter({ hasText: 'Gold ticket' })).toHaveCount(1);
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('orienting attention rotates to the Platform Pointer variant on question 2', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await startConfiguredSession(page, {
+    startLevel: 9,
+    sessionMax: 2,
+    autoAdvance: true,
+    autoLevelPath: false,
+    sessionTaskType: 'cpat-orienting',
+    responseWindowSec: 2
+  });
+
+  await clickCorrectChoice(page);
+  await expect(page.locator('.station.current')).toHaveText('2', { timeout: 5_000 });
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#questionVariant')).toHaveText('Platform Pointer');
+  await expect(page.locator('#questionText')).toContainText('tap the train');
+  await expect(page.locator('#choiceGrid .choiceLabel').filter({ hasText: 'Train' })).toHaveCount(1);
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('executive attention rotates to the Traffic Lights variant on question 2', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await startConfiguredSession(page, {
+    startLevel: 10,
+    sessionMax: 2,
+    autoAdvance: true,
+    autoLevelPath: false,
+    sessionTaskType: 'cpat-executive',
+    responseWindowSec: 2
+  });
+
+  await clickCorrectChoice(page);
+  await expect(page.locator('.station.current')).toHaveText('2', { timeout: 5_000 });
+  await expect(page.locator('#screenPrompt.active')).toBeVisible();
+  await expect(page.locator('#promptTitle')).toContainText('Wait for green, then tap Go.');
+  await expect(page.locator('#promptSubtitle')).toContainText('Wait through red');
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#questionVariant')).toHaveText('Traffic Lights');
+  await expect(page.locator('#questionText')).toContainText('Wait for green, then tap Go.');
+  await expect(page.locator('#questionRule')).toContainText('Tap when the light turns green');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
 test('CPAT sustained target-absent timeout becomes a correct rejection, not an omission', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await gotoApp(page);
@@ -327,6 +424,45 @@ test('repeat flow keeps one answered question but records repeated attempts', as
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
+test('traffic lights waits through red, then records a hit on green and exports the variant metadata', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await startConfiguredSession(page, {
+    startLevel: 10,
+    sessionMax: 2,
+    autoAdvance: true,
+    autoLevelPath: false,
+    sessionTaskType: 'cpat-executive',
+    responseWindowSec: 1
+  });
+
+  await clickCorrectChoice(page);
+  await expect(page.locator('.station.current')).toHaveText('2', { timeout: 5_000 });
+  await expect(page.locator('#screenPrompt.active')).toBeVisible();
+  await expect(page.locator('#promptSubtitle')).toContainText('Wait through red');
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#questionVariant')).toHaveText('Traffic Lights');
+  await expect(page.locator('#questionText')).toContainText('Wait for green, then tap Go.');
+  await expect(page.locator('#questionRule')).toContainText('Tap when the light turns green');
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+  await expect(page.locator('#summaryText')).toContainText('0 omissions');
+  await expect(page.locator('#summaryText')).toContainText('2 correct, 0 incorrect');
+  await expect(page.locator('#questionTableBody')).toContainText('Green light');
+
+  const payload = await exportJsonAfter(page, async () => {
+    await page.locator('#summaryExport').click();
+  });
+
+  const trafficTrials = payload.trials.filter(trial => trial.task_variant === 'traffic-lights');
+  expect(trafficTrials.length).toBeGreaterThan(0);
+  expect(trafficTrials.some(trial => trial.correct === true && trial.response_type === 'hit')).toBeTruthy();
+  expect(trafficTrials.every(trial => trial.variant_label === 'Traffic Lights')).toBeTruthy();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
 test('summary CTA matches the next level and starts it directly', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await gotoApp(page);
@@ -415,6 +551,8 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("CPAT and attention terms")').click();
   await expect(page.locator('text=Exploratory engagement')).toBeVisible();
+  await page.locator('summary:has-text("V1.3.1 game variants now in prototype")').click();
+  await expect(page.locator('text=Traffic Lights')).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
 });
