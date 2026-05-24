@@ -9,6 +9,9 @@ The prototype runs as a single self-contained HTML application, making it easy t
 GitHub Pages URL:
 https://dioncroft.github.io/choice_train/
 
+Current published build:
+`V1.2.4`
+
 ## Project Overview
 
 ChoiceTrain is built around short, repeatable learning interactions that help learners practise:
@@ -160,13 +163,23 @@ V1.2.2 introduced the following stability and review improvements:
 
 ## V1.2.3 Additions
 
-The current published build also adds clearer release visibility:
+V1.2.3 added clearer release visibility:
 
 - an active build label in the practitioner panel so it is easy to see which version is running
 - a footer version chip for quick at-a-glance confirmation during sessions
 - version metadata embedded into exported session files
 - imported dashboard files can show their originating build when that metadata is present
 - a new versioned release snapshot as `choice_train_V1.2.3.html`
+
+## V1.2.4 Additions
+
+The current published build adds a more professional build and release surface:
+
+- a dedicated `About / Build Info` section in practitioner mode
+- clearly presented release, status, base commit, build date, source snapshot, live URL, and repository URL
+- one-click copy actions for build information and the live site URL
+- stronger release tracking through `CHANGELOG.md`
+- a new versioned release snapshot as `choice_train_V1.2.4.html`
 
 ## Why These Changes Help SEND Learners
 
@@ -250,7 +263,15 @@ To run it locally:
 - `index.html` is the main published entry point for GitHub Pages
 - `choice_train_V1.2.1.html` is the earlier versioned snapshot
 - `choice_train_V1.2.2.html` is the previous stable snapshot
-- `choice_train_V1.2.3.html` is the current versioned snapshot
+- `choice_train_V1.2.3.html` is the previous stable snapshot
+- `choice_train_V1.2.4.html` is the current versioned snapshot
+- `CHANGELOG.md` tracks released and unreleased version history
+
+## Release Tracking
+
+- the currently published build can be checked in the app UI from the version label and footer chip
+- exported session files include build metadata so review files can be traced back to the active app version
+- `CHANGELOG.md` records the promoted release history and the current unreleased work
 
 ## GitHub Pages
 
