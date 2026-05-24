@@ -89,7 +89,7 @@ foreach($file in $Files){
 
   $escapedSourceFile = Escape-JsValue $displaySourceFile
   $escapedSourceScript = Escape-JsValue $displaySourceScript
-  $content = Get-Content -LiteralPath $targetPath -Raw
+  $content = [System.IO.File]::ReadAllText($targetPath, [System.Text.Encoding]::UTF8)
 
   $buildBlock = @"
   const APP_BUILD = Object.freeze({
