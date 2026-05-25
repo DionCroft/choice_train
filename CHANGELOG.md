@@ -8,6 +8,31 @@ The format is inspired by Keep a Changelog and is written to match the way this 
 
 Future prototypes continue in `Experimental_Choice_Train` before promotion into this repo.
 
+## [1.3.2] - 2026-05-25
+
+### Added
+
+- Published `V1.3.2` release with `index.html`, `choice_train_V1.3.2.html`, and the paired `choice_train_V1.3.2.js` runtime.
+- `EEG research mode` with marker exports for prompt onset, cue onset, stimulus onset, target-present or no-go state, response, omission, commission, feedback onset, break onset, break offset, artifact notes, and session completion.
+- Automatic block pauses, block summaries, and ERP-friendly export scaffolding for later EEG-aligned studies.
+- Observational artifact logging for movement, blink, speech, cap adjustment, and interruptions.
+- Learner-facing `Help`, `Break`, and `Stop` controls plus reward, theme, and quick preference choices.
+- Practitioner fidelity and coaching tools, including a fidelity checklist, dosage tracking, and coaching review notes.
+- Family-specific attention dashboard rows for sustained, selective-spatial, orienting, and executive CPAT-style performance.
+- Active-control scaffolding for future publication work using matched lower-demand comparison conditions.
+- Browser regression coverage for EEG break flow, EEG export, learner help, active control, and the corrected sustained-attention behavior.
+
+### Changed
+
+- The current published build is now `V1.3.2`.
+- `Signal Station` now behaves as an actual red-wait then green-tap sustained-attention round, while target-absent correct-rejection logic stays in `Star Watch` where the learner-facing wording already matches that behavior.
+- README guidance now reflects the new research-mode features, EEG exports, fidelity layer, and the promoted `V1.3.2` snapshot.
+
+### Fixed
+
+- CPAT sustained attention no longer auto-completes a `Signal Station` round on passive waiting with no green target shown.
+- The sustained-attention browser coverage now matches the corrected learner flow across `Star Watch` and `Signal Station`.
+
 ## [1.3.1] - 2026-05-24
 
 ### Added
