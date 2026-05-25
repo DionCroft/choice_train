@@ -1,14 +1,14 @@
 (() => {
   const APP_BUILD = Object.freeze({
-    app: 'ChoiceTrain Prototype',
+    app: 'ChoiceTrain',
     version: '1.3.2',
     release_label: 'V1.3.2',
-    channel: 'experimental',
+    channel: 'stable',
     source_file: 'choice_train_V1.3.2.html',
     source_script: 'choice_train_V1.3.2.js',
     based_on_branch: 'main',
-    based_on_commit: '0a0d00b',
-    build_date: '2026-05-24',
+    based_on_commit: '2110c5f',
+    build_date: '2026-05-25',
     published_entry: 'index.html',
     live_url: 'https://dioncroft.github.io/choice_train/',
     repo_url: 'https://github.com/DionCroft/choice_train'
