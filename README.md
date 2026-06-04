@@ -7,6 +7,9 @@ The current stable release is `V1.4.2`.
 Live site:
 `https://dioncroft.github.io/choice_train/`
 
+User guide:
+[userguide.md](userguide.md)
+
 ## What ChoiceTrain Is
 
 ChoiceTrain is designed to help pupils practise:
