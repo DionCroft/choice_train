@@ -2,6 +2,18 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.4.1] - 2026-06-04
+
+### Fixed
+
+- the floating `Admin` button now returns from learner mode to teacher view and opens `Advanced Admin Settings` directly
+- student-friendly hiding now applies only in learner-facing mode instead of keeping Admin sections hidden after returning to desktop view
+- the versioned test harness and static server now point at the `V1.4.1` stable snapshot
+
+### Added
+
+- a browser regression test covering Admin Panel access from learner mode
+
 ## [1.4.0] - 2026-06-04
 
 ### Added
