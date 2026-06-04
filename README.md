@@ -25,6 +25,22 @@ ChoiceTrain is currently a teaching and research-support tool. It is not a diagn
 
 The app can support structured classroom activities, teacher observation, and research-linked data collection, but practitioner judgement and school safeguarding processes still sit around its use.
 
+## Research Evidence
+
+A dedicated peer-reviewed evidence list is available in [RESEARCH_EVIDENCE.md](RESEARCH_EVIDENCE.md).
+
+That file groups the papers used to justify major ChoiceTrain feature areas, including:
+
+- CPAT-style attention families
+- teacher fidelity and classroom workflow
+- touch-first prompting
+- learner choice and self-determination
+- personalisation and preference-led support
+- gamification decisions
+- EEG and research-mode planning
+
+It also notes the client-provided internal `ChoiceTrain.docx` project paper draft as useful background context, while keeping it clearly separate from the peer-reviewed evidence base.
+
 ## Current Release
 
 Published files:
