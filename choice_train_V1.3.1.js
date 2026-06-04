@@ -1741,7 +1741,7 @@
       label.textContent = target.label;
       const hint = document.createElement('div');
       hint.className = 'choiceSmall';
-      hint.textContent = 'Touch the target';
+      hint.textContent = 'Find the picture';
       setNodeChildren(btn, buildChoiceMediaElement(target, 'choiceMedia'), label, hint);
       ui.choiceGrid.appendChild(btn);
       return;
@@ -2232,7 +2232,7 @@
     const items = [];
     if(!summary.questions_answered){
       items.push('Run a short session to generate baseline data.');
-      items.push('Keep the first stage simple and meaningful, for example "Touch Mum" with any panel touch accepted.');
+      items.push('Keep the first stage simple and meaningful, for example "Find Mum" with any panel touch accepted.');
       return items;
     }
     if(summary.omission_count > 0) items.push('Omissions were recorded, so consider increasing the response window or adding an earlier prompt step.');
