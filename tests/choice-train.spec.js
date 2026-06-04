@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const APP_PATH = '/choice_train_V1.4.1.html';
+const APP_PATH = '/choice_train_V1.4.2.html';
 
 async function gotoApp(page) {
   await page.goto(APP_PATH);
@@ -695,7 +695,7 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("CPAT and attention terms")').click();
   await expect(page.getByText('Exploratory engagement is an in-app practice metric', { exact: false })).toBeVisible();
-  await page.locator('summary:has-text("V1.4.1 teacher, learner, and research guide")').click();
+  await page.locator('summary:has-text("V1.4.2 teacher, learner, and research guide")').click();
   await expect(page.locator('text=Traffic Lights')).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -709,8 +709,26 @@ test('teacher panel is simple on first load and admin settings are collapsed by 
   await expect(page.locator('summary:has-text("Pupil Personalisation")')).toBeVisible();
   await expect(page.locator('summary:has-text("Session Controls")')).toBeVisible();
   await expect(page.locator('summary:has-text("Context Notes")')).toBeVisible();
+  await expect(page.locator('#teacherPanelTab')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('summary:has-text("Advanced Admin Settings")')).toBeHidden();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('teacher and admin panel tabs switch between separate panel groups', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#adminPanelTab').click();
+  await expect(page.locator('#adminPanelTab')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('summary:has-text("Advanced Admin Settings")')).toBeVisible();
-  expect(await page.locator('#adminPanelDetails').evaluate(node => node.open)).toBeFalsy();
+  await expect(page.locator('summary:has-text("Daily Teacher Setup")')).toBeHidden();
+  expect(await page.locator('#adminPanelDetails').evaluate(node => node.open)).toBeTruthy();
+
+  await page.locator('#teacherPanelTab').click();
+  await expect(page.locator('#teacherPanelTab')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('summary:has-text("Daily Teacher Setup")')).toBeVisible();
+  await expect(page.locator('summary:has-text("Advanced Admin Settings")')).toBeHidden();
 
   expect(errors, errors.join('\n')).toEqual([]);
 });

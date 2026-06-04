@@ -2,6 +2,19 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.4.2] - 2026-06-04
+
+### Added
+
+- clickable `Teacher Panel` and `Admin Panel` buttons at the top of the side panel
+- the provided `ShowMe` logo image as `assets/showme-logo.png`
+- a browser regression test covering teacher/admin top-tab switching
+
+### Changed
+
+- teacher-facing sections and admin-facing sections are now shown as separate panel groups instead of only being labelled visually
+- the live entry point and test harness now target the `V1.4.2` stable snapshot
+
 ## [1.4.1] - 2026-06-04
 
 ### Fixed

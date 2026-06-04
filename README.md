@@ -2,7 +2,7 @@
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
-The current stable release is `V1.4.1`.
+The current stable release is `V1.4.2`.
 
 Live site:
 `https://dioncroft.github.io/choice_train/`
@@ -30,15 +30,15 @@ The app can support structured classroom activities, teacher observation, and re
 Published files:
 
 - `index.html`
-- `choice_train_V1.4.1.html`
-- `choice_train_V1.4.1.js`
-- `assets/showme-logo-placeholder.svg`
+- `choice_train_V1.4.2.html`
+- `choice_train_V1.4.2.js`
+- `assets/showme-logo.png`
 
 The runtime is versioned so experimental builds can be tested locally before a stable snapshot is promoted into the GitHub Pages copy.
 
 ## Teacher Panel and Admin Panel
 
-`V1.4.1` separates the interface into two clearer layers.
+`V1.4.2` separates the interface into two clearer layers.
 
 ### Teacher Panel
 
@@ -78,7 +78,8 @@ This split is intended to make the app usable in real classrooms without asking 
 
 How to open it:
 
-- in teacher view, open `Advanced Admin Settings`
+- use the `Teacher Panel` and `Admin Panel` buttons at the top of the side panel to switch between the two panel groups
+- in teacher view, the Admin tab reveals `Advanced Admin Settings` and `Research / Debug Settings`
 - in learner mode, tap the floating `Admin` button to return to teacher view and open the Admin Panel directly
 
 ## Student-Friendly Mode
@@ -120,7 +121,7 @@ The default view is intentionally calmer and more teacher-friendly than earlier 
 
 ## Context Notes
 
-`V1.4.1` replaces older medical-style wording with `context notes`.
+`V1.4.2` replaces older medical-style wording with `context notes`.
 
 Context notes are for daily classroom observations such as:
 
@@ -172,13 +173,13 @@ The app uses the label during question generation and export. The exported sessi
 
 If a school wants to replace the placeholder ShowMe branding image, put the real logo in:
 
-- `assets/showme-logo-placeholder.svg`
+- `assets/showme-logo.png`
 
 or replace it with a final approved logo file while keeping accessible alt text such as `ShowMe logo`.
 
 ## Themes
 
-`V1.4.1` adds a teacher-facing theme selector with the following preset options:
+`V1.4.2` adds a teacher-facing theme selector with the following preset options:
 
 - Calm Blue
 - Soft Green
@@ -207,7 +208,7 @@ theme choices are configurable classroom presentation options. They should be va
 
 ## Prompt Wording and Procedural Variation
 
-The learner-facing wording in `V1.4.1` uses warmer, more natural prompts such as:
+The learner-facing wording in `V1.4.2` uses warmer, more natural prompts such as:
 
 - `Find Mum`
 - `Can you find Mum?`
@@ -288,7 +289,7 @@ This local data can include:
 - heatmap data
 - research markers
 
-The current `V1.4.1` build does not send session data to any external service.
+The current `V1.4.2` build does not send session data to any external service.
 
 ## Future LLM-Assisted Recommendations
 
@@ -353,11 +354,11 @@ Then open:
 
 If you want the published snapshot directly, open:
 
-- `choice_train_V1.4.1.html`
+- `choice_train_V1.4.2.html`
 
 Keep the paired script beside it:
 
-- `choice_train_V1.4.1.js`
+- `choice_train_V1.4.2.js`
 
 ## GitHub Pages Deployment
 
@@ -384,10 +385,10 @@ npm install
 npm run test:browser
 ```
 
-The `V1.4.1` work was validated with:
+The `V1.4.2` work was validated with:
 
-- `node --check choice_train_V1.4.1.js`
-- Playwright browser regression coverage for teacher panel structure, Admin Panel access from learner mode, student-friendly mode, prompt wording, exports, theme persistence, and photo personalisation
+- `node --check choice_train_V1.4.2.js`
+- Playwright browser regression coverage for teacher/admin tab switching, Admin Panel access from learner mode, student-friendly mode, prompt wording, exports, theme persistence, and photo personalisation
 
 ## Current Limitations
 
@@ -414,8 +415,8 @@ Planned or likely next steps include:
 Key files and folders:
 
 - `index.html` - current live entry file
-- `choice_train_V1.4.1.html` - versioned stable HTML snapshot
-- `choice_train_V1.4.1.js` - paired runtime for the stable snapshot
+- `choice_train_V1.4.2.html` - versioned stable HTML snapshot
+- `choice_train_V1.4.2.js` - paired runtime for the stable snapshot
 - `assets/` - branding and static assets
 - `tests/` - Playwright browser tests
 - `scripts/` - local test and utility scripts

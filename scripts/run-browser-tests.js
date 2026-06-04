@@ -4,7 +4,7 @@ const path = require('path');
 const { spawn } = require('child_process');
 
 const rootDir = path.resolve(__dirname, '..');
-const serverUrl = 'http://127.0.0.1:4173/choice_train_V1.4.1.html';
+const serverUrl = 'http://127.0.0.1:4173/choice_train_V1.4.2.html';
 const localNodeModulesDir = path.join(rootDir, 'node_modules');
 const siblingNodeModulesDir = path.resolve(rootDir, '..', '..', 'Experimental_Choice_Train', 'node_modules');
 const localPlaywrightBin = path.join(
