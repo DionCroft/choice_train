@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const APP_PATH = '/choice_train_V1.3.2.html';
+const APP_PATH = '/choice_train_V1.4.0.html';
 
 async function gotoApp(page) {
   await page.goto(APP_PATH);
@@ -84,6 +84,16 @@ async function configureSession(page, overrides = {}) {
   };
   const selectFields = new Set(['sessionTaskType', 'researchCondition', 'eegExportFormat']);
 
+  await page.locator('#studentFriendlyMode').uncheck();
+  const adminDetails = page.locator('#adminPanelDetails');
+  if (!(await adminDetails.evaluate(node => node.hasAttribute('open')))) {
+    await page.locator('summary:has-text("Advanced Admin Settings")').click();
+  }
+  const researchDetails = page.locator('details:has(> summary:has-text("Research / Debug Settings"))').first();
+  if (!(await researchDetails.evaluate(node => node.hasAttribute('open')))) {
+    await page.locator('summary:has-text("Research / Debug Settings")').click();
+  }
+
   for (const [key, value] of Object.entries(settings)) {
     if (typeof value === 'boolean') {
       await setCheckbox(page, key, value);
@@ -100,13 +110,16 @@ async function startConfiguredSession(page, overrides = {}) {
   await page.locator('#beginFlow').click();
 }
 
+const friendlyFindPattern = /Find |Can you find |Where is |Show me |Let's find /;
+const categoryPattern = /Find |Which one is |Can you find |Where is /;
+
 const levelExpectations = [
-  { level: 1, stage: 'Touch screen', question: /Touch /, cueTarget: true },
-  { level: 2, stage: 'Touch object', question: /Touch /, correctTarget: true },
-  { level: 3, stage: 'Moving target', question: /Touch /, correctTarget: true },
-  { level: 4, stage: 'Find object', question: /Find /, correctTarget: true },
-  { level: 5, stage: 'Discriminate object', question: /Which is /, correctTarget: true },
-  { level: 6, stage: 'Find category', question: /Which is /, correctTarget: true },
+  { level: 1, stage: 'Touch screen', question: friendlyFindPattern, cueTarget: true },
+  { level: 2, stage: 'Touch object', question: friendlyFindPattern, correctTarget: true },
+  { level: 3, stage: 'Moving target', question: friendlyFindPattern, correctTarget: true },
+  { level: 4, stage: 'Find object', question: friendlyFindPattern, correctTarget: true },
+  { level: 5, stage: 'Discriminate object', question: friendlyFindPattern, correctTarget: true },
+  { level: 6, stage: 'Find category', question: categoryPattern, correctTarget: true },
   { level: 7, stage: 'CPAT sustained attention', question: /Tap only when you see the star/ },
   { level: 8, stage: 'CPAT selective-spatial', question: /Find the blue star/ },
   { level: 9, stage: 'CPAT orienting', question: /Use the cue, then tap the star/ },
@@ -549,6 +562,8 @@ test('session history persists across reload and exports from the history manage
   await expect(page.locator('#historyTableBody')).toContainText(sessionId);
 
   await gotoApp(page);
+  await page.locator('#studentFriendlyMode').uncheck();
+  await page.locator('summary:has-text("Research / Debug Settings")').click();
   await expect(page.locator('#historyTableBody')).toContainText(sessionId);
 
   const historyPayload = await exportJsonAfter(page, async () => {
@@ -675,11 +690,132 @@ test('documentation section is available for practitioners', async ({ page }) =>
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
+  await page.locator('#studentFriendlyMode').uncheck();
+  await page.locator('summary:has-text("Research / Debug Settings")').click();
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("CPAT and attention terms")').click();
   await expect(page.getByText('Exploratory engagement is an in-app practice metric', { exact: false })).toBeVisible();
-  await page.locator('summary:has-text("V1.3.2 CPAT variants and research tools")').click();
+  await page.locator('summary:has-text("V1.4.0 teacher, learner, and research guide")').click();
   await expect(page.locator('text=Traffic Lights')).toBeVisible();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('teacher panel is simple on first load and admin settings are collapsed by default', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await expect(page.locator('summary:has-text("Daily Teacher Setup")')).toBeVisible();
+  await expect(page.locator('summary:has-text("Pupil Personalisation")')).toBeVisible();
+  await expect(page.locator('summary:has-text("Session Controls")')).toBeVisible();
+  await expect(page.locator('summary:has-text("Context Notes")')).toBeVisible();
+  await expect(page.locator('#adminPanelDetails')).toBeHidden();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('student-friendly mode hides technical learner labels and admin content', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#startLevel').fill('2');
+  await page.locator('#sessionMax').fill('1');
+  await page.locator('#beginFlow').click();
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#questionVariant')).toBeHidden();
+  await expect(page.locator('#questionRule')).toBeHidden();
+  await expect(page.locator('#versionChip')).toBeHidden();
+  await expect(page.locator('#adminPanelDetails')).toBeHidden();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('context notes export in the session JSON payload', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#contextNotes').fill('Calm after lunch and needed one verbal cue.');
+  await startConfiguredSession(page, {
+    startLevel: 2,
+    sessionMax: 1,
+    autoAdvance: true
+  });
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+
+  const payload = await exportJsonAfter(page, async () => {
+    await page.locator('#summaryExport').click();
+  });
+
+  expect(payload.context_notes).toContain('Calm after lunch');
+  expect(payload.session_overview.context_notes).toContain('Calm after lunch');
+  expect(payload.trials[0].context_notes).toContain('Calm after lunch');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('theme selection persists after reload', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#studentFriendlyMode').uncheck();
+  await page.locator('#themeChoice').selectOption('soft-green');
+  await page.reload();
+  await expect(page.locator('#themeChoice')).toHaveValue('soft-green');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('session export uses the school-friendly filename format', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#pupilAlias').fill('Pupil A');
+  await startConfiguredSession(page, {
+    startLevel: 2,
+    sessionMax: 1,
+    autoAdvance: true
+  });
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#summaryExport').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_[A-Za-z0-9_-]+_\d{4}-\d{2}-\d{2}_\d{4}_session\.json$/);
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('photo upload adds a labelled personalised photo and records its metadata in exports', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#studentFriendlyMode').uncheck();
+  await page.locator('#photoLabel').fill('Favourite toy');
+  await page.locator('#photoCategory').selectOption('toy');
+  await page.locator('#photoType').fill('Toy');
+  await page.locator('#photoUpload').setInputFiles({
+    name: 'toy.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="12" fill="#71d4ff"/><circle cx="40" cy="40" r="20" fill="#ffd27d"/></svg>')
+  });
+  await page.locator('#addPhotoBtn').click();
+  await expect(page.locator('#photoLibraryList')).toContainText('Favourite toy');
+
+  await startConfiguredSession(page, {
+    startLevel: 2,
+    sessionMax: 1,
+    autoAdvance: true
+  });
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+
+  const payload = await exportJsonAfter(page, async () => {
+    await page.locator('#summaryExport').click();
+  });
+
+  expect(payload.photo_library_metadata.some(item => item.label === 'Favourite toy')).toBeTruthy();
 
   expect(errors, errors.join('\n')).toEqual([]);
 });

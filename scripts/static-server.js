@@ -25,7 +25,7 @@ function send(res, statusCode, body, contentType = 'text/plain; charset=utf-8') 
 
 const server = http.createServer((req, res) => {
   const requestPath = decodeURIComponent((req.url || '/').split('?')[0]);
-  const relativePath = requestPath === '/' ? '/choice_train_V1.3.0.html' : requestPath;
+  const relativePath = requestPath === '/' ? '/choice_train_V1.4.0.html' : requestPath;
   const targetPath = path.normalize(path.join(rootDir, relativePath));
 
   if (!targetPath.startsWith(rootDir)) {
