@@ -2,6 +2,42 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.5.0] - 2026-11-05
+
+### Added
+
+- in-app first-session and repeat-session instructions for teachers and TAs
+- live plain-English descriptions for the selected level and manual task override
+- an optional blank inter-trial screen with a teacher-configurable duration
+- blank-interval state and timing in session logs and exports
+- a school-readiness audit mapping Brackensfield feedback to implementation and deferred design questions
+- browser tests for the revised Teacher Panel, preference save confirmation, Student-friendly mode, level descriptions, blank intervals, and reset behavior
+
+### Changed
+
+- moved maximum answer options, task selection, prompt delay, question window, inter-trial interval, two-stage prompts, reward screen, text/image prompts, selected-label speech, and auto advance into the Teacher Panel
+- retained touch scaling/debugging, live trail, performance mode, learner-dashboard refresh, single-target sequencing, and auto-level path in the Admin Panel
+- renamed `Apply preferences` to `Save pupil preferences` and added visible save confirmation
+- clarified the Start session and Reset session behavior at the point of use
+- removed the redundant desktop `Teacher view` button while retaining Teacher/Admin tabs and the learner-mode Admin return button
+- increased ordinary form and button targets to at least 44 CSS pixels where controlled by the app
+- updated the browser harness so hidden panel controls can be configured without stale visibility assumptions
+
+### Fixed
+
+- Student-friendly mode no longer switches itself back on when a teacher has explicitly disabled it
+- stale blank-screen timers are cancelled on reset, restart, repeat, break, and session completion
+- modern touch browsers no longer record duplicate raw movement events through simultaneous Pointer and legacy Touch listeners
+
+### Validation
+
+- `node --check choice_train_V1.5.0.js`
+- 46 Playwright browser tests passed across the live entry point, levels 1-10, CPAT, EEG, history, exports, learner mode, panel switching, personalisation, and the new teacher workflow
+
+### Deferred
+
+- granular category-by-level progression is documented for practitioner design before implementation
+
 ## [1.4.2] - 2026-06-04
 
 ### Added

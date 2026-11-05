@@ -1,6 +1,6 @@
 # ChoiceTrain User Guide
 
-**Version:** `V1.4.2`  
+**Version:** `V1.5.0`
 **Project:** ChoiceTrain for ShowMe  
 **Repository:** https://github.com/DionCroft/choice_train  
 **Live site:** https://dioncroft.github.io/choice_train/
@@ -48,7 +48,7 @@ It focuses on:
 - calm progress feedback
 - minimal distractions
 
-Student-friendly mode is enabled by default when learner mode is opened.
+Student-friendly mode is enabled by default for new users. A teacher can switch it off when the additional task labels are helpful, and the app respects that choice when learner mode opens.
 
 ### Teacher Panel
 
@@ -59,7 +59,11 @@ Teachers and TAs can use it to:
 - select or add a pupil
 - set session length
 - choose the number of questions
-- review the current level
+- review the current level and its task description
+- choose a task for the session
+- set answer count, prompt delay, question window, and inter-trial interval
+- choose two-stage, text, image, reward, selected-label speech, and auto-advance options
+- add an optional timed blank screen between questions
 - add context notes
 - choose a theme
 - enable or disable speech
@@ -76,7 +80,6 @@ It includes:
 - touch debug and live trail
 - heatmaps and detailed analytics
 - CPAT settings
-- manual task selection
 - auto level path
 - touch scaling
 - advanced export options
@@ -124,7 +127,7 @@ Use these to switch between the two panel groups.
 
 ### Teacher Panel
 
-This should be the default panel for normal classroom use.
+This is the default panel for normal classroom use. The first section includes expandable instructions for a pupil's first session and each later session.
 
 ### Admin Panel
 
@@ -212,26 +215,28 @@ ChoiceTrain avoids medical or diagnostic wording here. These notes are for class
 
 ## 8. Running a Session
 
-### Step 1
+### First Session With a Pupil
 
-Select the pupil.
+1. Add or select the pupil and use an alias where appropriate.
+2. Choose the starting level, task, question count, and session length.
+3. Choose prompt, speech, reward, and timing options that suit the pupil.
+4. Add familiar photos and a short context note if useful.
+5. Press `Start session`, then hand over or turn the screen towards the pupil.
 
-### Step 2
+### Each Later Session
 
-Set the main teacher options:
+1. Select the pupil and check the saved level and task description.
+2. Review today's context, timing, prompts, and reward settings.
+3. Press `Start session`.
+4. At the end, review the basic results and download the session if required.
 
-- session length
-- number of questions
-- current level or auto pathway
-- theme
-- speech on or off
-- context notes if needed
+Settings save locally as they are changed. `Save pupil preferences` also applies the selected prompt style to the text, image, and speech controls and displays a save confirmation.
 
-### Step 3
+`Reset session` clears the current unsaved attempt and returns to the welcome screen. It keeps the pupil profile, saved settings, and stored session history.
 
-Press `Start Session`.
+### Optional Blank Screen
 
-The learner activity will open.
+Turn on `Show blank screen` to add a calm pause after feedback and before the next question. Set `Blank duration` between 0.25 and 10 seconds. This is off by default and the selected timing is included in the session export.
 
 ---
 
@@ -255,7 +260,7 @@ The learner sees only:
 - rewards and progress feedback
 - calm navigation
 
-This mode is enabled automatically when learner mode is opened.
+This mode is enabled by default for new users, but teachers can switch it off. ChoiceTrain keeps the teacher's selected state when learner mode opens.
 
 ---
 
@@ -544,6 +549,7 @@ ChoiceTrain should always be used alongside professional educational judgement. 
 
 - [README.md](README.md)
 - [RESEARCH_EVIDENCE.md](RESEARCH_EVIDENCE.md)
+- [SCHOOL_READINESS_AUDIT.md](SCHOOL_READINESS_AUDIT.md)
 - [CHANGELOG.md](CHANGELOG.md)
 
 ---

@@ -23,12 +23,13 @@
     label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
     input[type=text], select, input[type=number], textarea, input[type=file], input[type=range]{width:100%}
     input[type=text], select, input[type=number], textarea, input[type=file]{background:var(--btn);color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px}
+    input[type=text], select, input[type=number]{min-height:44px}
     textarea{min-height:70px;resize:vertical}
-    button{background:var(--btn);color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;font-size:14px;cursor:pointer;box-shadow:var(--shadow)}
+    button{background:var(--btn);color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;min-height:44px;font-size:14px;cursor:pointer;box-shadow:var(--shadow)}
     .playArea,.choice,button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
     button:hover{background:var(--btn2)}
     .primary{background:linear-gradient(180deg,#29517f,#1d3960)}
-    .toggle{display:flex;align-items:center;gap:8px;background:var(--btn);padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
+    .toggle{display:flex;align-items:center;gap:8px;min-height:44px;background:var(--btn);padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
     .toggle input{width:auto}
     .stat{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin:4px 0}
     .stat b{color:var(--text)}
@@ -119,6 +120,17 @@
     .photoMetaTiny{font-size:11px;color:var(--muted);line-height:1.4}
     .photoActions{display:flex;gap:8px;flex-wrap:wrap}
     .resultGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .quickStart{padding:12px;border-radius:16px;background:rgba(113,212,255,.08);border:1px solid rgba(113,212,255,.18);margin-bottom:12px}
+    .quickStart h3{font-size:14px;margin:0 0 8px}
+    .quickStart details{border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-top:8px}
+    .quickStart summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--text)}
+    .stepList{margin:8px 0 0;padding-left:20px;color:var(--muted);font-size:12px;line-height:1.55}
+    .levelSummary{margin-top:6px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);font-size:12px;line-height:1.45;color:var(--text)}
+    .saveStatus{min-height:18px;margin-top:6px;font-size:12px;color:var(--good)}
+    .controlGroup{padding:10px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);margin-top:10px}
+    .controlGroupTitle{font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px}
+    .blankScreen{background:var(--bg)}
+    .blankScreen .blankIndicator{width:1px;height:1px;overflow:hidden;opacity:0}
     .student-friendly-on .student-hide-main{display:none !important}
     .student-friendly-on .student-hide-panel{display:none !important}
     .student-friendly-on .student-soften{opacity:.75}
@@ -265,7 +277,6 @@
       <div class="tiny" id="versionInfo" style="margin-top:8px">Active build: loading...</div>
       <div class="modeBar" style="margin-top:10px">
         <button id="learnerModeBtn" class="primary">Open learner mode</button>
-        <button id="practitionerModeBtn" class="ghostBtn">Teacher view</button>
       </div>
     </div>
 
@@ -275,6 +286,28 @@
         <div class="sectionIntro">
           <span class="sectionTag">Teacher Panel</span>
           <div class="helperText">Daily classroom setup for running a session quickly without needing the research or debug controls.</div>
+        </div>
+        <div class="quickStart" aria-label="Teacher quick start instructions">
+          <h3>Teacher quick start</h3>
+          <details open>
+            <summary>First session with a pupil</summary>
+            <ol class="stepList">
+              <li>Add or select the pupil and use an alias where appropriate.</li>
+              <li>Choose the starting level, task, question count, and session length.</li>
+              <li>Choose prompt, speech, reward, and timing options that suit the pupil.</li>
+              <li>Add familiar photos and a short context note if useful.</li>
+              <li>Select <b>Start session</b>, then hand over or turn the screen towards the pupil.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Each later session</summary>
+            <ol class="stepList">
+              <li>Select the pupil and check the saved level and task description.</li>
+              <li>Review today's context, timing, prompts, and reward settings.</li>
+              <li>Select <b>Start session</b>.</li>
+              <li>At the end, review the basic results and download the session if required.</li>
+            </ol>
+          </details>
         </div>
         <label for="pupilSelect">Select pupil</label>
         <select id="pupilSelect"></select>
@@ -292,7 +325,8 @@
           <div>
             <label for="startLevel">Current level</label>
             <input id="startLevel" type="number" min="1" max="10" value="1" />
-            <div class="helperText">Where the pupil should begin today.</div>
+            <div class="helperText">The numbered stage where the pupil should begin today.</div>
+            <div id="currentLevelDescription" class="levelSummary" aria-live="polite">Level 1: build touchscreen confidence. Any touch in the panel counts.</div>
           </div>
           <div>
             <label for="sessionMinutes">Session length</label>
@@ -323,6 +357,51 @@
           <label class="toggle"><input id="studentFriendlyMode" type="checkbox" checked /> Student-friendly mode</label>
         </div>
         <div class="helperText">Speech reads prompts aloud. Student-friendly mode hides technical controls and keeps the learner view calm and simple.</div>
+
+        <div class="controlGroup">
+          <div class="controlGroupTitle">Questions and timing</div>
+          <div class="teacherGrid">
+            <div>
+              <label for="maxObjects">Maximum answer options</label>
+              <input id="maxObjects" type="number" min="2" max="6" value="4" />
+              <div class="helperText">The largest number of choices that can appear on screen at once.</div>
+            </div>
+            <div>
+              <label for="sessionTaskType">Task for this session</label>
+              <select id="sessionTaskType">
+                <option value="auto">Use the current level</option>
+                <option value="touch-screen">Touch screen</option>
+                <option value="touch-object">Touch object</option>
+                <option value="moving-target">Moving target</option>
+                <option value="find-object">Find object</option>
+                <option value="discriminate-object">Discriminate object</option>
+                <option value="find-category">Find category</option>
+                <option value="choice-preference">Choice preference</option>
+                <option value="cpat-suite">CPAT suite</option>
+                <option value="cpat-sustained">CPAT sustained attention</option>
+                <option value="cpat-selective">CPAT selective-spatial</option>
+                <option value="cpat-orienting">CPAT orienting</option>
+                <option value="cpat-executive">CPAT executive control</option>
+              </select>
+              <div class="helperText">Use the pupil's current level or choose one task type for this session.</div>
+            </div>
+            <div>
+              <label for="delaySec">Prompt delay (seconds)</label>
+              <input id="delaySec" type="number" min="0" max="5" step="0.5" value="1" />
+              <div class="helperText">How long the prompt is shown before the answer choices appear in a two-stage task.</div>
+            </div>
+            <div>
+              <label for="responseWindowSec">Question window (seconds)</label>
+              <input id="responseWindowSec" type="number" min="1" max="20" step="0.5" value="6" />
+              <div class="helperText">How long the pupil has to respond before a no-response outcome is recorded.</div>
+            </div>
+            <div>
+              <label for="itiSec">Inter-trial interval (seconds)</label>
+              <input id="itiSec" type="number" min="0" max="5" step="0.25" value="0.75" />
+              <div class="helperText">The pause between one completed question and the next.</div>
+            </div>
+          </div>
+        </div>
       </div>
     </details>
 
@@ -371,9 +450,11 @@
           </div>
         </div>
         <div class="dashboardTools">
-          <button id="applyPreferencesBtn">Apply preferences</button>
+          <button id="applyPreferencesBtn">Save pupil preferences</button>
           <button id="logPreferenceCheckBtn" class="ghostBtn">Log preference check</button>
         </div>
+        <div class="helperText">Changes are saved locally as you make them. Save pupil preferences also applies the selected prompt style to today's session.</div>
+        <div id="preferenceSaveStatus" class="saveStatus" role="status" aria-live="polite"></div>
 
         <div class="photoFormGrid" style="margin-top:12px">
           <div>
@@ -430,6 +511,33 @@
           <span class="sectionTag">Teacher Panel</span>
           <div class="helperText">Simple controls for starting, resetting, or downloading a session without opening the advanced research tools.</div>
         </div>
+        <div class="controlGroup">
+          <div class="controlGroupTitle">Prompt and feedback options</div>
+          <div class="row">
+            <label class="toggle"><input id="useTwoStage" type="checkbox" /> Two-stage prompt</label>
+            <label class="toggle"><input id="useReward" type="checkbox" checked /> Reward screen</label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="toggle"><input id="useTextPrompt" type="checkbox" checked /> Show text prompts</label>
+            <label class="toggle"><input id="useImagePrompt" type="checkbox" checked /> Show image prompts</label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="toggle"><input id="ttsLabelsToggle" type="checkbox" /> Speak selected label</label>
+            <label class="toggle"><input id="autoAdvance" type="checkbox" checked /> Auto advance</label>
+          </div>
+          <div class="helperText">Two-stage prompts show the instruction before the answers. Auto advance moves on without requiring the pupil or teacher to press Next.</div>
+        </div>
+        <div class="controlGroup">
+          <div class="controlGroupTitle">Optional blank screen between questions</div>
+          <div class="row">
+            <label class="toggle"><input id="useBlankInterval" type="checkbox" /> Show blank screen</label>
+            <div style="flex:1 1 160px">
+              <label for="blankIntervalSec">Blank duration (seconds)</label>
+              <input id="blankIntervalSec" type="number" min="0.25" max="10" step="0.25" value="1" />
+            </div>
+          </div>
+          <div class="helperText">Adds a calm, empty pause after feedback and before the next question. Leave it off if the pupil benefits from a continuous flow.</div>
+        </div>
         <div class="row">
           <button id="startBtn" class="primary">Start session</button>
           <button id="resetBtn">Reset session</button>
@@ -440,7 +548,7 @@
           <button id="repeatBtn">Repeat</button>
           <button id="fullscreenBtn">Fullscreen</button>
         </div>
-        <div class="helperText">Use Download session to save a school-friendly JSON file after a session. Fullscreen is helpful for tablets and touchscreens.</div>
+        <div class="helperText"><b>Start session</b> begins a fresh session using the settings currently shown. <b>Reset session</b> clears the current unsaved attempt and returns to the welcome screen; it keeps the pupil profile, saved settings, and stored session history. Use Download session to save a school-friendly JSON file.</div>
       </div>
     </details>
 
@@ -483,19 +591,9 @@
       <div class="menuBody">
         <div class="sectionIntro">
           <span class="sectionTag admin">Admin Panel</span>
-          <div class="helperText">Advanced session, CPAT, analytics, and export controls. These are hidden by default so teachers can use ChoiceTrain immediately.</div>
+          <div class="helperText">Advanced progression, touch, and performance controls. Daily presentation and timing settings are now available in the Teacher Panel.</div>
         </div>
         <div class="teacherGrid">
-          <div>
-            <label for="maxObjects">Maximum answer options</label>
-            <input id="maxObjects" type="number" min="2" max="6" value="4" />
-            <div class="helperText">How many choices can appear on screen at once.</div>
-          </div>
-          <div>
-            <label for="delaySec">Auto delay (seconds)</label>
-            <input id="delaySec" type="number" min="0" max="5" step="0.5" value="1" />
-            <div class="helperText">A small pause before the next screen when auto advance is on.</div>
-          </div>
           <div>
             <label for="targetScale">Touch scale (%)</label>
             <input id="targetScale" type="number" min="80" max="220" value="100" />
@@ -504,36 +602,7 @@
           <div>
             <label for="singleTargetReps">Single-target repetitions</label>
             <input id="singleTargetReps" type="number" min="1" max="10" value="3" />
-            <div class="helperText">How long the early single-target stage should continue before multi-choice tasks appear.</div>
-          </div>
-          <div>
-            <label for="sessionTaskType">Manual task selection</label>
-            <select id="sessionTaskType">
-              <option value="auto">Auto</option>
-              <option value="touch-screen">Touch screen</option>
-              <option value="touch-object">Touch object</option>
-              <option value="moving-target">Moving target</option>
-              <option value="find-object">Find object</option>
-              <option value="discriminate-object">Discriminate object</option>
-              <option value="find-category">Find category</option>
-              <option value="choice-preference">Choice preference</option>
-              <option value="cpat-suite">CPAT suite</option>
-              <option value="cpat-sustained">CPAT sustained attention</option>
-              <option value="cpat-selective">CPAT selective-spatial</option>
-              <option value="cpat-orienting">CPAT orienting</option>
-              <option value="cpat-executive">CPAT executive control</option>
-            </select>
-            <div class="helperText">Locks the session to one task type instead of following the automatic level path.</div>
-          </div>
-          <div>
-            <label for="responseWindowSec">Question window (seconds)</label>
-            <input id="responseWindowSec" type="number" min="1" max="20" step="0.5" value="6" />
-            <div class="helperText">How long the learner has to respond before the app records a no-response outcome.</div>
-          </div>
-          <div>
-            <label for="itiSec">Inter-trial interval (seconds)</label>
-            <input id="itiSec" type="number" min="0" max="5" step="0.25" value="0.75" />
-            <div class="helperText">The pause between questions.</div>
+            <div class="helperText">When Single-target first stage is enabled and automatic level progression is off, this sets how many opening questions use one large target before multi-choice tasks begin.</div>
           </div>
           <div>
             <label for="moveSampleMs">Move sample rate (ms)</label>
@@ -551,18 +620,6 @@
           <label class="toggle"><input id="showTouchDebug" type="checkbox" /> Touch debug</label>
         </div>
         <div class="row" style="margin-top:8px">
-          <label class="toggle"><input id="useTwoStage" type="checkbox" /> Two-stage prompt</label>
-          <label class="toggle"><input id="useReward" type="checkbox" checked /> Reward screen</label>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <label class="toggle"><input id="useTextPrompt" type="checkbox" checked /> Show text prompts</label>
-          <label class="toggle"><input id="useImagePrompt" type="checkbox" checked /> Show image prompts</label>
-        </div>
-        <div class="row" style="margin-top:8px">
-          <label class="toggle"><input id="ttsLabelsToggle" type="checkbox" /> Speak selected label</label>
-          <label class="toggle"><input id="autoAdvance" type="checkbox" checked /> Auto advance</label>
-        </div>
-        <div class="row" style="margin-top:8px">
           <label class="toggle"><input id="trackTrail" type="checkbox" checked /> Live trail</label>
           <label class="toggle"><input id="performanceMode" type="checkbox" checked /> Performance mode</label>
         </div>
@@ -573,7 +630,7 @@
         <div class="row" style="margin-top:8px">
           <label class="toggle"><input id="autoLevelPath" type="checkbox" checked /> Auto level path</label>
         </div>
-        <div class="helperText">Auto level path automatically moves the pupil through levels when they are ready. Performance mode keeps touch logging lighter for tablets and touchscreens.</div>
+        <div class="helperText">Auto level path automatically follows the numbered progression. Single-target first stage affects mixed sessions only when that path is off. Performance mode keeps touch logging lighter for tablets and touchscreens.</div>
       </div>
     </details>
 
@@ -955,13 +1012,13 @@
         <div class="section" style="padding-top:14px">
           <div class="sub">About / Build Info</div>
           <div class="aboutGrid">
-            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.4.2</div></div>
+            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.5.0</div></div>
             <div class="dashCard"><div class="k">Status</div><div class="v" id="aboutChannel">Experimental</div></div>
             <div class="dashCard"><div class="k">Base commit</div><div class="v mono" id="aboutCommit">loading</div></div>
             <div class="dashCard"><div class="k">Build date</div><div class="v" id="aboutBuildDate">loading</div></div>
           </div>
           <div class="metaList">
-            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.4.2.html</b></div>
+            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.5.0.html</b></div>
             <div class="metaItem"><span>Published entry</span><b class="mono" id="aboutPublishedEntry">index.html</b></div>
             <div class="metaItem"><span>Live URL</span><b class="mono" id="aboutLiveUrl">https://dioncroft.github.io/choice_train/</b></div>
             <div class="metaItem"><span>Repository</span><b class="mono" id="aboutRepoUrl">https://github.com/DionCroft/choice_train</b></div>
@@ -1029,7 +1086,7 @@
         </div>
       </details>
       <details class="docsDetails">
-        <summary>V1.4.2 teacher, learner, and research guide</summary>
+        <summary>V1.5.0 teacher, learner, and research guide</summary>
         <div class="docsBody">
           <p><b>Teacher Panel</b> is designed for everyday classroom setup. Use it to select a pupil, choose a theme, add context notes, personalise content, and start or export a session quickly.</p>
           <p><b>Admin Panel</b> stays collapsed by default. Open it only when you need advanced analytics, CPAT tuning, touch debugging, EEG preparation, or fidelity and research settings.</p>
@@ -1104,6 +1161,10 @@
           </div>
         </section>
 
+        <section class="screen blankScreen" id="screenBlank" aria-label="Pause between questions">
+          <span class="blankIndicator">Pause between questions</span>
+        </section>
+
         <section class="screen" id="screenBreak">
           <div class="hero" id="breakTitle">Break Time</div>
           <div class="heroSub" id="breakSubtitle">A short pause is active.</div>
@@ -1151,6 +1212,6 @@
   </main>
 </div>
 
-<script src="choice_train_V1.4.2.js"></script>
+<script src="choice_train_V1.5.0.js"></script>
 </body>
 </html>

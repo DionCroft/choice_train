@@ -4,6 +4,17 @@
 **Baseline release:** `V1.4.2`  
 **Purpose:** Prepare ChoiceTrain for initial teacher-led pupil testing at Brackensfield while preserving the existing learner, research, EEG, analytics, personalisation, and export features.
 
+## Implementation Status
+
+The immediate usability scope was implemented in `V1.5.0` and validated on 5 November 2026. All nine directly actionable interface items in the table below are complete. The granular progression hierarchy remains deliberately deferred for practitioner design.
+
+Validation completed:
+
+- JavaScript syntax check passed for `choice_train_V1.5.0.js`
+- no duplicate HTML element IDs were found in the versioned build
+- all 46 Playwright browser tests passed
+- the tested version retains the static GitHub Pages deployment model
+
 ## Feedback Outcomes
 
 | Feedback area | Baseline finding | Agreed change |
@@ -23,8 +34,8 @@
 
 ### High priority
 
-- The Playwright helper opens hidden Admin controls without selecting the Admin tab first. After the `V1.4.2` panel split, this causes broad test timeouts before the application is exercised.
-- Touch input is logged through both Pointer Events and legacy Touch Events. Browsers that emit both may produce duplicate raw movement/down/up records. This does not currently duplicate button activation, but should be reviewed after the school-readiness release because it can inflate research logs.
+- Resolved in `V1.5.0`: the Playwright setup no longer depends on hidden panel controls being visibly clickable, while dedicated tests still verify the actual Teacher/Admin navigation.
+- Resolved in `V1.5.0`: modern browsers use Pointer Events only, while older browsers receive separate touch and mouse fallbacks. This prevents dual Pointer/Touch emission from inflating raw research logs.
 
 ### Medium priority
 

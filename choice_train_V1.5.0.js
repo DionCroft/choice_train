@@ -7,7 +7,7 @@
     source_file: 'choice_train_V1.5.0.html',
     source_script: 'choice_train_V1.5.0.js',
     based_on_branch: 'main',
-    based_on_commit: 'pending-stamp',
+    based_on_commit: 'e2f9d4d',
     build_date: '2026-11-05',
     published_entry: 'index.html',
     live_url: 'https://dioncroft.github.io/choice_train/',
@@ -4298,33 +4298,47 @@
       ui[id].addEventListener('input', handler);
     });
 
-    ui.playArea.addEventListener('pointerdown', event => {
-      state.lastPointerType = event.pointerType || 'mouse';
-      handlePointerPosition(event.clientX, event.clientY, 'down', state.lastPointerType);
-    });
-    ui.playArea.addEventListener('pointermove', event => {
-      handlePointerPosition(event.clientX, event.clientY, 'move', event.pointerType || state.lastPointerType);
-    });
-    ui.playArea.addEventListener('pointerup', event => {
-      handlePointerPosition(event.clientX, event.clientY, 'up', event.pointerType || state.lastPointerType);
-    });
-    ui.playArea.addEventListener('touchstart', event => {
-      state.isTouchDevice = true;
-      state.lastPointerType = 'touch';
-      if(event.touches && event.touches[0]){
-        handlePointerPosition(event.touches[0].clientX, event.touches[0].clientY, 'down', 'touch');
-      }
-    }, { passive: true });
-    ui.playArea.addEventListener('touchmove', event => {
-      if(event.touches && event.touches[0]){
-        handlePointerPosition(event.touches[0].clientX, event.touches[0].clientY, 'move', 'touch');
-      }
-    }, { passive: true });
-    ui.playArea.addEventListener('touchend', event => {
-      if(event.changedTouches && event.changedTouches[0]){
-        handlePointerPosition(event.changedTouches[0].clientX, event.changedTouches[0].clientY, 'up', 'touch');
-      }
-    }, { passive: true });
+    if('PointerEvent' in window){
+      ui.playArea.addEventListener('pointerdown', event => {
+        state.lastPointerType = event.pointerType || 'mouse';
+        state.isTouchDevice = state.isTouchDevice || state.lastPointerType === 'touch';
+        handlePointerPosition(event.clientX, event.clientY, 'down', state.lastPointerType);
+      });
+      ui.playArea.addEventListener('pointermove', event => {
+        handlePointerPosition(event.clientX, event.clientY, 'move', event.pointerType || state.lastPointerType);
+      });
+      ui.playArea.addEventListener('pointerup', event => {
+        handlePointerPosition(event.clientX, event.clientY, 'up', event.pointerType || state.lastPointerType);
+      });
+    } else {
+      ui.playArea.addEventListener('mousedown', event => {
+        state.lastPointerType = 'mouse';
+        handlePointerPosition(event.clientX, event.clientY, 'down', 'mouse');
+      });
+      ui.playArea.addEventListener('mousemove', event => {
+        handlePointerPosition(event.clientX, event.clientY, 'move', 'mouse');
+      });
+      ui.playArea.addEventListener('mouseup', event => {
+        handlePointerPosition(event.clientX, event.clientY, 'up', 'mouse');
+      });
+      ui.playArea.addEventListener('touchstart', event => {
+        state.isTouchDevice = true;
+        state.lastPointerType = 'touch';
+        if(event.touches && event.touches[0]){
+          handlePointerPosition(event.touches[0].clientX, event.touches[0].clientY, 'down', 'touch');
+        }
+      }, { passive: true });
+      ui.playArea.addEventListener('touchmove', event => {
+        if(event.touches && event.touches[0]){
+          handlePointerPosition(event.touches[0].clientX, event.touches[0].clientY, 'move', 'touch');
+        }
+      }, { passive: true });
+      ui.playArea.addEventListener('touchend', event => {
+        if(event.changedTouches && event.changedTouches[0]){
+          handlePointerPosition(event.changedTouches[0].clientX, event.changedTouches[0].clientY, 'up', 'touch');
+        }
+      }, { passive: true });
+    }
     window.addEventListener('resize', resizeCanvas);
     document.addEventListener('fullscreenchange', updateFullscreenButton);
   }

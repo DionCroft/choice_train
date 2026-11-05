@@ -75,6 +75,15 @@ function attachErrorTracking(page) {
   return errors;
 }
 
+test('live index loads the V1.5.0 stable build', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await page.goto('/');
+  await expect(page.locator('#beginFlow')).toBeVisible();
+  await expect(page.locator('#versionInfo')).toContainText('V1.5.0');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.5.0.html');
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
 async function configureSession(page, overrides = {}) {
   const settings = {
     ttsToggle: false,
