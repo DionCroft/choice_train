@@ -9,19 +9,27 @@ async function gotoApp(page) {
 
 async function setCheckbox(page, id, checked) {
   const locator = page.locator(`#${id}`);
-  if (checked) {
-    await locator.check();
-  } else {
-    await locator.uncheck();
-  }
+  await locator.evaluate((node, nextValue) => {
+    node.checked = nextValue;
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+    node.dispatchEvent(new Event('change', { bubbles: true }));
+  }, checked);
 }
 
 async function setNumber(page, id, value) {
-  await page.locator(`#${id}`).fill(String(value));
+  await page.locator(`#${id}`).evaluate((node, nextValue) => {
+    node.value = String(nextValue);
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+    node.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
 }
 
 async function setSelect(page, id, value) {
-  await page.locator(`#${id}`).selectOption(String(value));
+  await page.locator(`#${id}`).evaluate((node, nextValue) => {
+    node.value = String(nextValue);
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+    node.dispatchEvent(new Event('change', { bubbles: true }));
+  }, value);
 }
 
 async function waitForChoiceScreen(page) {
@@ -85,6 +93,8 @@ async function configureSession(page, overrides = {}) {
   const selectFields = new Set(['sessionTaskType', 'researchCondition', 'eegExportFormat']);
 
   await page.locator('#studentFriendlyMode').uncheck();
+  await page.locator('#adminPanelTab').click();
+  await expect(page.locator('#adminPanelDetails')).toBeVisible();
   const adminDetails = page.locator('#adminPanelDetails');
   if (!(await adminDetails.evaluate(node => node.hasAttribute('open')))) {
     await page.locator('summary:has-text("Advanced Admin Settings")').click();
@@ -563,6 +573,7 @@ test('session history persists across reload and exports from the history manage
 
   await gotoApp(page);
   await page.locator('#studentFriendlyMode').uncheck();
+  await page.locator('#adminPanelTab').click();
   await page.locator('summary:has-text("Research / Debug Settings")').click();
   await expect(page.locator('#historyTableBody')).toContainText(sessionId);
 
@@ -691,6 +702,7 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await gotoApp(page);
 
   await page.locator('#studentFriendlyMode').uncheck();
+  await page.locator('#adminPanelTab').click();
   await page.locator('summary:has-text("Research / Debug Settings")').click();
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("CPAT and attention terms")').click();
