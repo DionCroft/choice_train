@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const APP_PATH = '/choice_train_V1.4.2.html';
+const APP_PATH = '/choice_train_V1.5.0.html';
 
 async function gotoApp(page) {
   await page.goto(APP_PATH);
@@ -88,6 +88,8 @@ async function configureSession(page, overrides = {}) {
     startLevel: 1,
     itiSec: 0.2,
     responseWindowSec: 1,
+    useBlankInterval: false,
+    blankIntervalSec: 1,
     ...overrides
   };
   const selectFields = new Set(['sessionTaskType', 'researchCondition', 'eegExportFormat']);
@@ -707,7 +709,7 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("CPAT and attention terms")').click();
   await expect(page.getByText('Exploratory engagement is an in-app practice metric', { exact: false })).toBeVisible();
-  await page.locator('summary:has-text("V1.4.2 teacher, learner, and research guide")').click();
+  await page.locator('summary:has-text("V1.5.0 teacher, learner, and research guide")').click();
   await expect(page.locator('text=Traffic Lights')).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -723,6 +725,122 @@ test('teacher panel is simple on first load and admin settings are collapsed by 
   await expect(page.locator('summary:has-text("Context Notes")')).toBeVisible();
   await expect(page.locator('#teacherPanelTab')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('summary:has-text("Advanced Admin Settings")')).toBeHidden();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('teacher panel exposes daily classroom controls and quick-start guidance', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await expect(page.getByText('Teacher quick start', { exact: true })).toBeVisible();
+  await expect(page.locator('summary:has-text("First session with a pupil")')).toBeVisible();
+  await expect(page.locator('#maxObjects')).toBeVisible();
+  await expect(page.locator('#sessionTaskType')).toBeVisible();
+  await expect(page.locator('#responseWindowSec')).toBeVisible();
+  await expect(page.locator('#itiSec')).toBeVisible();
+  await expect(page.locator('#useTwoStage')).toBeVisible();
+  await expect(page.locator('#useReward')).toBeVisible();
+  await expect(page.locator('#useTextPrompt')).toBeVisible();
+  await expect(page.locator('#useImagePrompt')).toBeVisible();
+  await expect(page.locator('#ttsLabelsToggle')).toBeVisible();
+  await expect(page.locator('#autoAdvance')).toBeVisible();
+  await expect(page.locator('#targetScale')).toBeHidden();
+  await expect(page.locator('#practitionerModeBtn')).toHaveCount(0);
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('level description follows the number and manual task selection', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#startLevel').fill('8');
+  await expect(page.locator('#currentLevelDescription')).toContainText('selective-spatial attention');
+  await page.locator('#sessionTaskType').selectOption('touch-object');
+  await expect(page.locator('#currentLevelDescription')).toContainText('Touch object is selected');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('saving pupil preferences clearly confirms the applied prompt style', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#communicationSupportChoice').selectOption('image-first');
+  await page.locator('#applyPreferencesBtn').click();
+  await expect(page.locator('#preferenceSaveStatus')).toContainText('saved on this device');
+  await expect(page.locator('#useTextPrompt')).not.toBeChecked();
+  await expect(page.locator('#useImagePrompt')).toBeChecked();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('student-friendly mode can be switched off and remains off in learner mode', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#studentFriendlyMode').uncheck();
+  await page.locator('#learnerModeBtn').click();
+  await expect(page.locator('body')).not.toHaveClass(/student-friendly-on/);
+  await page.locator('#adminModeFab').click();
+  await expect(page.locator('#studentFriendlyMode')).not.toBeChecked();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('optional blank interval appears between questions and is exported', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await configureSession(page, {
+    startLevel: 2,
+    sessionMax: 2,
+    useReward: false,
+    autoAdvance: true,
+    autoLevelPath: false,
+    sessionTaskType: 'touch-object',
+    itiSec: 0.2,
+    useBlankInterval: true,
+    blankIntervalSec: 1
+  });
+  await page.locator('#beginFlow').click();
+  await clickCorrectChoice(page);
+  await expect(page.locator('#screenBlank.active')).toBeVisible({ timeout: 3_000 });
+  await waitForChoiceScreen(page);
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+
+  const payload = await exportJsonAfter(page, async () => {
+    await page.locator('#summaryExport').click();
+  });
+  expect(payload.blank_interval_enabled).toBe(true);
+  expect(payload.blank_interval_ms).toBe(1000);
+  expect(payload.events.some(event => event.type === 'inter_trial_blank_onset')).toBeTruthy();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('reset returns to welcome without changing saved session settings', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await configureSession(page, {
+    startLevel: 4,
+    sessionMax: 3,
+    autoAdvance: false,
+    autoLevelPath: false,
+    sessionTaskType: 'find-object'
+  });
+  await page.locator('#beginFlow').click();
+  await waitForChoiceScreen(page);
+  await page.locator('#teacherPanelTab').click();
+  await page.locator('#resetBtn').click();
+  await expect(page.locator('#screenWelcome.active')).toBeVisible();
+  await expect(page.locator('#startLevel')).toHaveValue('4');
+  await expect(page.locator('#sessionMax')).toHaveValue('3');
+  await expect(page.locator('#sessionTaskType')).toHaveValue('find-object');
+  await expect(page.locator('#status')).toHaveText('idle');
 
   expect(errors, errors.join('\n')).toEqual([]);
 });
