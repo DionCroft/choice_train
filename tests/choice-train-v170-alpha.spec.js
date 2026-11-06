@@ -82,6 +82,72 @@ test('teacher shell uses the bundled high-legibility font and accessible contras
   expect(result.ratio).toBeGreaterThanOrEqual(7);
 });
 
+test('every learner theme supplies a complete accessible semantic palette', async ({ page }) => {
+  await gotoAlpha(page);
+  const themes = await page.locator('#themeChoice option').evaluateAll(options => options.map(option => option.value));
+  const required = [
+    'canvas', 'surface', 'surface-subtle', 'surface-raised', 'text', 'text-muted',
+    'border', 'border-strong', 'control', 'control-hover', 'primary', 'primary-hover',
+    'primary-soft', 'on-primary', 'success', 'success-soft', 'warning', 'warning-soft',
+    'danger', 'danger-soft', 'reward', 'reward-soft', 'inverse', 'on-inverse', 'focus',
+    'focus-soft', 'scrim', 'shadow', 'stimulus-blue', 'stimulus-green', 'stimulus-amber',
+    'stimulus-red', 'stimulus-pink', 'stimulus-violet'
+  ];
+
+  for(const theme of themes){
+    await setValue(page, 'themeChoice', theme);
+    const audit = await page.evaluate(tokens => {
+      const style = getComputedStyle(document.documentElement);
+      const values = Object.fromEntries(tokens.map(token => [token, style.getPropertyValue(`--${token}`).trim()]));
+      const rgb = value => {
+        if(value.startsWith('#')){
+          const hex = value.slice(1);
+          return [0, 2, 4].map(index => parseInt(hex.slice(index, index + 2), 16));
+        }
+        return (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+      };
+      const luminance = value => {
+        const linear = rgb(value).map(channel => {
+          const normal = channel / 255;
+          return normal <= 0.04045 ? normal / 12.92 : ((normal + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+      };
+      const contrast = (a, b) => {
+        const first = luminance(a);
+        const second = luminance(b);
+        return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+      };
+      return {
+        missing: tokens.filter(token => !values[token]),
+        theme: document.body.dataset.learnerTheme,
+        ratios: {
+          text: contrast(values.text, values.surface),
+          muted: contrast(values['text-muted'], values.surface),
+          primary: contrast(values['on-primary'], values.primary),
+          inverse: contrast(values['on-inverse'], values.inverse),
+          success: contrast(values.success, values.surface),
+          warning: contrast(values.warning, values.surface),
+          danger: contrast(values.danger, values.surface),
+          border: contrast(values.border, values.surface),
+          focus: contrast(values.focus, values.surface)
+        }
+      };
+    }, required);
+    expect(audit.theme).toBe(theme);
+    expect(audit.missing).toEqual([]);
+    expect(audit.ratios.text).toBeGreaterThanOrEqual(4.5);
+    expect(audit.ratios.muted).toBeGreaterThanOrEqual(4.5);
+    expect(audit.ratios.primary).toBeGreaterThanOrEqual(4.5);
+    expect(audit.ratios.inverse).toBeGreaterThanOrEqual(4.5);
+    expect(audit.ratios.success).toBeGreaterThanOrEqual(4.5);
+    expect(audit.ratios.warning).toBeGreaterThanOrEqual(4.5);
+    expect(audit.ratios.danger).toBeGreaterThanOrEqual(4.5);
+    expect(audit.ratios.border).toBeGreaterThanOrEqual(3);
+    expect(audit.ratios.focus).toBeGreaterThanOrEqual(3);
+  }
+});
+
 test('admin and research workspace is separate and uses the full viewport', async ({ page }) => {
   await gotoAlpha(page);
   await page.locator('#adminPanelTab').click();

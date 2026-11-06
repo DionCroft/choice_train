@@ -58,62 +58,159 @@
     training: 'Training condition',
     'active-control': 'Active control'
   });
+  const REQUIRED_THEME_TOKENS = Object.freeze([
+    'canvas', 'surface', 'surface-subtle', 'surface-raised', 'text', 'text-muted',
+    'border', 'border-strong', 'control', 'control-hover', 'primary', 'primary-hover',
+    'primary-soft', 'on-primary', 'success', 'success-soft', 'warning', 'warning-soft',
+    'danger', 'danger-soft', 'reward', 'reward-soft', 'inverse', 'on-inverse', 'focus',
+    'focus-soft', 'scrim', 'shadow', 'stimulus-blue', 'stimulus-green', 'stimulus-amber',
+    'stimulus-red', 'stimulus-pink', 'stimulus-violet'
+  ]);
+
+  function defineTheme(label, values){
+    const { background, main, ...semantic } = values;
+    return Object.freeze({
+      label,
+      badge: label,
+      root: Object.freeze({
+        ...semantic,
+        bg: semantic.canvas,
+        panel: semantic.surface,
+        panel2: semantic['surface-subtle'],
+        muted: semantic['text-muted'],
+        btn: semantic.control,
+        btn2: semantic['control-hover'],
+        accent: semantic.primary,
+        good: semantic.success,
+        warn: semantic.warning,
+        bad: semantic.danger,
+        card: semantic['surface-raised'],
+        cardHi: semantic['primary-soft']
+      }),
+      background,
+      main
+    });
+  }
+
   const THEME_META = Object.freeze({
-    'calm-light': {
-      label: 'Calm Light',
-      badge: 'Calm Light',
-      root: { bg: '#f6f7f2', panel: '#ffffff', panel2: '#eef3f4', text: '#17233a', muted: '#53627a', btn: '#e5edef', btn2: '#d6e4e7', accent: '#1264a3', good: '#267a4a', warn: '#8a5a00', bad: '#b23a2e', card: '#ffffff', cardHi: '#dceaf4' },
-      background: 'linear-gradient(180deg,#edf3f5,#f6f7f2)',
-      main: 'radial-gradient(circle at top,rgba(18,100,163,.10),transparent 38%),linear-gradient(180deg,#f7fafb,#e8eff2)'
-    },
-    'calm-blue': {
-      label: 'Calm Blue',
-      badge: 'Calm Blue',
-      root: { bg: '#0a1019', panel: '#121a27', panel2: '#0f1724', text: '#e8eefb', muted: '#9fb0d0', btn: '#1d2a40', btn2: '#243654', accent: '#71d4ff', good: '#8ef0b1', warn: '#ffd27d', bad: '#ffb39b', card: '#172334', cardHi: '#21324d' },
+    'calm-light': defineTheme('Calm Light', {
+      canvas: '#f2f7f6', surface: '#ffffff', 'surface-subtle': '#e7f1f0', 'surface-raised': '#ffffff',
+      text: '#172b35', 'text-muted': '#52656d', border: '#738c91', 'border-strong': '#526f75',
+      control: '#e5efee', 'control-hover': '#d5e5e3', primary: '#0b6b68', 'primary-hover': '#075653',
+      'primary-soft': '#d8eceb', 'on-primary': '#ffffff', success: '#267a4a', 'success-soft': '#dff2e6',
+      warning: '#8a5a00', 'warning-soft': '#fff1cf', danger: '#a43b31', 'danger-soft': '#f9e7e4',
+      reward: '#8a5a00', 'reward-soft': '#fff1cf', inverse: '#183347', 'on-inverse': '#ffffff',
+      focus: '#1264a3', 'focus-soft': '#dceaf4', scrim: 'rgba(16,36,46,.72)',
+      shadow: '0 16px 40px rgba(23,43,53,.14)', 'stimulus-blue': '#1264a3',
+      'stimulus-green': '#267a4a', 'stimulus-amber': '#8a5a00', 'stimulus-red': '#a43b31',
+      'stimulus-pink': '#a23b72', 'stimulus-violet': '#6549a8',
+      background: 'linear-gradient(180deg,#e7f1f0,#f2f7f6)',
+      main: 'radial-gradient(circle at top,rgba(11,107,104,.09),transparent 38%),linear-gradient(180deg,#f7faf9,#e7f1f0)'
+    }),
+    'calm-blue': defineTheme('Calm Blue', {
+      canvas: '#0a1019', surface: '#121a27', 'surface-subtle': '#0f1724', 'surface-raised': '#172334',
+      text: '#e8eefb', 'text-muted': '#b3c1d9', border: '#5f7190', 'border-strong': '#8ba9ca',
+      control: '#1d2a40', 'control-hover': '#283a56', primary: '#71d4ff', 'primary-hover': '#9adfff',
+      'primary-soft': '#193b50', 'on-primary': '#071521', success: '#8ef0b1', 'success-soft': '#173b30',
+      warning: '#ffd27d', 'warning-soft': '#443518', danger: '#ffb39b', 'danger-soft': '#472b2b',
+      reward: '#ffd24d', 'reward-soft': '#403514', inverse: '#e8eefb', 'on-inverse': '#0a1019',
+      focus: '#71d4ff', 'focus-soft': '#193b50', scrim: 'rgba(0,0,0,.76)',
+      shadow: '0 16px 40px rgba(0,0,0,.34)', 'stimulus-blue': '#71d4ff',
+      'stimulus-green': '#8ef0b1', 'stimulus-amber': '#ffd27d', 'stimulus-red': '#ffb39b',
+      'stimulus-pink': '#ff98d1', 'stimulus-violet': '#b99cff',
       background: 'linear-gradient(180deg,#2a4d7e,#070d15)',
       main: 'radial-gradient(circle at top,rgba(69,117,255,.12),transparent 35%),linear-gradient(180deg,#08111e,#040915)'
-    },
-    'soft-green': {
-      label: 'Soft Green',
-      badge: 'Soft Green',
-      root: { bg: '#0c1511', panel: '#132019', panel2: '#101a15', text: '#edf8f1', muted: '#acc6b5', btn: '#213328', btn2: '#294034', accent: '#92e2b8', good: '#9cf3b7', warn: '#ead68c', bad: '#f1b4aa', card: '#183024', cardHi: '#224232' },
+    }),
+    'soft-green': defineTheme('Soft Green', {
+      canvas: '#0c1511', surface: '#132019', 'surface-subtle': '#101a15', 'surface-raised': '#183024',
+      text: '#edf8f1', 'text-muted': '#b7ccbe', border: '#5d7b68', 'border-strong': '#8eae99',
+      control: '#213328', 'control-hover': '#2b4436', primary: '#92e2b8', 'primary-hover': '#b1ebca',
+      'primary-soft': '#224232', 'on-primary': '#092016', success: '#9cf3b7', 'success-soft': '#1d462c',
+      warning: '#ead68c', 'warning-soft': '#403819', danger: '#f1b4aa', 'danger-soft': '#482d29',
+      reward: '#ead68c', 'reward-soft': '#403819', inverse: '#edf8f1', 'on-inverse': '#0c1511',
+      focus: '#92e2b8', 'focus-soft': '#224232', scrim: 'rgba(3,10,6,.76)',
+      shadow: '0 16px 40px rgba(0,0,0,.34)', 'stimulus-blue': '#7ec8ee',
+      'stimulus-green': '#92e2b8', 'stimulus-amber': '#ead68c', 'stimulus-red': '#f1b4aa',
+      'stimulus-pink': '#efa8d1', 'stimulus-violet': '#c7b4ed',
       background: 'linear-gradient(180deg,#456b5a,#08100b)',
       main: 'radial-gradient(circle at top,rgba(146,226,184,.14),transparent 35%),linear-gradient(180deg,#0b1510,#050906)'
-    },
-    'warm-neutral': {
-      label: 'Warm Neutral',
-      badge: 'Warm Neutral',
-      root: { bg: '#151211', panel: '#211b19', panel2: '#191514', text: '#f6efe9', muted: '#c7b8ab', btn: '#332824', btn2: '#41332d', accent: '#f1c27d', good: '#b8efc9', warn: '#ffd79a', bad: '#f2b4aa', card: '#2c221e', cardHi: '#3b2f29' },
+    }),
+    'warm-neutral': defineTheme('Warm Neutral', {
+      canvas: '#151211', surface: '#211b19', 'surface-subtle': '#191514', 'surface-raised': '#2c221e',
+      text: '#f6efe9', 'text-muted': '#d0c0b4', border: '#79685e', 'border-strong': '#ad9586',
+      control: '#332824', 'control-hover': '#46362f', primary: '#f1c27d', 'primary-hover': '#f5d49f',
+      'primary-soft': '#3b2f29', 'on-primary': '#281706', success: '#b8efc9', 'success-soft': '#24402e',
+      warning: '#ffd79a', 'warning-soft': '#443318', danger: '#f2b4aa', 'danger-soft': '#4a2d28',
+      reward: '#ffd79a', 'reward-soft': '#443318', inverse: '#f6efe9', 'on-inverse': '#151211',
+      focus: '#f1c27d', 'focus-soft': '#3b2f29', scrim: 'rgba(11,7,5,.76)',
+      shadow: '0 16px 40px rgba(0,0,0,.36)', 'stimulus-blue': '#8fc5ea',
+      'stimulus-green': '#b8efc9', 'stimulus-amber': '#ffd79a', 'stimulus-red': '#f2b4aa',
+      'stimulus-pink': '#efacd0', 'stimulus-violet': '#c9b5ef',
       background: 'linear-gradient(180deg,#6f5a48,#120c0a)',
       main: 'radial-gradient(circle at top,rgba(241,194,125,.12),transparent 35%),linear-gradient(180deg,#15100d,#080605)'
-    },
-    'high-contrast': {
-      label: 'High Contrast',
-      badge: 'High Contrast',
-      root: { bg: '#000000', panel: '#111111', panel2: '#070707', text: '#ffffff', muted: '#d9d9d9', btn: '#171717', btn2: '#262626', accent: '#00d2ff', good: '#8cff9b', warn: '#ffd84d', bad: '#ff9f91', card: '#141414', cardHi: '#212121' },
+    }),
+    'high-contrast': defineTheme('High Contrast', {
+      canvas: '#000000', surface: '#0b0b0b', 'surface-subtle': '#151515', 'surface-raised': '#1a1a1a',
+      text: '#ffffff', 'text-muted': '#ededed', border: '#8a8a8a', 'border-strong': '#ffffff',
+      control: '#171717', 'control-hover': '#303030', primary: '#00d2ff', 'primary-hover': '#5fe4ff',
+      'primary-soft': '#003d4a', 'on-primary': '#000000', success: '#8cff9b', 'success-soft': '#123d1a',
+      warning: '#ffd84d', 'warning-soft': '#433600', danger: '#ff9f91', 'danger-soft': '#4a1f1a',
+      reward: '#ffd84d', 'reward-soft': '#433600', inverse: '#ffffff', 'on-inverse': '#000000',
+      focus: '#00d2ff', 'focus-soft': '#003d4a', scrim: 'rgba(0,0,0,.84)',
+      shadow: '0 0 0 2px rgba(255,255,255,.34)', 'stimulus-blue': '#00d2ff',
+      'stimulus-green': '#8cff9b', 'stimulus-amber': '#ffd84d', 'stimulus-red': '#ff9f91',
+      'stimulus-pink': '#ff8fd2', 'stimulus-violet': '#c6a8ff',
       background: 'linear-gradient(180deg,#202020,#000000)',
       main: 'radial-gradient(circle at top,rgba(0,210,255,.14),transparent 35%),linear-gradient(180deg,#080808,#000000)'
-    },
-    'low-stimulation-dark': {
-      label: 'Low Stimulation Dark',
-      badge: 'Low Stimulation Dark',
-      root: { bg: '#090c10', panel: '#10151b', panel2: '#0b1015', text: '#e6edf5', muted: '#92a1b2', btn: '#1a222c', btn2: '#202b37', accent: '#7eb8d9', good: '#8fd8af', warn: '#d8c28e', bad: '#d9a8a1', card: '#141c25', cardHi: '#1b2633' },
+    }),
+    'low-stimulation-dark': defineTheme('Low Stimulation Dark', {
+      canvas: '#090c10', surface: '#10151b', 'surface-subtle': '#0b1015', 'surface-raised': '#141c25',
+      text: '#e6edf5', 'text-muted': '#aebccc', border: '#536578', 'border-strong': '#7990a5',
+      control: '#1a222c', 'control-hover': '#263342', primary: '#82bad8', 'primary-hover': '#a3cce2',
+      'primary-soft': '#1b3442', 'on-primary': '#08141b', success: '#8fd8af', 'success-soft': '#19382a',
+      warning: '#d8c28e', 'warning-soft': '#3b321c', danger: '#d9a8a1', 'danger-soft': '#402a27',
+      reward: '#d8c28e', 'reward-soft': '#3b321c', inverse: '#e6edf5', 'on-inverse': '#090c10',
+      focus: '#82bad8', 'focus-soft': '#1b3442', scrim: 'rgba(0,0,0,.78)',
+      shadow: '0 16px 40px rgba(0,0,0,.32)', 'stimulus-blue': '#82bad8',
+      'stimulus-green': '#8fd8af', 'stimulus-amber': '#d8c28e', 'stimulus-red': '#d9a8a1',
+      'stimulus-pink': '#d7a1c3', 'stimulus-violet': '#b7a9d9',
       background: 'linear-gradient(180deg,#1a2734,#05080b)',
       main: 'radial-gradient(circle at top,rgba(126,184,217,.10),transparent 35%),linear-gradient(180deg,#091019,#04070a)'
-    },
-    'light-classroom': {
-      label: 'Light Classroom',
-      badge: 'Light Classroom',
-      root: { bg: '#eef4fb', panel: '#ffffff', panel2: '#f4f8fc', text: '#1d2a37', muted: '#5c7085', btn: '#dce8f6', btn2: '#ccdbed', accent: '#2c7ec6', good: '#2f9c61', warn: '#b57f1c', bad: '#b34f45', card: '#f2f7fc', cardHi: '#e6eef7' },
+    }),
+    'light-classroom': defineTheme('Light Classroom', {
+      canvas: '#eef4fb', surface: '#ffffff', 'surface-subtle': '#e6eff8', 'surface-raised': '#ffffff',
+      text: '#1d2a37', 'text-muted': '#53687b', border: '#6c8295', 'border-strong': '#4e6d88',
+      control: '#dce8f6', 'control-hover': '#ccdbed', primary: '#236fae', 'primary-hover': '#1b598c',
+      'primary-soft': '#d6e8f7', 'on-primary': '#ffffff', success: '#247a4b', 'success-soft': '#dff2e6',
+      warning: '#875a08', 'warning-soft': '#fff1cf', danger: '#a43b31', 'danger-soft': '#f9e7e4',
+      reward: '#875a08', 'reward-soft': '#fff1cf', inverse: '#1f3b54', 'on-inverse': '#ffffff',
+      focus: '#236fae', 'focus-soft': '#d6e8f7', scrim: 'rgba(19,42,62,.72)',
+      shadow: '0 16px 40px rgba(29,42,55,.14)', 'stimulus-blue': '#236fae',
+      'stimulus-green': '#247a4b', 'stimulus-amber': '#875a08', 'stimulus-red': '#a43b31',
+      'stimulus-pink': '#a23b72', 'stimulus-violet': '#6549a8',
       background: 'linear-gradient(180deg,#dbe8f7,#eef4fb)',
-      main: 'radial-gradient(circle at top,rgba(44,126,198,.12),transparent 35%),linear-gradient(180deg,#eef4fb,#dde7f3)'
-    },
-    'plain-white': {
-      label: 'Plain White',
-      badge: 'Plain White',
-      root: { bg: '#ffffff', panel: '#ffffff', panel2: '#f7f7f5', text: '#17202a', muted: '#53606d', btn: '#f2f3f4', btn2: '#e4e7e9', accent: '#1264a3', good: '#207a45', warn: '#8a5a00', bad: '#a2352a', card: '#ffffff', cardHi: '#f4f6f7' },
+      main: 'radial-gradient(circle at top,rgba(35,111,174,.10),transparent 35%),linear-gradient(180deg,#f7faff,#e6eff8)'
+    }),
+    'plain-white': defineTheme('Plain White', {
+      canvas: '#ffffff', surface: '#ffffff', 'surface-subtle': '#f5f6f7', 'surface-raised': '#ffffff',
+      text: '#17202a', 'text-muted': '#53606d', border: '#6f7f8c', 'border-strong': '#506574',
+      control: '#eef1f3', 'control-hover': '#e0e5e8', primary: '#1264a3', 'primary-hover': '#0d4f82',
+      'primary-soft': '#d9e9f5', 'on-primary': '#ffffff', success: '#207a45', 'success-soft': '#e8f5ed',
+      warning: '#8a5a00', 'warning-soft': '#f9efd8', danger: '#a2352a', 'danger-soft': '#faece9',
+      reward: '#8a5a00', 'reward-soft': '#f9efd8', inverse: '#17202a', 'on-inverse': '#ffffff',
+      focus: '#1264a3', 'focus-soft': '#d9e9f5', scrim: 'rgba(23,32,42,.72)',
+      shadow: '0 12px 30px rgba(23,32,42,.12)', 'stimulus-blue': '#1264a3',
+      'stimulus-green': '#207a45', 'stimulus-amber': '#8a5a00', 'stimulus-red': '#a2352a',
+      'stimulus-pink': '#a23b72', 'stimulus-violet': '#6549a8',
       background: '#ffffff',
       main: '#ffffff'
+    })
+  });
+
+  Object.entries(THEME_META).forEach(([themeId, theme]) => {
+    const missing = REQUIRED_THEME_TOKENS.filter(token => !theme.root[token]);
+    if(missing.length){
+      throw new Error(`Theme "${themeId}" is missing semantic token(s): ${missing.join(', ')}`);
     }
   });
   const REWARD_META = Object.freeze({
@@ -929,6 +1026,7 @@
     const theme = THEME_META[themeId] || THEME_META['calm-light'];
     if(document.body){
       Object.keys(THEME_META).forEach(id => document.body.classList.toggle(`theme-${id}`, id === themeId));
+      document.body.dataset.learnerTheme = themeId;
     }
     if(root && theme.root){
       Object.entries(theme.root).forEach(([key, value]) => {
