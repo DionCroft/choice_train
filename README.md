@@ -2,7 +2,7 @@
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
-The current stable release is `V1.5.0`.
+The current review release is `V1.6.0`. Historical versioned builds remain in the repository for traceability.
 
 Live site:
 `https://dioncroft.github.io/choice_train/`
@@ -21,7 +21,7 @@ ChoiceTrain is designed to help pupils practise:
 - finding and recognising familiar people or objects
 - object discrimination and category recognition
 - structured choice making
-- CPAT-style attention activities across sustained, selective-spatial, orienting, and executive attention families
+- Attention Training (AT) activities across sustained, selective-spatial, orienting, and executive attention families
 
 It is built as a static HTML, CSS, and JavaScript application so it can run on school devices without requiring cloud services.
 
@@ -37,7 +37,7 @@ A dedicated peer-reviewed evidence list is available in [RESEARCH_EVIDENCE.md](R
 
 That file groups the papers used to justify major ChoiceTrain feature areas, including:
 
-- CPAT-style attention families
+- Attention Training design, informed by the published CPAT literature
 - teacher fidelity and classroom workflow
 - touch-first prompting
 - learner choice and self-determination
@@ -52,15 +52,15 @@ It also notes the client-provided internal `ChoiceTrain.docx` project paper draf
 Published files:
 
 - `index.html`
-- `choice_train_V1.5.0.html`
-- `choice_train_V1.5.0.js`
+- `choice_train_V1.6.0.html`
+- `choice_train_V1.6.0.js`
 - `assets/showme-logo.png`
 
 The runtime is versioned so experimental builds can be tested locally before a stable snapshot is promoted into the GitHub Pages copy.
 
 ## Teacher Panel and Admin Panel
 
-`V1.5.0` separates the interface into two clear layers and moves the settings teachers need during ordinary sessions into the Teacher Panel.
+`V1.6.0` separates the interface into two clear layers and keeps the settings teachers need during ordinary sessions in the Teacher Panel.
 
 ### Teacher Panel
 
@@ -94,7 +94,7 @@ The Admin Panel is collapsed by default and keeps advanced options out of the wa
 - live trail
 - EEG and research mode
 - detailed analytics
-- CPAT settings
+- Attention Training settings
 - auto level path
 - touch scale
 - advanced export and debug tools
@@ -121,6 +121,16 @@ The application now includes short in-app checklists for a pupil's first session
 Settings save locally as they are changed. `Save pupil preferences` additionally applies the chosen prompt style to the visible text, image, and speech settings and provides an on-screen confirmation.
 
 `Reset session` clears only the current unsaved attempt and returns to the welcome screen. It does not delete the pupil profile, saved settings, or stored session history.
+
+### V1.6.0 Content Walkthrough
+
+1. In `Pupil Personalisation`, enter a name under `Create new category`, then select `Save category`.
+2. Choose that category under `Destination category` and use `Bulk photo import` to add one or more images.
+3. Select photo cards, choose another category under `Manage selected photos`, and select `Move selected` when reassignment is needed.
+4. Select `Crop / rotate` on one photo. Adjust square crop, focus, zoom, or rotation, then select `Apply`. `Cancel` leaves the stored edit unchanged and `Reset` restores the editor controls before applying.
+5. Choose `Find object`, select one or more categories and a source mode, check the usable-item summary, then start the session.
+6. Choose `Find category`, select at least two categories with eligible content, check that the summary reports fair question categories, then start the session.
+7. Choose `Plain White` from the theme selector for a quiet white activity surface.
 
 ## Optional Blank Interval
 
@@ -165,7 +175,7 @@ The default view is intentionally calmer and more teacher-friendly than earlier 
 
 ## Context Notes
 
-`V1.5.0` retains the classroom-friendly `context notes` wording introduced in the previous release.
+`V1.6.0` retains the classroom-friendly `context notes` wording introduced in the previous release.
 
 Context notes are for daily classroom observations such as:
 
@@ -210,8 +220,16 @@ Each photo supports:
 
 - label
 - category
+- source (`Stock` or `Personalised`)
 - optional relationship or type
 - inclusion in question generation
+- non-destructive square crop, focus, zoom, and rotation settings
+
+The category catalogue includes Family, People, Animals, Transport, Food, Fruit, Symbols / Shapes, Toys, Classroom objects, Activities, and retained legacy Custom content. Teachers can create additional categories; blank and duplicate names are rejected.
+
+Individual and bulk imports use a teacher-selected destination category. A batch can contain up to 100 files, with a 12 MB per-file limit and a 40-megapixel decoded-image safeguard. Supported formats are JPEG, PNG, WebP, GIF, and SVG. Files are prepared locally, and a failed file does not discard valid files in the same batch.
+
+The photo library supports editable labels, categories, source metadata, question inclusion, individual crop/rotation, and multi-photo category reassignment. Full images use proportional `contain` framing by default to avoid cutting off portrait or landscape subjects.
 
 The app uses the label during question generation and export. The exported session payload keeps photo label metadata by default rather than forcing large base64 image data into every file.
 
@@ -231,6 +249,7 @@ ChoiceTrain provides a teacher-facing theme selector with the following preset o
 - High Contrast
 - Low Stimulation Dark
 - Light Classroom
+- Plain White
 
 Themes are implemented through CSS variables and can change:
 
@@ -277,7 +296,7 @@ The teacher-facing settings now include short plain-English explanations for com
 
 The aim is to make daily use clearer without requiring technical knowledge.
 
-## Learner Pathway and CPAT Tasks
+## Learner Pathway and Attention Training
 
 The current build keeps the structured developmental pathway:
 
@@ -292,7 +311,20 @@ The current build keeps the structured developmental pathway:
 - Level 9: orienting attention
 - Level 10: executive attention
 
-CPAT-style task families are presented through game-like variants while preserving the intended attention rule.
+Levels 7 to 10 are labelled Attention Training (AT) in the application. Their sustained, selective-spatial, orienting, and executive structure is informed by CPAT research, but ChoiceTrain does not claim to be the published CPAT programme or a clinically validated implementation.
+
+## Filtered Find Tasks
+
+`Find object` and `Find category` have independent teacher controls for selected categories and image source: Personalised only, Stock only, or Both. The category and source filters are combined, not treated as alternatives.
+
+- `Find object` requires at least two differently labelled eligible items.
+- `Find category` requires at least two usable categories that can form fair, single-answer trials.
+- Personalised content is limited to the selected pupil and must be enabled for questions.
+- Targets and distractors never fall back to excluded content.
+- Family also belongs to People, and Fruit also belongs to Food. The generator excludes overlapping distractors that would also satisfy the prompt.
+- The selected configuration and actual eligible item metadata are snapshotted at session start and included in exports without image bytes.
+
+`Discriminate object` remains Level 5 and follows `Find category` in the manual task menu. Its current rule is a named-item choice between two options; it does not yet guarantee visual similarity or attribute-based discrimination. The numeric progression has not been changed.
 
 ## EEG and Research Support
 
@@ -333,7 +365,7 @@ This local data can include:
 - heatmap data
 - research markers
 
-The current `V1.5.0` build does not send session data to any external service.
+The current `V1.6.0` build does not send session data to any external service.
 
 ## Future LLM-Assisted Recommendations
 
@@ -398,11 +430,11 @@ Then open:
 
 If you want the published snapshot directly, open:
 
-- `choice_train_V1.5.0.html`
+- `choice_train_V1.6.0.html`
 
 Keep the paired script beside it:
 
-- `choice_train_V1.5.0.js`
+- `choice_train_V1.6.0.js`
 
 ## GitHub Pages Deployment
 
@@ -429,10 +461,10 @@ npm install
 npm run test:browser
 ```
 
-The `V1.5.0` work was validated with:
+The `V1.6.0` work is validated with:
 
-- `node --check choice_train_V1.5.0.js`
-- 46 passing Playwright browser tests covering the live entry point, levels 1-10, CPAT and EEG flows, Teacher/Admin switching, Student-friendly mode, prompt wording, blank intervals, reset behavior, exports, history, theme persistence, and photo personalisation
+- `node --check choice_train_V1.6.0.js`
+- 55 passing Playwright browser tests covering the live entry point, levels 1-10, AT and EEG flows, Teacher/Admin switching, Student-friendly mode, prompt wording, blank intervals, reset behavior, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, theme persistence, photo personalisation, and desktop/tablet visual review
 
 ## Current Limitations
 
@@ -448,7 +480,7 @@ The `V1.5.0` work was validated with:
 Planned or likely next steps include:
 
 - deeper EEG workflow integration
-- additional CPAT-consistent task variants
+- additional AT variants that preserve the research-informed attention rules
 - stronger classroom transfer and maintenance measures
 - richer fidelity and implementation support for staff
 - optional LLM-assisted local recommendations after consent and governance work
@@ -459,8 +491,8 @@ Planned or likely next steps include:
 Key files and folders:
 
 - `index.html` - current live entry file
-- `choice_train_V1.5.0.html` - versioned stable HTML snapshot
-- `choice_train_V1.5.0.js` - paired runtime for the stable snapshot
+- `choice_train_V1.6.0.html` - versioned review HTML snapshot
+- `choice_train_V1.6.0.js` - paired runtime for the review snapshot
 - `assets/` - branding and static assets
 - `tests/` - Playwright browser tests
 - `scripts/` - local test and utility scripts

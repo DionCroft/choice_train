@@ -1,18 +1,19 @@
 # ChoiceTrain School-Readiness Audit
 
-**Audit date:** 5 November 2026  
-**Baseline release:** `V1.4.2`  
+**Audit date:** 6 November 2026
+
+**Baseline release:** `V1.5.0`
 **Purpose:** Prepare ChoiceTrain for initial teacher-led pupil testing at Brackensfield while preserving the existing learner, research, EEG, analytics, personalisation, and export features.
 
 ## Implementation Status
 
-The immediate usability scope was implemented in `V1.5.0` and validated on 5 November 2026. All nine directly actionable interface items in the table below are complete. The granular progression hierarchy remains deliberately deferred for practitioner design.
+The immediate usability scope was implemented in `V1.5.0`. `V1.6.0` adds teacher-controlled category catalogues and per-session content filters without changing the established level meanings. A broader automatic progression hierarchy remains deliberately deferred for practitioner design.
 
 Validation completed:
 
-- JavaScript syntax check passed for `choice_train_V1.5.0.js`
+- JavaScript syntax check passed for `choice_train_V1.6.0.js`
 - no duplicate HTML element IDs were found in the versioned build
-- all 46 Playwright browser tests passed
+- all 55 Playwright tests passed, including V1.6.0 category, image, filter, export, theme, and visual-review coverage
 - the tested version retains the static GitHub Pages deployment model
 
 ## Feedback Outcomes
@@ -28,7 +29,7 @@ Validation completed:
 | Start/reset rules | Runtime behavior exists but the consequences are not explained beside the buttons. | Explain that Start begins a fresh session with displayed settings and Reset clears the current unsaved attempt while retaining the pupil profile, settings, and saved history. |
 | Blank interval | There is an inter-trial delay but no configurable blank learner screen. | Add an optional blank inter-trial screen and duration, off by default to preserve existing behavior. |
 | Teacher view control | `Teacher view` is redundant in desktop mode because Teacher/Admin tabs already control the panel. | Remove the redundant desktop button and retain the floating return control from learner mode. |
-| Granular progression | Photo categories exist, but level-by-level category inclusion and a more granular progression hierarchy do not. | Keep this as a separately designed follow-up so the initial school-testing release remains safe and understandable. |
+| Granular progression | V1.6.0 now supports per-pupil, per-task session filters for Find object and Find category. | Keep automatic category-by-level progression as a separately designed follow-up so the established level sequence remains understandable. |
 
 ## Additional Audit Findings
 
@@ -50,7 +51,7 @@ Validation completed:
 - Personalised photo uploads and categories
 - Text-to-speech
 - Touch logging, heatmaps, history, and exports
-- CPAT task families
+- Attention Training task families, with compatible historic CPAT identifiers
 - EEG/research markers and advanced settings
 - GitHub Pages static deployment
 
@@ -74,17 +75,28 @@ The implementation will use the following established guidance without claiming 
 - Settings save automatically; the pupil-preference action has an unambiguous label and confirmation.
 - Start and reset consequences are explained in the interface and guide.
 - Optional blank inter-trial screen works with a configurable duration and is logged/exported.
-- Existing session, CPAT, EEG, export, photo, theme, and learner-mode tests continue to pass.
+- Existing session, Attention Training, EEG, export, photo, theme, and learner-mode tests continue to pass.
 - New browser tests cover the revised teacher controls, student-friendly persistence, blank interval, task description, and reset behavior.
+
+## Implemented Session Filtering
+
+`V1.6.0` resolves the immediate category-control need for Find object and Find category:
+
+- selections are saved per pupil and independently for each task
+- categories and Stock / Personalised source mode are combined as filters
+- personalised content is limited to the selected pupil and enabled photos
+- session configuration is validated before starting and snapshotted for the active session
+- Family / People and Fruit / Food overlap is handled explicitly to avoid multiple valid answers
+- selected categories, source mode, and eligible stimulus metadata are included in exports without image bytes
 
 ## Deferred Design Discussion
 
-The more granular progression hierarchy needs a short practitioner design session before implementation. That discussion should define:
+The broader progression hierarchy still needs a practitioner design session before implementation. That discussion should define:
 
-- whether category selection applies per pupil, level, session, or task family
-- whether teachers choose allowed categories, required categories, or both
-- how personalised photo categories map to curriculum/task categories
+- how category selections should change automatically by level or teaching target
+- whether progression should use allowed categories, required categories, or both
+- how teacher-created categories map to curriculum outcomes
 - progression and regression rules
-- how category choices appear in exports and longitudinal reporting
+- how category mastery should appear in longitudinal reporting beyond the V1.6.0 session snapshot
 
 This is deliberately separated from the immediate usability work to avoid introducing an untested progression model during the first school pilot.

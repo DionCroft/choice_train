@@ -1,6 +1,6 @@
 # ChoiceTrain User Guide
 
-**Version:** `V1.5.0`
+**Version:** `V1.6.0`
 **Project:** ChoiceTrain for ShowMe  
 **Repository:** https://github.com/DionCroft/choice_train  
 **Live site:** https://dioncroft.github.io/choice_train/
@@ -79,7 +79,7 @@ It includes:
 - research and EEG mode
 - touch debug and live trail
 - heatmaps and detailed analytics
-- CPAT settings
+- Attention Training settings
 - auto level path
 - touch scaling
 - advanced export options
@@ -182,10 +182,46 @@ Each uploaded item can include:
 
 - a label
 - a category
+- a source label: `Personalised` or `Stock`
 - an optional relationship or type
 - use in question generation
+- non-destructive crop and rotation settings
 
 This helps make tasks more familiar, motivating, and meaningful.
+
+### Category Catalogue
+
+The built-in catalogue includes Family, People, Animals, Transport, Food, Fruit, Symbols / Shapes, Toys, Classroom objects, Activities, and retained legacy Custom content.
+
+To add a category:
+
+1. Open `Pupil Personalisation`.
+2. Enter a clear name under `Create new category`.
+3. Select `Save category`.
+4. The new category is immediately available for uploads, reassignment, and supported session filters.
+
+Blank names and duplicates that differ only by capitalisation or spacing are rejected.
+
+### Bulk Import and Reassignment
+
+1. Select the pupil before starting the import.
+2. Choose a `Destination category`.
+3. Select up to 100 images under `Bulk photo import`.
+4. Review the completion summary. A failed file does not discard the valid files in the same batch.
+5. Select one or more photo cards, choose a category under `Manage selected photos`, and select `Move selected`.
+
+Each file can be up to 12 MB. ChoiceTrain also rejects decoded images over 40 megapixels to protect classroom-device performance. Image preparation remains local to the device.
+
+### Crop and Rotation
+
+ChoiceTrain shows the full proportional image by default rather than filling the square by cutting off the edges.
+
+1. Select `Crop / rotate` on a photo card.
+2. Optionally enable `Square crop` and adjust zoom and horizontal or vertical focus.
+3. Choose a 0, 90, 180, or 270 degree rotation.
+4. Select `Apply` to save the framing, `Cancel` to leave the existing edit unchanged, or `Reset` to return the editor controls to the full-image view before applying.
+
+The prepared original is retained locally so later edits are generated from that source rather than repeatedly recompressing the last crop. Older images can only use the earliest asset still retained by the browser.
 
 ---
 
@@ -279,7 +315,7 @@ The current staged pathway is:
 - `Level 9` - orienting attention
 - `Level 10` - executive attention
 
-The earlier levels focus on touch confidence and basic target finding. The later levels introduce more structured CPAT-style attention work.
+The earlier levels focus on touch confidence and basic target finding. The later levels introduce more structured Attention Training (AT).
 
 ---
 
@@ -319,9 +355,23 @@ Example:
 
 `Which one do you like?`
 
-### CPAT-Style Attention Activities
+### Attention Training Activities
 
 The learner completes structured sustained, selective-spatial, orienting, or executive attention tasks through game-like variants.
+
+The AT structure is informed by peer-reviewed CPAT literature. The application does not claim to be the published CPAT programme or a diagnostic tool.
+
+### Find Object and Find Category Filters
+
+When `Find object` is selected, choose one or more session categories and one source mode: Personalised only, Stock only, or Both. ChoiceTrain requires at least two differently labelled eligible items and shows a usable-item summary before the session starts.
+
+When `Find category` is selected, use the equivalent controls. At least two selected categories must still contain eligible items after the source and pupil filters are applied, and they must support fair single-answer questions.
+
+Personalised content always belongs to the selected pupil and must be enabled for question generation. Excluded stock, another pupil's photos, duplicate fillers, and unrelated fallback items are not added to make up the grid.
+
+Family items also count as People, and Fruit items also count as Food. The generator avoids using an overlapping distractor when it would also be a correct answer.
+
+`Discriminate object` currently asks the learner to choose one named item from two options. It does not yet guarantee visually similar choices. Its numeric level remains Level 5 even though it appears after `Find category` in the manual menu.
 
 ---
 
@@ -373,6 +423,7 @@ The current theme options are:
 - High Contrast
 - Low Stimulation Dark
 - Light Classroom
+- Plain White
 
 Themes are intended as configurable classroom presentation options. Teachers should choose whichever theme works best for the learner and setting.
 
@@ -494,7 +545,7 @@ Planned or discussed future directions include:
 - longitudinal reporting
 - LLM-assisted session recommendations
 - richer school dashboards
-- more CPAT-style variants
+- more AT variants that preserve the research-informed attention rules
 - stronger cross-session teacher summaries
 
 Any future recommendation layer should remain subject to consent, safeguarding, and data governance.

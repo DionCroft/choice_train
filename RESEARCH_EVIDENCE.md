@@ -2,14 +2,14 @@
 
 This file lists the peer-reviewed papers that have been used to justify or shape major ChoiceTrain features.
 
-These papers inform design choices, classroom workflow decisions, CPAT-style task design, and future EEG/research planning. They do **not** mean that ChoiceTrain is a diagnostic, medical, or clinically validated tool.
+These papers inform design choices, classroom workflow decisions, ChoiceTrain Attention Training (AT), and future EEG/research planning. The original CPAT terminology is retained where it is part of a paper title or research description. The evidence does **not** mean that ChoiceTrain is a diagnostic, medical, or clinically validated tool.
 
 ## Related Internal Project Document
 
 - `ChoiceTrain.docx`
   This is a client-provided internal project paper draft kept in the wider project papers folder outside this repository. It helped align terminology and the overall system narrative, but it is **not** peer reviewed and should not be treated as evidence in the same way as the papers below.
 
-## 1. CPAT Structure and Attention Training
+## 1. Attention Training Structure and CPAT Evidence
 
 - Shalev, L., Tsal, Y., & Mevorach, C. (2007). *Computerized progressive attentional training (CPAT) program: Effective direct intervention for children with ADHD*. Child Neuropsychology, 13, 382-388.
   Link: https://doi.org/10.1080/09297040600770787
@@ -99,7 +99,7 @@ These papers inform design choices, classroom workflow decisions, CPAT-style tas
 
 The papers above were used to support these broad feature areas:
 
-- **CPAT task families and family-specific dashboards**
+- **Attention Training task families and family-specific dashboards**
   Supported mainly by Shalev et al. (2007), Muller Spaniol et al. (2021), and Kirk et al. (2017).
 
 - **Teacher/Admin split, fidelity tools, support logging, and clearer classroom workflow**

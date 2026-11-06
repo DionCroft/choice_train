@@ -2,6 +2,53 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.6.0] - 2026-11-06
+
+### Added
+
+- an extensible category catalogue with Family, People, Animals, Transport, Food, retained Fruit and Symbols / Shapes, and teacher-created categories with stable IDs
+- explicit Stock and Personalised source metadata independent of image category
+- destination-category controls for individual and bulk photo imports, per-file failure reporting, multi-photo selection, and bulk category reassignment
+- a non-destructive per-photo editor with square crop, zoom, focus, rotation, Apply, Cancel, and Reset controls
+- independent category and source filters for Find object and Find category, with live usable-content summaries and pre-session validation
+- immutable session-start content snapshots and export metadata for selected categories, source mode, and actual eligible stimuli
+- a Plain White theme with quiet learner surfaces, readable controls, and clear focus indicators
+- versioned, idempotent local image-schema migration metadata
+- focused Playwright coverage for category persistence, resilient imports, pupil ownership, reassignment, photo editing, filtered generation, export hygiene, and Plain White
+
+### Changed
+
+- renamed active ChoiceTrain interface wording from CPAT / CPAT-style to Attention Training (AT), while retaining compatible `cpat-*` internal IDs and historical research terminology
+- changed active Vehicles / vehicle wording to Transport / transport and made category prompts grammar-aware
+- reordered the manual task menu to Find object, Find category, then Discriminate object without changing Levels 5 and 6 or automatic progression
+- clarified that Discriminate object currently presents a named-item choice between two options and does not guarantee visual similarity
+- expanded the stock catalogue across family, people, animals, transport, food, fruit, and symbols / shapes
+- changed all photo presentation surfaces to proportional `contain` framing by default instead of cutting images to fill a square
+- expanded ordinary exports with schema and content-configuration metadata while continuing to omit raw image data
+
+### Fixed
+
+- bulk imports no longer assign every image to Legacy Custom
+- switching pupil or changing form controls during an import no longer cross-assigns successfully prepared files
+- one unsupported or corrupt file no longer discards the rest of a valid batch
+- failed IndexedDB writes no longer produce a misleading persistent-save success message
+- Find object no longer creates duplicate-label or excluded-content choices
+- Find category no longer falls back to an unrelated item when a category is empty and avoids overlapping distractors that would also satisfy the prompt
+
+### Compatibility
+
+- legacy `animal` / `animals`, `vehicle` / `transport`, and `symbol` / `shape` category values are normalised without deleting the original category metadata
+- Family content also belongs to People, and Fruit content also belongs to Food for question generation
+- historic versioned builds, task IDs, stored pupil data, and research paper titles remain intact
+- deeper redesign of the Discriminate object algorithm and granular category-by-level progression remain deferred
+
+### Validation
+
+- `node --check choice_train_V1.6.0.js`
+- 266 unique HTML element IDs with no duplicates
+- 55 Playwright tests passed against the promoted `index.html` and versioned V1.6.0 build
+- desktop and tablet screenshots were inspected for Plain White readability, portrait/landscape framing, the photo editor, and learner-mode target layout
+
 ## [1.5.0] - 2026-11-05
 
 ### Added
