@@ -1,0 +1,1337 @@
+﻿<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ChoiceTrain for ShowMe (Offline)</title>
+  <style>
+    :root{
+      --bg:#0a1019; --panel:#121a27; --panel2:#0f1724; --text:#e8eefb; --muted:#9fb0d0;
+      --btn:#1d2a40; --btn2:#243654; --accent:#71d4ff; --good:#8ef0b1; --warn:#ffd27d; --bad:#ffb39b;
+      --card:#172334; --cardHi:#21324d; --shadow:0 12px 28px rgba(0,0,0,.24);
+    }
+    *{box-sizing:border-box}
+    html,body{min-height:100%;height:auto;margin:0;background:linear-gradient(180deg,#2a4d7e,#070d15);color:var(--text);font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;overscroll-behavior:none}
+    .wrap{display:grid;grid-template-columns:minmax(280px,330px) 1fr;min-height:100vh}
+    .panel{background:linear-gradient(180deg,#101a29,#0c1522);padding:14px;border-right:1px solid rgba(255,255,255,.06);overflow:auto;min-height:0}
+    .section{padding:12px 0;border-top:1px solid rgba(255,255,255,.06)}
+    .section:first-child{border-top:0;padding-top:0}
+    .title{font-size:22px;font-weight:800;letter-spacing:.2px}
+    .sub{font-size:12px;color:var(--muted);line-height:1.45}
+    .helperText{font-size:11px;color:var(--muted);line-height:1.45;margin-top:6px}
+    .row{display:flex;gap:8px;flex-wrap:wrap}
+    label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+    input[type=text], select, input[type=number], textarea, input[type=file], input[type=range]{width:100%}
+    input[type=text], select, input[type=number], textarea, input[type=file]{background:var(--btn);color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px}
+    input[type=text], select, input[type=number]{min-height:44px}
+    textarea{min-height:70px;resize:vertical}
+    button{background:var(--btn);color:var(--text);border:1px solid rgba(255,255,255,.12);border-radius:12px;padding:10px 12px;min-height:44px;font-size:14px;cursor:pointer;box-shadow:var(--shadow)}
+    .playArea,.choice,button{touch-action:manipulation;-webkit-user-select:none;user-select:none}
+    button:hover{background:var(--btn2)}
+    .primary{background:linear-gradient(180deg,#29517f,#1d3960)}
+    .toggle{display:flex;align-items:center;gap:8px;min-height:44px;background:var(--btn);padding:10px 12px;border-radius:12px;border:1px solid rgba(255,255,255,.12)}
+    .toggle input{width:auto}
+    .stat{display:flex;justify-content:space-between;font-size:12px;color:var(--muted);margin:4px 0}
+    .stat b{color:var(--text)}
+    .main{position:relative;overflow:auto;background:radial-gradient(circle at top,rgba(69,117,255,.12),transparent 35%),linear-gradient(180deg,#08111e,#040915);min-height:100vh}
+    .stage{position:absolute;inset:0;padding:18px 24px 24px;display:flex;flex-direction:column;gap:14px;min-height:100%}
+    .topBar{display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .trackWrap{display:flex;align-items:center;gap:10px;padding:12px 16px;background:rgba(7,11,18,.48);border:1px solid rgba(255,255,255,.08);border-radius:18px;backdrop-filter:blur(10px);max-width:900px}
+    .track{display:flex;align-items:center;gap:10px;flex:1;min-width:0}
+    .station{width:28px;height:28px;border-radius:999px;display:grid;place-items:center;font-size:12px;font-weight:700;background:#1a2a43;border:2px solid rgba(255,255,255,.18);color:#bfd6ff;position:relative;z-index:1}
+    .station.done{background:#244f3a;color:#d7ffe6;border-color:rgba(142,240,177,.5)}
+    .station.current{background:#2e5f8f;color:#fff;border-color:rgba(113,212,255,.8);box-shadow:0 0 0 8px rgba(113,212,255,.12)}
+    .trackLine{height:6px;flex:1;min-width:24px;background:rgba(255,255,255,.08);border-radius:999px;position:relative;overflow:hidden}
+    .trackFill{position:absolute;inset:0 auto 0 0;background:linear-gradient(90deg,#71d4ff,#8ef0b1);width:0%}
+    .badge{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:12px;color:#dce7ff}
+    .playArea{position:relative;flex:1;min-height:0;border-radius:28px;background:linear-gradient(180deg,rgba(255,255,255,.03),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.08);overflow:hidden;touch-action:none;display:flex;align-items:center;justify-content:center}
+    .screen{position:absolute;inset:0;padding:28px;display:none;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center;overflow:auto}
+    .screen.active{display:flex}
+    .hero{font-size:clamp(24px,3vw,40px);font-weight:800;line-height:1.1;max-width:900px}
+    .heroSub{font-size:clamp(14px,1.4vw,20px);color:var(--muted);max-width:780px;line-height:1.4}
+    .bigCard{min-width:220px;min-height:220px;max-width:340px;border-radius:28px;background:linear-gradient(180deg,#1c2c44,#132036);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px;box-shadow:var(--shadow)}
+    .faceCircle,.imgCircle{width:110px;height:110px;border-radius:24px;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:52px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
+    .faceCircle.round{border-radius:999px}
+    .faceCircle img,.imgCircle img,.choiceMedia img{width:100%;height:100%;object-fit:contain}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:20px;width:min(100%,980px)}
+    .choice{position:relative;border-radius:26px;background:linear-gradient(180deg,#1c2b43,#142238);border:2px solid rgba(255,255,255,.11);padding:16px;min-height:230px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;gap:14px;transition:transform .12s ease,border-color .12s ease, background .12s ease; box-shadow:var(--shadow)}
+    .choice:active,.choice.pressed{transform:scale(.98)}
+    .choice:hover{border-color:rgba(113,212,255,.5)}
+    .choice.correct{border-color:rgba(142,240,177,.85);background:linear-gradient(180deg,#173b30,#142739)}
+    .choice.incorrect{border-color:rgba(255,179,155,.85);background:linear-gradient(180deg,#47312b,#1a2236)}
+    .choiceMedia{width:min(100%,150px);aspect-ratio:1/1;border-radius:22px;display:grid;place-items:center;background:rgba(255,255,255,.09);font-size:72px;overflow:hidden}
+    .choiceLabel{font-size:22px;font-weight:800}
+    .choiceSmall{font-size:12px;color:var(--muted)}
+    .promptBox{padding:14px 18px;border-radius:18px;background:rgba(7,11,18,.55);border:1px solid rgba(255,255,255,.08);max-width:860px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px}
+    .promptText{font-size:clamp(24px,3vw,38px);font-weight:800;line-height:1.15;word-break:normal;overflow-wrap:anywhere;text-align:center}
+    .promptMeta{display:flex;flex-direction:column;align-items:center;gap:8px;width:100%}
+    .promptVariant{padding:5px 10px;border-radius:999px;background:rgba(113,212,255,.14);border:1px solid rgba(113,212,255,.22);font-size:11px;font-weight:700;letter-spacing:.03em;text-transform:uppercase;color:#dff5ff}
+    .promptRule{max-width:760px;font-size:13px;line-height:1.45;color:var(--muted);text-align:center}
+    .trailCanvas{position:absolute;inset:0;pointer-events:none}
+    .fx{position:absolute;inset:0;pointer-events:none}
+    .ripple{position:absolute;width:20px;height:20px;border-radius:999px;transform:translate(-50%,-50%) scale(.6);opacity:.95;animation:ripple 520ms ease-out forwards;border:2px solid rgba(255,255,255,.75);background:rgba(255,255,255,.12);box-shadow:0 0 18px rgba(255,255,255,.22)}
+    @keyframes ripple{to{transform:translate(-50%,-50%) scale(4.5);opacity:0}}
+    .pulseGood,.pulseTry{position:absolute;inset:0;opacity:0}
+    .pulseGood{background:rgba(142,240,177,.11);animation:pulse 380ms ease-out}
+    .pulseTry{background:rgba(255,210,125,.11);animation:pulse 380ms ease-out}
+    @keyframes pulse{0%{opacity:0}35%{opacity:1}100%{opacity:0}}
+    .bigBadge{position:absolute;left:50%;top:12%;transform:translateX(-50%);padding:14px 18px;border-radius:18px;background:rgba(6,10,17,.72);border:1px solid rgba(255,255,255,.14);font-weight:800;opacity:0}
+    .badgeShow{animation:badge .7s ease-out}
+    @keyframes badge{0%{opacity:0;transform:translateX(-50%) scale(.96)}20%{opacity:1}100%{opacity:0;transform:translateX(-50%) scale(1.04)}}
+    .stars{display:flex;gap:10px;font-size:34px}
+    .stars span{opacity:.28}
+    .stars span.on{opacity:1;filter:drop-shadow(0 0 8px rgba(255,214,79,.3))}
+    .footerBar{display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 14px;border-radius:18px;background:rgba(7,11,18,.5);border:1px solid rgba(255,255,255,.08)}
+    .tiny{font-size:11px;color:var(--muted)}
+    .pillTag{padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.08);font-size:11px;color:#d9e3fa}
+    .good{color:var(--good)} .warnText{color:var(--warn)}
+    .adminGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .locked{opacity:.55}
+    .helperList{margin:0;padding-left:18px;color:var(--muted);font-size:12px;line-height:1.45}
+    .navBtns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .panelBadge{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;background:rgba(255,255,255,.08);font-size:11px;color:#dce7ff;border:1px solid rgba(255,255,255,.08)}
+    .panelBadge.admin{background:rgba(113,212,255,.12);color:#dff5ff}
+    .brandRow{display:flex;align-items:center;gap:12px}
+    .brandLogo{width:112px;height:72px;border-radius:18px;background:#ffffff;border:1px solid rgba(255,255,255,.1);padding:8px;object-fit:contain}
+    .brandCopy{display:flex;flex-direction:column;gap:6px}
+    .brandEyebrow{font-size:11px;color:var(--muted);letter-spacing:.05em;text-transform:uppercase}
+    .panelSwitch{display:flex;gap:10px;flex-wrap:wrap;margin-top:12px}
+    .panelSwitchBtn{flex:1 1 140px;border-radius:999px;padding:10px 14px;background:linear-gradient(180deg,#1f2d43,#182536);border:1px solid rgba(255,255,255,.12);font-weight:700}
+    .panelSwitchBtn.active{background:linear-gradient(180deg,#2f5f8e,#21476d);border-color:rgba(113,212,255,.5);box-shadow:0 0 0 3px rgba(113,212,255,.12)}
+    .panelSwitchBtn.adminActive{background:linear-gradient(180deg,#3c3b57,#2a2942);border-color:rgba(255,210,125,.38);box-shadow:0 0 0 3px rgba(255,210,125,.1)}
+    .menuSection{margin-top:12px;padding:0;border-top:0;border:1px solid rgba(255,255,255,.08);border-radius:18px;background:rgba(255,255,255,.03);overflow:hidden}
+    .menuSection:first-of-type{margin-top:0}
+    .menuSection summary{cursor:pointer;list-style:none;padding:12px 14px;font-size:13px;font-weight:800;color:var(--text);background:rgba(255,255,255,.03);display:flex;align-items:center;justify-content:space-between;gap:12px}
+    .menuSection summary::-webkit-details-marker{display:none}
+    .menuSection summary::after{content:'+';font-size:16px;color:var(--muted)}
+    .menuSection[open] summary::after{content:'–'}
+    .menuBody{padding:14px}
+    .sectionIntro{margin-bottom:12px}
+    .sectionTag{display:inline-flex;align-items:center;padding:4px 8px;border-radius:999px;background:rgba(113,212,255,.1);border:1px solid rgba(113,212,255,.14);font-size:10px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:#dff5ff}
+    .sectionTag.admin{background:rgba(255,210,125,.1);border-color:rgba(255,210,125,.16);color:#fff0cb}
+    .teacherGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .teacherGrid.single{grid-template-columns:1fr}
+    .photoFormGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .photoLibrary{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:12px}
+    .photoCard{display:grid;gap:9px;align-content:start;background:var(--card);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:10px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+    .photoThumb{position:relative;display:grid;place-items:center;aspect-ratio:1;background:var(--panel2);border:1px solid rgba(255,255,255,.09);border-radius:12px;overflow:hidden;padding:8px}
+    .photoThumb img,.faceCircle img,.imgCircle img,.choiceMedia img{width:100%;height:100%;object-fit:contain;object-position:center;border-radius:inherit}
+    .photoSelect{position:absolute;left:8px;top:8px;width:22px;height:22px;accent-color:var(--accent)}
+    .photoEditorGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .sourceBadge{display:inline-flex;width:max-content;align-items:center;border-radius:999px;padding:3px 8px;background:var(--btn2);color:var(--text);font-size:10px;font-weight:800;letter-spacing:.03em}
+    .sourceBadge.stock{background:rgba(113,212,255,.16)}
+    .sourceBadge.personalised{background:rgba(142,240,177,.16)}
+    .taskConfig{margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:var(--panel2)}
+    .taskConfig[hidden]{display:none}
+    .categoryChecklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;margin:9px 0}
+    .categoryCheck{display:flex;align-items:center;gap:7px;padding:8px 9px;border:1px solid rgba(255,255,255,.10);border-radius:11px;background:var(--card);color:var(--text);font-size:12px}
+    .categoryCheck input{width:18px;height:18px;accent-color:var(--accent)}
+    .configSummary{margin-top:8px;padding:9px 10px;border-left:3px solid var(--accent);border-radius:8px;background:var(--card);font-size:11px;color:var(--muted);line-height:1.45}
+    .configSummary.invalid{border-left-color:var(--bad);color:var(--bad)}
+    .importStatus{white-space:pre-line;margin-top:8px;font-size:11px;color:var(--muted)}
+    .editorOverlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.72)}
+    .editorOverlay[hidden]{display:none}
+    .editorPanel{width:min(760px,100%);max-height:94vh;overflow:auto;background:var(--panel);border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+    .editorPreview{display:grid;place-items:center;min-height:300px;background:var(--panel2);border-radius:16px;padding:16px;overflow:hidden}
+    .editorPreview img{display:block;max-width:100%;max-height:54vh;object-fit:contain;transform-origin:center}
+    .editorControls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+    body.theme-plain-white,body.theme-plain-white .panel,body.theme-plain-white .main,body.theme-plain-white .stage,body.theme-plain-white .playArea{background:#fff!important}
+    body.theme-plain-white .section,body.theme-plain-white .menuSection,body.theme-plain-white .promptBox,body.theme-plain-white .choice,body.theme-plain-white .bigCard,body.theme-plain-white .dashCard,body.theme-plain-white .photoCard,body.theme-plain-white .taskConfig,body.theme-plain-white .editorPanel{background:#fff!important;border-color:#cbd2d8!important;box-shadow:none!important}
+    body.theme-plain-white .topBar,body.theme-plain-white .footerBar,body.theme-plain-white .controlGroup,body.theme-plain-white .categoryCheck,body.theme-plain-white .configSummary,body.theme-plain-white .photoThumb,body.theme-plain-white .editorPreview{background:#f7f7f5!important;border-color:#cbd2d8!important}
+    body.theme-plain-white .blankScreen{background:#fff!important}
+    body.theme-plain-white button,body.theme-plain-white .primary,body.theme-plain-white .ghostBtn,body.theme-plain-white .panelSwitchBtn,body.theme-plain-white .adminFab{background:#eef1f3!important;color:#17202a!important;border-color:#aeb8c0!important;box-shadow:none!important}
+    body.theme-plain-white .primary,body.theme-plain-white .panelSwitchBtn.active{background:#d9e9f5!important;border-color:#1264a3!important}
+    body.theme-plain-white .panelSwitchBtn.adminActive{background:#f3ead6!important;border-color:#8a5a00!important}
+    body.theme-plain-white .trackWrap,body.theme-plain-white .badge,body.theme-plain-white .pillTag,body.theme-plain-white .panelBadge,body.theme-plain-white .learnerBanner,body.theme-plain-white .faceCircle,body.theme-plain-white .imgCircle,body.theme-plain-white .choiceMedia{background:#f5f6f7!important;color:#17202a!important;border-color:#cbd2d8!important}
+    body.theme-plain-white .station{background:#edf0f2;color:#17202a;border-color:#aeb8c0}
+    body.theme-plain-white .station.done{background:#dff2e6;color:#174d2e;border-color:#207a45}
+    body.theme-plain-white .station.current{background:#d9e9f5;color:#123f63;border-color:#1264a3}
+    body.theme-plain-white .choice.correct{background:#e8f5ed!important;border-color:#207a45!important}
+    body.theme-plain-white .choice.incorrect{background:#faece9!important;border-color:#a2352a!important}
+    body.theme-plain-white .promptVariant,body.theme-plain-white .sectionTag,body.theme-plain-white .sectionTag.admin,body.theme-plain-white .countdownPill{color:#17202a!important}
+    body.theme-plain-white .bigBadge{background:#fff;color:#17202a;border-color:#aeb8c0}
+    body.theme-plain-white th{background:#f1f3f4}
+    body.theme-plain-white .heatmapCanvas,body.theme-plain-white .miniCanvas{background:#fff!important;border-color:#cbd2d8!important}
+    .photoThumb{width:100%;font-size:44px}
+    .photoMetaTitle{font-size:13px;font-weight:700}
+    .photoMetaTiny{font-size:11px;color:var(--muted);line-height:1.4}
+    .photoActions{display:flex;gap:8px;flex-wrap:wrap}
+    .resultGrid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px}
+    .quickStart{padding:12px;border-radius:16px;background:rgba(113,212,255,.08);border:1px solid rgba(113,212,255,.18);margin-bottom:12px}
+    .quickStart h3{font-size:14px;margin:0 0 8px}
+    .quickStart details{border-top:1px solid rgba(255,255,255,.08);padding-top:8px;margin-top:8px}
+    .quickStart summary{cursor:pointer;font-size:13px;font-weight:700;color:var(--text)}
+    .stepList{margin:8px 0 0;padding-left:20px;color:var(--muted);font-size:12px;line-height:1.55}
+    .levelSummary{margin-top:6px;padding:8px 10px;border-radius:12px;background:rgba(255,255,255,.05);font-size:12px;line-height:1.45;color:var(--text)}
+    .saveStatus{min-height:18px;margin-top:6px;font-size:12px;color:var(--good)}
+    .controlGroup{padding:10px;border-radius:14px;background:rgba(255,255,255,.035);border:1px solid rgba(255,255,255,.07);margin-top:10px}
+    .controlGroupTitle{font-size:12px;font-weight:800;color:var(--text);margin-bottom:8px}
+    .blankScreen{background:var(--bg)}
+    .blankScreen .blankIndicator{width:1px;height:1px;overflow:hidden;opacity:0}
+    .student-friendly-on .student-hide-main{display:none !important}
+    .student-friendly-on .student-hide-panel{display:none !important}
+    .student-friendly-on .student-soften{opacity:.75}
+    body.panel-view-teacher .adminSection{display:none !important}
+    body.panel-view-admin .teacherSection{display:none !important}
+    .modeBar{display:flex;gap:10px;flex-wrap:wrap}
+    .modeBar button{flex:1 1 160px}
+    .ghostBtn{background:linear-gradient(180deg,#1b2940,#162338)}
+    .dashboard{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+    .dashCard{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+    .dashCard .k{font-size:11px;color:var(--muted);margin-bottom:4px}
+    .dashCard .v{font-size:14px;font-weight:700;color:var(--text)}
+    .analyticsGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .compactNote{font-size:11px;color:var(--muted);line-height:1.4}
+    .dashboardTools{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .dashboardTools input[type=file]{flex:1 1 180px}
+    .aboutGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}
+    .metaList{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .metaItem{padding:10px 12px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08)}
+    .metaItem span{display:block;font-size:11px;color:var(--muted);margin-bottom:4px}
+    .metaItem b{display:block;font-size:12px;color:var(--text);font-weight:700;overflow-wrap:anywhere}
+    .mono{font-family:Consolas,"Courier New",monospace}
+    .aboutActions{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+    .aboutActions button{flex:1 1 150px}
+    .docsDetails{margin-top:10px;border-radius:14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);overflow:hidden}
+    .docsDetails summary{cursor:pointer;list-style:none;padding:10px 12px;font-size:12px;font-weight:700;color:var(--text);background:rgba(255,255,255,.03)}
+    .docsDetails summary::-webkit-details-marker{display:none}
+    .docsBody{padding:10px 12px}
+    .docsBody p{margin:0 0 8px 0;font-size:12px;color:var(--muted);line-height:1.5}
+    .analyticsPanel{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+    .chartCard{padding:12px;border-radius:16px;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.08)}
+    .chartCard h4{margin:0 0 8px 0;font-size:12px;color:var(--muted);font-weight:700}
+    .chartCard.span2{grid-column:1 / -1}
+    .chipRow{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    .miniChip{padding:6px 10px;border-radius:999px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08);font-size:11px;color:var(--text)}
+    .checkGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px}
+    .checkGrid .toggle{height:100%}
+    .artifactTools{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:8px;margin-top:10px}
+    .artifactTools button{min-height:44px}
+    .familySummaryTable td,.familySummaryTable th{font-size:11px}
+    .breakActions{display:flex;gap:10px;justify-content:center;flex-wrap:wrap}
+    .countdownPill{display:inline-flex;align-items:center;justify-content:center;padding:8px 12px;border-radius:999px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.1);font-size:12px;color:#dff5ff}
+    .learnerControls{display:flex;gap:8px;flex-wrap:wrap;justify-content:flex-end}
+    .learnerControls button{min-width:92px}
+    .miniCanvas{width:100%;height:140px;display:block;background:linear-gradient(180deg,rgba(255,255,255,.02),rgba(255,255,255,0));border-radius:12px}
+    .accuracyBar{height:12px;border-radius:999px;background:rgba(255,255,255,.08);overflow:hidden;margin-top:8px}
+    .accuracyFill{height:100%;width:0%;background:linear-gradient(90deg,#71d4ff,#8ef0b1)}
+    .tableWrap{max-height:220px;overflow:auto;border-radius:12px}
+    table{width:100%;border-collapse:collapse;font-size:12px}
+    th,td{padding:8px 6px;border-bottom:1px solid rgba(255,255,255,.06);text-align:left}
+    th{position:sticky;top:0;background:#111827;color:var(--muted);font-weight:700}
+    .ok{color:var(--good);font-weight:700}
+    .nope{color:var(--bad);font-weight:700}
+    .recommendList{margin:0;padding-left:18px;color:var(--text);font-size:12px;line-height:1.55}
+    .dashboardSource{font-size:11px;color:var(--muted);margin-top:6px}
+    .heatmapControls{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px}
+    .heatmapCanvas{width:100%;height:auto;border-radius:14px;background:linear-gradient(180deg,#0e1726,#0a111b);border:1px solid rgba(255,255,255,.08)}
+    .heatMeta{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}
+    .attentionCall{display:inline-block;padding:4px 8px;border-radius:999px;background:rgba(255,255,255,.08);margin-left:6px}
+    .learnerBanner{display:flex;align-items:center;gap:8px;flex-wrap:wrap;padding:8px 12px;border-radius:14px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.08)}
+    .adminFab{position:absolute;right:14px;bottom:14px;z-index:5;border-radius:999px;padding:10px 14px;background:linear-gradient(180deg,#23486f,#18314f)}
+    .wrap.learner{grid-template-columns:1fr}
+    .wrap.learner .panel{display:none}
+    .wrap.learner .main{min-height:100vh}
+    @media (max-width: 980px){
+      .wrap{grid-template-columns:1fr;grid-template-rows:auto minmax(70vh,1fr);height:auto;min-height:100vh}
+      .panel{max-height:none;border-right:0;border-bottom:1px solid rgba(255,255,255,.06)}
+      .main{min-height:70vh}
+      .stage{padding:14px;gap:12px}
+      .topBar{flex-direction:column;align-items:stretch}
+      .trackWrap{max-width:none}
+      .playArea{min-height:64vh;border-radius:22px}
+      .grid{grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:14px;width:100%}
+      .choice{min-height:180px;padding:14px;border-radius:22px}
+      .choiceMedia{width:min(100%,120px)}
+      .choiceLabel{font-size:18px}
+      .bigCard{min-width:170px;min-height:170px}
+      .footerBar{flex-direction:column;align-items:flex-start}
+      .heroSub{max-width:none}
+    }
+    @media (max-width: 640px){
+      .panel{padding:12px}
+      .stage{padding:10px;gap:10px}
+      .screen{padding:16px}
+      .playArea{min-height:72vh}
+      .promptBox{padding:12px 14px}
+      .grid{grid-template-columns:1fr 1fr;gap:12px}
+      .choice{min-height:160px;padding:12px}
+      .choiceMedia{width:min(100%,96px);border-radius:18px;font-size:48px}
+      .choiceLabel{font-size:16px}
+      .trackWrap{padding:10px 12px;border-radius:16px}
+      .track{gap:6px}
+      .station{width:22px;height:22px;font-size:10px}
+      .trackLine{min-width:12px;height:4px}
+      .bigBadge{top:8%;max-width:80vw;text-align:center}
+      .navBtns{width:100%}
+      .navBtns button{flex:1 1 140px}
+      .row button{flex:1 1 120px}
+    }
+    @media (max-width: 640px){
+      .dashboard{grid-template-columns:1fr}
+      .analyticsGrid{grid-template-columns:1fr}
+      .adminGrid{grid-template-columns:1fr 1fr}
+      .aboutGrid{grid-template-columns:1fr}
+      .metaList{grid-template-columns:1fr}
+      .teacherGrid,.photoFormGrid,.resultGrid{grid-template-columns:1fr}
+      .photoEditorGrid,.editorControls{grid-template-columns:1fr}
+      .categoryChecklist{grid-template-columns:1fr 1fr}
+      .footerBar .row{width:100%}
+      .trackWrap{overflow-x:auto;justify-content:flex-start}
+      .track{min-width:420px}
+    }
+    @media (max-width: 480px){
+      .adminGrid{grid-template-columns:1fr}
+      .hero{font-size:clamp(22px,7vw,30px)}
+      .heroSub{font-size:14px}
+      .screen{padding:12px}
+      .promptBox{width:100%}
+      .promptText{font-size:clamp(20px,7vw,28px)}
+      .grid{grid-template-columns:1fr;gap:10px}
+      .choice{min-height:148px;border-radius:18px}
+      .choiceMedia{width:min(100%,82px);font-size:42px}
+      .choiceLabel{font-size:15px}
+      .bigCard{min-width:150px;min-height:150px}
+      .playArea{min-height:74vh}
+      .adminFab{right:10px;bottom:10px;padding:9px 12px}
+      .categoryChecklist{grid-template-columns:1fr}
+      .editorOverlay{padding:8px}
+      .editorPanel{padding:12px;border-radius:16px}
+      .editorPreview{min-height:220px;padding:10px}
+    }
+  </style>
+</head>
+<body>
+<div class="wrap">
+  <aside class="panel">
+    <div class="section">
+      <div class="brandRow">
+        <img class="brandLogo" src="assets/showme-logo.png" alt="ShowMe logo" />
+        <div class="brandCopy">
+          <div class="brandEyebrow">Developed for ShowMe</div>
+          <div class="title">ChoiceTrain for ShowMe</div>
+          <div class="sub">Offline, touch-first classroom learning with learner mode, teacher setup, Attention Training (AT), exports, and GitHub Pages deployment.</div>
+        </div>
+      </div>
+      <div class="panelSwitch">
+        <button id="teacherPanelTab" class="panelSwitchBtn active" type="button" aria-pressed="true">Teacher Panel</button>
+        <button id="adminPanelTab" class="panelSwitchBtn" type="button" aria-pressed="false">Admin Panel</button>
+      </div>
+      <div class="tiny" id="versionInfo" style="margin-top:8px">Active build: loading...</div>
+      <div class="modeBar" style="margin-top:10px">
+        <button id="learnerModeBtn" class="primary">Open learner mode</button>
+      </div>
+    </div>
+
+    <details class="section menuSection teacherSection" open>
+      <summary>Daily Teacher Setup</summary>
+      <div class="menuBody">
+        <div class="sectionIntro">
+          <span class="sectionTag">Teacher Panel</span>
+          <div class="helperText">Daily classroom setup for running a session quickly without needing the research or debug controls.</div>
+        </div>
+        <div class="quickStart" aria-label="Teacher quick start instructions">
+          <h3>Teacher quick start</h3>
+          <details open>
+            <summary>First session with a pupil</summary>
+            <ol class="stepList">
+              <li>Add or select the pupil and use an alias where appropriate.</li>
+              <li>Choose the starting level, task, question count, and session length.</li>
+              <li>Choose prompt, speech, reward, and timing options that suit the pupil.</li>
+              <li>Add familiar photos and a short context note if useful.</li>
+              <li>Select <b>Start session</b>, then hand over or turn the screen towards the pupil.</li>
+            </ol>
+          </details>
+          <details>
+            <summary>Each later session</summary>
+            <ol class="stepList">
+              <li>Select the pupil and check the saved level and task description.</li>
+              <li>Review today's context, timing, prompts, and reward settings.</li>
+              <li>Select <b>Start session</b>.</li>
+              <li>At the end, review the basic results and download the session if required.</li>
+            </ol>
+          </details>
+        </div>
+        <label for="pupilSelect">Select pupil</label>
+        <select id="pupilSelect"></select>
+        <div class="row" style="margin-top:8px">
+          <input id="newPupilName" type="text" placeholder="Add a pupil name" style="flex:1 1 160px" />
+          <button id="addPupil">Add pupil</button>
+        </div>
+        <div class="helperText">Choose the pupil profile or add a new one for today’s session.</div>
+
+        <label for="pupilAlias" style="margin-top:10px">Pupil alias</label>
+        <input id="pupilAlias" type="text" placeholder="e.g. Pupil A" />
+        <div class="helperText">Use an alias if your school prefers anonymised exports and reports.</div>
+
+        <div class="teacherGrid" style="margin-top:10px">
+          <div>
+            <label for="startLevel">Current level</label>
+            <input id="startLevel" type="number" min="1" max="10" value="1" />
+            <div class="helperText">The numbered stage where the pupil should begin today.</div>
+            <div id="currentLevelDescription" class="levelSummary" aria-live="polite">Level 1: build touchscreen confidence. Any touch in the panel counts.</div>
+          </div>
+          <div>
+            <label for="sessionMinutes">Session length</label>
+            <input id="sessionMinutes" type="number" min="1" max="10" value="3" />
+            <div class="helperText">How long the activity should run before stopping automatically.</div>
+          </div>
+          <div>
+            <label for="sessionMax">Number of questions</label>
+            <input id="sessionMax" type="number" min="1" max="20" value="8" />
+            <div class="helperText">How many tasks the pupil will attempt in one session.</div>
+          </div>
+          <div>
+            <label for="themeChoice">Theme</label>
+            <select id="themeChoice">
+              <option value="calm-blue">Calm Blue</option>
+              <option value="soft-green">Soft Green</option>
+              <option value="warm-neutral">Warm Neutral</option>
+              <option value="high-contrast">High Contrast</option>
+              <option value="low-stimulation-dark">Low Stimulation Dark</option>
+              <option value="light-classroom">Light Classroom</option>
+              <option value="plain-white">Plain White</option>
+            </select>
+            <div class="helperText">Choose a colour theme that feels comfortable for the learner and classroom.</div>
+          </div>
+        </div>
+
+        <div class="row" style="margin-top:10px">
+          <label class="toggle"><input id="ttsToggle" type="checkbox" checked /> Speech on</label>
+          <label class="toggle"><input id="studentFriendlyMode" type="checkbox" checked /> Student-friendly mode</label>
+        </div>
+        <div class="helperText">Speech reads prompts aloud. Student-friendly mode hides technical controls and keeps the learner view calm and simple.</div>
+
+        <div class="controlGroup">
+          <div class="controlGroupTitle">Questions and timing</div>
+          <div class="teacherGrid">
+            <div>
+              <label for="maxObjects">Maximum answer options</label>
+              <input id="maxObjects" type="number" min="2" max="6" value="4" />
+              <div class="helperText">The largest number of choices that can appear on screen at once.</div>
+            </div>
+            <div>
+              <label for="sessionTaskType">Task for this session</label>
+              <select id="sessionTaskType">
+                <option value="auto">Use the current level</option>
+                <option value="touch-screen">Touch screen</option>
+                <option value="touch-object">Touch object</option>
+                <option value="moving-target">Moving target</option>
+                <option value="find-object">Find object</option>
+                <option value="find-category">Find category</option>
+                <option value="discriminate-object">Discriminate object</option>
+                <option value="choice-preference">Choice preference</option>
+                <option value="cpat-suite">AT suite</option>
+                <option value="cpat-sustained">AT sustained attention</option>
+                <option value="cpat-selective">AT selective-spatial</option>
+                <option value="cpat-orienting">AT orienting</option>
+                <option value="cpat-executive">AT executive control</option>
+              </select>
+              <div class="helperText">Use the pupil's current level or choose one task type for this session.</div>
+            </div>
+            <div>
+              <label for="delaySec">Prompt delay (seconds)</label>
+              <input id="delaySec" type="number" min="0" max="5" step="0.5" value="1" />
+              <div class="helperText">How long the prompt is shown before the answer choices appear in a two-stage task.</div>
+            </div>
+            <div>
+              <label for="responseWindowSec">Question window (seconds)</label>
+              <input id="responseWindowSec" type="number" min="1" max="20" step="0.5" value="6" />
+              <div class="helperText">How long the pupil has to respond before a no-response outcome is recorded.</div>
+            </div>
+            <div>
+              <label for="itiSec">Inter-trial interval (seconds)</label>
+              <input id="itiSec" type="number" min="0" max="5" step="0.25" value="0.75" />
+              <div class="helperText">The pause between one completed question and the next.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </details>
+
+    <details class="section menuSection teacherSection" open>
+      <summary>Pupil Personalisation</summary>
+      <div class="menuBody">
+        <div class="sectionIntro">
+          <span class="sectionTag">Teacher Panel</span>
+          <div class="helperText">Add familiar people, favourite objects, and preferred themes so tasks feel more meaningful and motivating.</div>
+        </div>
+        <div class="teacherGrid">
+          <div>
+            <label for="faceName">Primary familiar person label</label>
+            <input id="faceName" type="text" value="Mum" />
+            <div class="helperText">Used as the main familiar cue if you choose to include a person photo in sessions.</div>
+          </div>
+          <div>
+            <label for="rewardChoice">Reward style</label>
+            <select id="rewardChoice">
+              <option value="stars">Stars</option>
+              <option value="bubbles">Bubbles</option>
+              <option value="music">Music</option>
+              <option value="trains">Trains</option>
+            </select>
+            <div class="helperText">Pick the celebration style shown after successful attempts.</div>
+          </div>
+          <div>
+            <label for="communicationSupportChoice">Prompt style</label>
+            <select id="communicationSupportChoice">
+              <option value="spoken">Spoken cue</option>
+              <option value="spoken-plus-image">Spoken + image</option>
+              <option value="image-first">Image first</option>
+              <option value="aac-style">AAC-style phrasing</option>
+            </select>
+            <div class="helperText">Choose how prompts are presented to the learner.</div>
+          </div>
+          <div>
+            <label for="preSessionPreference">Quick preference check</label>
+            <select id="preSessionPreference">
+              <option value="ready">Ready to start</option>
+              <option value="needs-choice">Needs extra choice first</option>
+              <option value="needs-break">Needs regulation break first</option>
+              <option value="observational-only">Observation only</option>
+            </select>
+            <div class="helperText">Use this to reflect how ready the learner seems before starting.</div>
+          </div>
+        </div>
+        <div class="dashboardTools">
+          <button id="applyPreferencesBtn">Save pupil preferences</button>
+          <button id="logPreferenceCheckBtn" class="ghostBtn">Log preference check</button>
+        </div>
+        <div class="helperText">Changes are saved locally as you make them. Save pupil preferences also applies the selected prompt style to today's session.</div>
+        <div id="preferenceSaveStatus" class="saveStatus" role="status" aria-live="polite"></div>
+
+        <div class="controlGroup" style="margin-top:12px">
+          <div class="controlGroupTitle">Category catalogue</div>
+          <div class="row">
+            <div style="flex:1 1 190px">
+              <label for="createCategoryName">Create new category</label>
+              <input id="createCategoryName" type="text" maxlength="40" placeholder="e.g. Musical instruments" />
+            </div>
+            <button id="createCategoryBtn" type="button" style="align-self:end">Save category</button>
+          </div>
+          <div class="helperText">Categories organise learning content. Stock or Personalised describes where an image came from and stays separate from its category.</div>
+          <div id="categoryCreateStatus" class="saveStatus" role="status" aria-live="polite"></div>
+          <div id="categoryCatalogueSummary" class="helperText"></div>
+        </div>
+
+        <div class="photoFormGrid" style="margin-top:12px">
+          <div>
+            <label for="photoLabel">Photo label</label>
+            <input id="photoLabel" type="text" placeholder="e.g. Mum, Teacher, Favourite toy" />
+            <div class="helperText">The label the learner will hear or see in prompts.</div>
+          </div>
+          <div>
+            <label for="photoCategory">Photo category</label>
+            <select id="photoCategory"></select>
+            <div class="helperText">Helps ChoiceTrain use the photo in the right kinds of questions.</div>
+          </div>
+          <div>
+            <label for="photoType">Relationship or type</label>
+            <input id="photoType" type="text" placeholder="e.g. Mum, Dad, Teacher, Toy" />
+            <div class="helperText">Optional extra detail for staff and exports.</div>
+          </div>
+          <div>
+            <label for="photoUpload">Upload photo</label>
+            <input id="photoUpload" type="file" accept="image/*" />
+            <div class="helperText">Photos stay local on this device unless you choose to export image data later.</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="toggle"><input id="photoUseInQuestions" type="checkbox" checked /> Use this photo in question generation</label>
+          <label class="toggle"><input id="useFace" type="checkbox" checked /> Use familiar person cues</label>
+        </div>
+        <div class="dashboardTools">
+          <button id="addPhotoBtn">Add photo to pupil library</button>
+        </div>
+        <label for="faceUpload" style="margin-top:10px">Quick primary photo upload</label>
+        <input id="faceUpload" type="file" accept="image/*" />
+        <div class="helperText">This keeps the existing quick-upload flow for a primary familiar person photo.</div>
+        <label for="customUpload" style="margin-top:10px">Bulk photo import</label>
+        <label for="bulkPhotoCategory">Destination category</label>
+        <select id="bulkPhotoCategory"></select>
+        <input id="customUpload" type="file" accept="image/*" multiple />
+        <div class="helperText">Import up to 100 photos into the selected category. Valid files continue importing if another file fails.</div>
+        <div id="bulkUploadStatus" class="importStatus" role="status" aria-live="polite"></div>
+        <div class="controlGroup" style="margin-top:12px">
+          <div class="controlGroupTitle">Manage selected photos</div>
+          <div class="row">
+            <button id="selectAllPhotosBtn" type="button">Select all</button>
+            <button id="clearPhotoSelectionBtn" type="button">Clear selection</button>
+            <select id="bulkMoveCategory" aria-label="Category for selected photos"></select>
+            <button id="bulkMoveBtn" type="button">Move selected</button>
+          </div>
+          <div class="helperText">Moving a photo changes its category without changing its pupil, label, source, or crop.</div>
+        </div>
+        <div id="photoLibraryList" class="photoLibrary"></div>
+        <div id="photoLibraryEmpty" class="helperText">No personalised photos added for this pupil yet.</div>
+      </div>
+    </details>
+
+    <details class="section menuSection teacherSection" open>
+      <summary>Session Controls</summary>
+      <div class="menuBody">
+        <div class="sectionIntro">
+          <span class="sectionTag">Teacher Panel</span>
+          <div class="helperText">Simple controls for starting, resetting, or downloading a session without opening the advanced research tools.</div>
+        </div>
+        <div class="controlGroup">
+          <div class="controlGroupTitle">Prompt and feedback options</div>
+          <div class="row">
+            <label class="toggle"><input id="useTwoStage" type="checkbox" /> Two-stage prompt</label>
+            <label class="toggle"><input id="useReward" type="checkbox" checked /> Reward screen</label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="toggle"><input id="useTextPrompt" type="checkbox" checked /> Show text prompts</label>
+            <label class="toggle"><input id="useImagePrompt" type="checkbox" checked /> Show image prompts</label>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <label class="toggle"><input id="ttsLabelsToggle" type="checkbox" /> Speak selected label</label>
+            <label class="toggle"><input id="autoAdvance" type="checkbox" checked /> Auto advance</label>
+          </div>
+          <div class="helperText">Two-stage prompts show the instruction before the answers. Auto advance moves on without requiring the pupil or teacher to press Next.</div>
+        </div>
+        <div class="controlGroup">
+          <div class="controlGroupTitle">Optional blank screen between questions</div>
+          <div class="row">
+            <label class="toggle"><input id="useBlankInterval" type="checkbox" /> Show blank screen</label>
+            <div style="flex:1 1 160px">
+              <label for="blankIntervalSec">Blank duration (seconds)</label>
+              <input id="blankIntervalSec" type="number" min="0.25" max="10" step="0.25" value="1" />
+            </div>
+          </div>
+          <div class="helperText">Adds a calm, empty pause after feedback and before the next question. Leave it off if the pupil benefits from a continuous flow.</div>
+        </div>
+        <section id="findObjectConfig" class="taskConfig" hidden>
+          <div class="controlGroupTitle">Find object content</div>
+          <div class="helperText"><b>Find object</b> asks the learner to find one named item from several choices, for example “Find Cat”.</div>
+          <label>Select session categories</label>
+          <div id="findObjectCategoryList" class="categoryChecklist"></div>
+          <label for="findObjectSourceMode">Select session images</label>
+          <select id="findObjectSourceMode">
+            <option value="both">Both stock and personalised</option>
+            <option value="personalised">Personalised only</option>
+            <option value="stock">Stock only</option>
+          </select>
+          <div id="findObjectConfigSummary" class="configSummary" role="status"></div>
+        </section>
+        <section id="findCategoryConfig" class="taskConfig" hidden>
+          <div class="controlGroupTitle">Find category content</div>
+          <div class="helperText"><b>Find category</b> asks for an item from a named group, for example “Which one is an animal?”. At least two usable categories are required.</div>
+          <label>Select session categories</label>
+          <div id="findCategoryCategoryList" class="categoryChecklist"></div>
+          <label for="findCategorySourceMode">Select session images</label>
+          <select id="findCategorySourceMode">
+            <option value="both">Both stock and personalised</option>
+            <option value="personalised">Personalised only</option>
+            <option value="stock">Stock only</option>
+          </select>
+          <div id="findCategoryConfigSummary" class="configSummary" role="status"></div>
+        </section>
+        <div class="taskConfig">
+          <div class="helperText"><b>Discriminate object</b> currently asks the learner to choose one named item from two options. It does not yet guarantee visually similar alternatives; the numeric level sequence is unchanged.</div>
+        </div>
+        <div id="sessionSetupStatus" class="configSummary" hidden role="alert"></div>
+        <div class="row">
+          <button id="startBtn" class="primary">Start session</button>
+          <button id="resetBtn">Reset session</button>
+          <button id="exportBtn">Download session</button>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <button id="nextBtn">Next</button>
+          <button id="repeatBtn">Repeat</button>
+          <button id="fullscreenBtn">Fullscreen</button>
+        </div>
+        <div class="helperText"><b>Start session</b> begins a fresh session using the settings currently shown. <b>Reset session</b> clears the current unsaved attempt and returns to the welcome screen; it keeps the pupil profile, saved settings, and stored session history. Use Download session to save a school-friendly JSON file.</div>
+      </div>
+    </details>
+
+    <details class="section menuSection teacherSection" open>
+      <summary>Context Notes</summary>
+      <div class="menuBody">
+        <div class="sectionIntro">
+          <span class="sectionTag">Teacher Panel</span>
+          <div class="helperText">Daily observations that may help interpret the session, such as learner mood, attention, sensory environment, tiredness, or support used.</div>
+        </div>
+        <label for="contextNotes">Context notes</label>
+        <textarea id="contextNotes" placeholder="For example: calm after lunch, needed extra processing time, bright room today, tired after PE, benefited from verbal cue, or preferred the train theme..."></textarea>
+      </div>
+    </details>
+
+    <details class="section menuSection teacherSection student-hide-panel" open>
+      <summary>Basic Results</summary>
+      <div class="menuBody">
+        <div class="sectionIntro">
+          <span class="sectionTag">Teacher Panel</span>
+          <div class="helperText">A quick classroom summary without the full research dashboard.</div>
+        </div>
+        <div class="resultGrid">
+          <div class="dashCard"><div class="k">Current learner</div><div class="v" id="dashLearner">Not set</div></div>
+          <div class="dashCard"><div class="k">Session mode</div><div class="v" id="dashMode">Desktop</div></div>
+          <div class="dashCard"><div class="k">Questions set</div><div class="v" id="dashQuestions">8</div></div>
+          <div class="dashCard"><div class="k">Prompt style</div><div class="v" id="dashPrompt">2-stage</div></div>
+        </div>
+        <div class="stat"><span>Session ID</span><b id="sid">&mdash;</b></div>
+        <div class="stat"><span>Status</span><b id="status">idle</b></div>
+        <div class="stat"><span>Question</span><b id="qIndex">0 / 0</b></div>
+        <div class="stat"><span>Accuracy</span><b id="acc">0%</b></div>
+        <div class="stat"><span>Events</span><b id="evCount">0</b></div>
+        <div class="stat"><span>Current task</span><b id="qType">&mdash;</b></div>
+      </div>
+    </details>
+
+    <details id="adminPanelDetails" class="section menuSection adminSection student-hide-panel">
+      <summary>Advanced Admin Settings</summary>
+      <div class="menuBody">
+        <div class="sectionIntro">
+          <span class="sectionTag admin">Admin Panel</span>
+          <div class="helperText">Advanced progression, touch, and performance controls. Daily presentation and timing settings are now available in the Teacher Panel.</div>
+        </div>
+        <div class="teacherGrid">
+          <div>
+            <label for="targetScale">Touch scale (%)</label>
+            <input id="targetScale" type="number" min="80" max="220" value="100" />
+            <div class="helperText">Adjusts touch target sizing for different screens and learners.</div>
+          </div>
+          <div>
+            <label for="singleTargetReps">Single-target repetitions</label>
+            <input id="singleTargetReps" type="number" min="1" max="10" value="3" />
+            <div class="helperText">When Single-target first stage is enabled and automatic level progression is off, this sets how many opening questions use one large target before multi-choice tasks begin.</div>
+          </div>
+          <div>
+            <label for="moveSampleMs">Move sample rate (ms)</label>
+            <input id="moveSampleMs" type="number" min="16" max="250" step="4" value="64" />
+            <div class="helperText">How often touch-move data is sampled in performance mode.</div>
+          </div>
+          <div>
+            <label for="dashboardRefreshMs">Dashboard refresh (ms)</label>
+            <input id="dashboardRefreshMs" type="number" min="100" max="2000" step="50" value="250" />
+            <div class="helperText">How often the live dashboard redraws during a running session.</div>
+          </div>
+        </div>
+        <div class="row" style="margin-top:10px">
+          <label class="toggle"><input id="autoTouchScale" type="checkbox" checked /> Auto touch scaling</label>
+          <label class="toggle"><input id="showTouchDebug" type="checkbox" /> Touch debug</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="toggle"><input id="trackTrail" type="checkbox" checked /> Live trail</label>
+          <label class="toggle"><input id="performanceMode" type="checkbox" checked /> Performance mode</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="toggle"><input id="liveDashboardDuringLearner" type="checkbox" /> Live dashboard in learner mode</label>
+          <label class="toggle"><input id="singleTargetStart" type="checkbox" checked /> Single-target first stage</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="toggle"><input id="autoLevelPath" type="checkbox" checked /> Auto level path</label>
+        </div>
+        <div class="helperText">Auto level path automatically follows the numbered progression. Single-target first stage affects mixed sessions only when that path is off. Performance mode keeps touch logging lighter for tablets and touchscreens.</div>
+      </div>
+    </details>
+
+    <details class="section menuSection adminSection student-hide-panel">
+      <summary>Research / Debug Settings</summary>
+      <div class="menuBody">
+        <div class="sectionIntro">
+          <span class="sectionTag admin">Admin Panel</span>
+          <div class="helperText">Research, fidelity, EEG, detailed analytics, advanced exports, and build metadata. Leave this collapsed for everyday classroom use.</div>
+        </div>
+        <div class="row">
+          <label class="toggle"><input id="eegResearchMode" type="checkbox" /> EEG / research mode</label>
+          <label class="toggle"><input id="autoBlockPauses" type="checkbox" checked /> Automatic block pauses</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="toggle"><input id="allowLearnerHelp" type="checkbox" checked /> Learner help button</label>
+          <label class="toggle"><input id="allowLearnerBreak" type="checkbox" checked /> Learner break button</label>
+        </div>
+        <div class="row" style="margin-top:8px">
+          <label class="toggle"><input id="allowLearnerStop" type="checkbox" checked /> Learner stop button</label>
+          <label class="toggle"><input id="activeControlEnabled" type="checkbox" /> Active control condition</label>
+        </div>
+        <div class="teacherGrid" style="margin-top:10px">
+          <div>
+            <label for="eegBlockSize">EEG block size</label>
+            <input id="eegBlockSize" type="number" min="2" max="12" step="1" value="4" />
+            <div class="helperText">How many scored trials run before the automatic research pause appears.</div>
+          </div>
+          <div>
+            <label for="eegAutoPauseSec">Automatic pause (seconds)</label>
+            <input id="eegAutoPauseSec" type="number" min="2" max="30" step="1" value="6" />
+            <div class="helperText">How long each automatic pause lasts before resuming.</div>
+          </div>
+          <div>
+            <label for="researchCondition">Research condition</label>
+            <select id="researchCondition">
+              <option value="training">Training condition</option>
+              <option value="active-control">Active control</option>
+            </select>
+            <div class="helperText">Lets the same game layout run either as the training condition or a matched control condition.</div>
+          </div>
+          <div>
+            <label for="eegExportFormat">Advanced export format</label>
+            <select id="eegExportFormat">
+              <option value="tsv">Marker TSV</option>
+              <option value="json">Research JSON</option>
+              <option value="both">Both</option>
+            </select>
+            <div class="helperText">Choose the detailed export format used for EEG or research review.</div>
+          </div>
+          <div>
+            <label for="supportCodeSelect">Support code</label>
+            <select id="supportCodeSelect">
+              <option value="none">None</option>
+              <option value="verbal">Verbal</option>
+              <option value="gesture">Gesture</option>
+              <option value="visual">Visual highlight</option>
+              <option value="model">Model</option>
+              <option value="reduced-field">Reduced field</option>
+              <option value="physical">Physical prompt</option>
+            </select>
+          </div>
+          <div>
+            <label for="supportIntensitySelect">Independence status</label>
+            <select id="supportIntensitySelect">
+              <option value="independent">Independent</option>
+              <option value="prompted">Prompted</option>
+              <option value="assisted">Assisted</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">Prompting and support</div>
+          <div class="dashboard">
+            <div class="dashCard"><div class="k">Current prompt level</div><div class="v" id="currentPromptLabel">Independent</div></div>
+            <div class="dashCard"><div class="k">Current support code</div><div class="v" id="currentSupportLabel">None</div></div>
+          </div>
+          <div class="dashboardTools">
+            <button id="promptIndependentBtn">Independent</button>
+            <button id="promptCueBtn">Cue only</button>
+            <button id="promptVerbalBtn">Verbal repeat</button>
+          </div>
+          <div class="dashboardTools">
+            <button id="promptVisualBtn">Visual highlight</button>
+            <button id="promptModelBtn">Model prompt</button>
+            <button id="promptFullSupportBtn">Full support</button>
+          </div>
+          <div class="compactNote">Structured prompt levels help teachers and researchers interpret whether a response was independent, prompted, or assisted.</div>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">Learner profile and research foundation</div>
+          <div class="adminGrid">
+            <div>
+              <label for="communicationMode">Communication mode</label>
+              <select id="communicationMode">
+                <option value="spoken">Spoken language</option>
+                <option value="aac">AAC / device</option>
+                <option value="gestural">Gestural</option>
+                <option value="mixed">Mixed</option>
+                <option value="emerging">Emerging communication</option>
+              </select>
+            </div>
+            <div>
+              <label for="motorAccessMode">Motor access</label>
+              <select id="motorAccessMode">
+                <option value="direct-touch">Direct touch</option>
+                <option value="supported-touch">Supported touch</option>
+                <option value="stylus">Stylus</option>
+                <option value="switch-assisted">Switch assisted</option>
+                <option value="mixed">Mixed access</option>
+              </select>
+            </div>
+            <div>
+              <label for="adaptiveFunctioningBand">Adaptive functioning</label>
+              <select id="adaptiveFunctioningBand">
+                <option value="emerging">Emerging</option>
+                <option value="developing">Developing</option>
+                <option value="established">Established</option>
+                <option value="not-set">Not set</option>
+              </select>
+            </div>
+            <div>
+              <label for="teacherAttentionRating">Teacher attention rating (1-5)</label>
+              <input id="teacherAttentionRating" type="number" min="1" max="5" step="1" value="3" />
+            </div>
+            <div>
+              <label for="teacherIndependenceRating">Teacher independence rating (1-5)</label>
+              <input id="teacherIndependenceRating" type="number" min="1" max="5" step="1" value="3" />
+            </div>
+            <div>
+              <label for="eegParticipation">EEG study status</label>
+              <select id="eegParticipation">
+                <option value="not-enrolled">Not enrolled</option>
+                <option value="baseline-only">Baseline only</option>
+                <option value="training-study">Training study</option>
+                <option value="follow-up">Follow-up</option>
+              </select>
+            </div>
+            <div>
+              <label for="staffMember">Staff member</label>
+              <input id="staffMember" type="text" placeholder="Teacher / TA / therapist" />
+            </div>
+            <div>
+              <label for="fatigueLevel">Fatigue / readiness</label>
+              <select id="fatigueLevel">
+                <option value="ready">Ready</option>
+                <option value="settled">Settled</option>
+                <option value="variable">Variable</option>
+                <option value="fatigued">Fatigued</option>
+                <option value="dysregulated">Dysregulated</option>
+              </select>
+            </div>
+            <div>
+              <label for="sensoryState">Sensory state</label>
+              <select id="sensoryState">
+                <option value="regulated">Regulated</option>
+                <option value="seeking">Seeking</option>
+                <option value="avoidant">Avoidant</option>
+                <option value="mixed">Mixed</option>
+              </select>
+            </div>
+            <div>
+              <label for="aacPreference">AAC preference</label>
+              <select id="aacPreference">
+                <option value="not-applicable">Not applicable</option>
+                <option value="high-tech">High-tech AAC</option>
+                <option value="low-tech">Low-tech AAC</option>
+                <option value="mixed">Mixed AAC</option>
+              </select>
+            </div>
+            <div>
+              <label for="sleepQuality">Sleep / readiness</label>
+              <select id="sleepQuality">
+                <option value="unknown">Unknown</option>
+                <option value="well-rested">Well rested</option>
+                <option value="average">Average</option>
+                <option value="poor">Poor sleep</option>
+              </select>
+            </div>
+            <div>
+              <label for="capTolerance">Cap / headset tolerance</label>
+              <select id="capTolerance">
+                <option value="not-applicable">Not applicable</option>
+                <option value="comfortable">Comfortable</option>
+                <option value="tolerates-briefly">Tolerates briefly</option>
+                <option value="needs-support">Needs support</option>
+                <option value="not-tolerating">Not tolerating</option>
+              </select>
+            </div>
+            <div>
+              <label for="breakCount">Breaks used</label>
+              <input id="breakCount" type="number" min="0" max="20" step="1" value="0" />
+            </div>
+            <div>
+              <label for="maintenanceStatus">Maintenance check</label>
+              <select id="maintenanceStatus">
+                <option value="not-run">Not run</option>
+                <option value="emerging">Emerging</option>
+                <option value="maintained">Maintained</option>
+                <option value="regressed">Regressed</option>
+              </select>
+            </div>
+            <div>
+              <label for="generalisationStatus">Generalisation check</label>
+              <select id="generalisationStatus">
+                <option value="not-run">Not run</option>
+                <option value="emerging">Emerging</option>
+                <option value="generalised">Generalised</option>
+                <option value="not-generalised">Not generalised</option>
+              </select>
+            </div>
+          </div>
+          <label for="classroomTransferNotes" style="margin-top:8px">Classroom transfer / outcome notes</label>
+          <textarea id="classroomTransferNotes" placeholder="Teacher-rated attention, work completion, classroom transfer, confidence, reading, writing, maths, or independence observations..."></textarea>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">EEG and observational data quality</div>
+          <div class="dashboard">
+            <div class="dashCard"><div class="k">Current block</div><div class="v" id="eegCurrentBlock">1</div></div>
+            <div class="dashCard"><div class="k">Marker count</div><div class="v" id="eegMarkerCount">0</div></div>
+            <div class="dashCard"><div class="k">Artifacts this block</div><div class="v" id="artifactBlockCount">0</div></div>
+            <div class="dashCard"><div class="k">Block quality</div><div class="v" id="artifactQualityScore">100</div></div>
+          </div>
+          <div class="artifactTools">
+            <button id="artifactMovementBtn">Log movement</button>
+            <button id="artifactBlinkBtn">Log blink</button>
+            <button id="artifactSpeechBtn">Log speech</button>
+            <button id="artifactCapBtn">Log cap adjust</button>
+            <button id="artifactInterruptBtn">Log interruption</button>
+          </div>
+          <div class="compactNote">Artifact logs are observational quality markers for later EEG interpretation. They do not change the learner score.</div>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">Fidelity and coaching</div>
+          <div class="dashboard">
+            <div class="dashCard"><div class="k">Fidelity score</div><div class="v" id="fidelityScore">0%</div></div>
+            <div class="dashCard"><div class="k">Dosage this session</div><div class="v" id="dosageMinutesActual">0 mins</div></div>
+          </div>
+          <div class="adminGrid" style="margin-top:8px">
+            <div>
+              <label for="dosageMinutesTarget">Dosage target (mins)</label>
+              <input id="dosageMinutesTarget" type="number" min="1" max="60" step="1" value="10" />
+            </div>
+            <div>
+              <label for="dosageSessionsPerWeek">Sessions per week target</label>
+              <input id="dosageSessionsPerWeek" type="number" min="1" max="14" step="1" value="3" />
+            </div>
+          </div>
+          <div class="checkGrid">
+            <label class="toggle"><input id="fidelityEnvironmentReady" type="checkbox" /> Environment prepared</label>
+            <label class="toggle"><input id="fidelityRuleShown" type="checkbox" /> Rule displayed clearly</label>
+            <label class="toggle"><input id="fidelityPromptPlan" type="checkbox" /> Prompt plan followed</label>
+            <label class="toggle"><input id="fidelityBreaksOffered" type="checkbox" /> Breaks offered appropriately</label>
+            <label class="toggle"><input id="fidelityRewardDelivered" type="checkbox" /> Reward delivered as planned</label>
+            <label class="toggle"><input id="fidelityDataChecked" type="checkbox" /> Data checked before finish</label>
+          </div>
+          <label for="coachingReviewNotes" style="margin-top:8px">Coaching review</label>
+          <textarea id="coachingReviewNotes" placeholder="What worked, what support was needed, what to try next session, and any teacher or TA coaching reflections..."></textarea>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">Session History Manager</div>
+          <div class="dashboard">
+            <div class="dashCard"><div class="k">Active sessions</div><div class="v" id="historyActiveCount">0</div></div>
+            <div class="dashCard"><div class="k">Archived sessions</div><div class="v" id="historyArchivedCount">0</div></div>
+            <div class="dashCard"><div class="k">Stored events</div><div class="v" id="historyEventCount">0</div></div>
+            <div class="dashCard"><div class="k">Storage mode</div><div class="v" id="historyStorageMode">IndexedDB</div></div>
+          </div>
+          <div class="dashboardTools">
+            <select id="historyLearnerFilter">
+              <option value="all">All learners</option>
+              <option value="current">Current learner</option>
+              <option value="archived">Archived only</option>
+            </select>
+            <button id="refreshHistoryBtn">Refresh history</button>
+            <button id="exportHistoryBtn">Export history</button>
+          </div>
+          <div class="dashboardTools">
+            <button id="archiveLearnerHistoryBtn">Archive current learner</button>
+            <button id="pruneArchivedHistoryBtn" class="ghostBtn">Prune archived</button>
+          </div>
+          <div class="tableWrap" style="margin-top:10px">
+            <table>
+              <thead><tr><th>Session</th><th>Learner</th><th>Date</th><th>Accuracy</th><th>Events</th><th>Status</th></tr></thead>
+              <tbody id="historyTableBody"></tbody>
+            </table>
+          </div>
+          <div class="compactNote" id="historyStatus">History is loaded from IndexedDB to keep long-term session records out of synchronous browser storage.</div>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">Detailed analytics</div>
+          <div class="analyticsGrid">
+            <div class="dashCard"><div class="k">Session task lock</div><div class="v" id="dashTaskLock">Auto</div></div>
+            <div class="dashCard"><div class="k">Single-target repetitions</div><div class="v" id="dashSingleTarget">3</div></div>
+            <div class="dashCard"><div class="k">Average reaction time</div><div class="v" id="dashAvgRt">&mdash;</div></div>
+            <div class="dashCard"><div class="k">Average touch distance</div><div class="v" id="dashAvgDistance">&mdash;</div></div>
+            <div class="dashCard"><div class="k">Adaptive touch scale</div><div class="v" id="dashTouchScale">&mdash;</div></div>
+            <div class="dashCard"><div class="k">Hit radius</div><div class="v" id="dashHitRadius">&mdash;</div></div>
+          </div>
+          <div class="dashboardTools">
+            <button id="refreshDashboardBtn">Refresh dashboard</button>
+            <button id="loadCurrentDashboardBtn">Use current session</button>
+            <button id="exportEegBtn">Export EEG markers</button>
+            <input id="dashboardImport" type="file" accept=".json,.jsonl,application/json" />
+          </div>
+          <div class="analyticsPanel">
+            <div class="chartCard">
+              <h4>Reaction time trend</h4>
+              <canvas id="rtChart" class="miniCanvas" width="320" height="140"></canvas>
+            </div>
+            <div class="chartCard">
+              <h4>Touch distance trend</h4>
+              <canvas id="distChart" class="miniCanvas" width="320" height="140"></canvas>
+            </div>
+            <div class="chartCard span2">
+              <h4>Accuracy summary</h4>
+              <div class="dashboard"><div class="dashCard"><div class="k">Correct</div><div class="v" id="dashCorrect">0</div></div><div class="dashCard"><div class="k">Incorrect</div><div class="v" id="dashIncorrect">0</div></div><div class="dashCard"><div class="k">Accuracy</div><div class="v" id="dashAccuracyLarge">0%</div></div><div class="dashCard"><div class="k">Answered</div><div class="v" id="dashAnswered">0</div></div></div>
+              <div class="accuracyBar"><div id="accuracyFill" class="accuracyFill"></div></div>
+              <div class="dashboardSource" id="dashboardSource">Showing: current session</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Question-by-question results</h4>
+              <div class="tableWrap">
+                <table>
+                  <thead><tr><th>Q</th><th>Task</th><th>Selected</th><th>Correct</th><th>RT</th><th>Distance</th><th>Support</th></tr></thead>
+                  <tbody id="questionTableBody"></tbody>
+                </table>
+              </div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Per-task heat map</h4>
+              <div class="heatmapControls">
+                <label for="heatmapScopeSelect">Scope</label>
+                <select id="heatmapScopeSelect">
+                  <option value="current-session">Current session</option>
+                  <option value="learner-history">Current learner history</option>
+                  <option value="all-history">All stored history</option>
+                </select>
+                <label for="heatmapQuestionSelect">Task</label>
+                <select id="heatmapQuestionSelect"></select>
+              </div>
+              <canvas id="heatmapCanvas" class="heatmapCanvas" width="420" height="280"></canvas>
+              <div id="heatmapMeta" class="heatMeta">Select a task to view target position, touches, and attention call.</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Attention family dashboard</h4>
+              <div class="dashboard"><div class="dashCard"><div class="k">Exploratory engagement</div><div class="v" id="dashAttentionScore">0</div></div><div class="dashCard"><div class="k">Interpretation</div><div class="v" id="dashAttentionCall">&mdash;</div></div><div class="dashCard"><div class="k">Current level</div><div class="v" id="dashCurrentLevel">1</div></div><div class="dashCard"><div class="k">Next level rule</div><div class="v" id="dashNextRule">80%+ accuracy</div></div></div>
+              <div class="tableWrap" style="margin-top:10px">
+                <table class="familySummaryTable">
+                  <thead><tr><th>Family</th><th>Trials</th><th>Accuracy</th><th>Omissions</th><th>Commissions</th><th>Mean RT</th><th>RT variability</th></tr></thead>
+                  <tbody id="familySummaryBody"></tbody>
+                </table>
+              </div>
+              <div class="compactNote">Family-specific summaries are more meaningful than one generic attention label for Attention Training tasks.</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>EEG block and artifact summary</h4>
+              <div class="dashboard"><div class="dashCard"><div class="k">Research condition</div><div class="v" id="dashResearchCondition">Training</div></div><div class="dashCard"><div class="k">EEG mode</div><div class="v" id="dashEegMode">Off</div></div><div class="dashCard"><div class="k">Blocks recorded</div><div class="v" id="dashBlockCount">0</div></div><div class="dashCard"><div class="k">Observed artifacts</div><div class="v" id="dashArtifactCount">0</div></div></div>
+              <div class="tableWrap" style="margin-top:10px">
+                <table>
+                  <thead><tr><th>Block</th><th>Trials</th><th>Artifacts</th><th>Quality</th><th>Condition</th><th>Notes</th></tr></thead>
+                  <tbody id="blockSummaryBody"></tbody>
+                </table>
+              </div>
+              <div class="compactNote">Quality scores are observational support metrics for later EEG readiness and data cleaning.</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Suggested next settings</h4>
+              <ul id="recommendList" class="recommendList"></ul>
+            </div>
+          </div>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">About / Build Info</div>
+          <div class="aboutGrid">
+            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.6.0</div></div>
+            <div class="dashCard"><div class="k">Status</div><div class="v" id="aboutChannel">Experimental</div></div>
+            <div class="dashCard"><div class="k">Base commit</div><div class="v mono" id="aboutCommit">loading</div></div>
+            <div class="dashCard"><div class="k">Build date</div><div class="v" id="aboutBuildDate">loading</div></div>
+          </div>
+          <div class="metaList">
+            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.6.0.html</b></div>
+            <div class="metaItem"><span>Published entry</span><b class="mono" id="aboutPublishedEntry">index.html</b></div>
+            <div class="metaItem"><span>Live URL</span><b class="mono" id="aboutLiveUrl">https://dioncroft.github.io/choice_train/</b></div>
+            <div class="metaItem"><span>Repository</span><b class="mono" id="aboutRepoUrl">https://github.com/DionCroft/choice_train</b></div>
+          </div>
+          <div class="compactNote" id="aboutBuildSummary">This build keeps explicit version metadata so classroom exports, research exports, and GitHub Pages publishing are easier to track.</div>
+          <div class="aboutActions">
+            <button id="copyBuildInfoBtn">Copy build info</button>
+            <button id="copyLiveUrlBtn" class="ghostBtn">Copy live URL</button>
+          </div>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">Documentation and terminology</div>
+      <details class="docsDetails">
+        <summary>EEG research mode and active control condition</summary>
+        <div class="docsBody">
+          <p><b>EEG research mode</b> adds precise event markers, short fixed blocks, automatic pauses, and ERP-friendly exports for later EEG alignment.</p>
+          <p><b>Block size</b> determines how many scored trials run before an automatic pause appears.</p>
+          <p><b>Active control</b> keeps the same art, reward, and session structure but reduces the core attentional demand so later publication work has a matched comparison condition.</p>
+          <p><b>Marker exports</b> are intended for research processing rather than for teachers to interpret directly.</p>
+        </div>
+      </details>
+      <details class="docsDetails">
+        <summary>How the main session settings work</summary>
+        <div class="docsBody">
+          <p><b>Auto advance</b> moves to the next question after feedback. If it is off, the learner or practitioner uses the on-screen next controls.</p>
+          <p><b>Reward screen</b> shows the success screen between questions. With auto advance on, it becomes a short pause before the next item.</p>
+          <p><b>Single-target first stage</b> keeps the early developmental levels focused on one target before the later reasoning tasks appear.</p>
+          <p><b>Auto level path</b> follows the staged ChoiceTrain sequence. If it is off, the selected session task stays fixed instead.</p>
+          <p><b>Question window</b> is the maximum time allowed for a response before the app records a no-response outcome.</p>
+        </div>
+      </details>
+      <details class="docsDetails">
+        <summary>What each auto-path level is doing</summary>
+        <div class="docsBody">
+          <p><b>Level 1</b> builds screen-touch confidence. Any touch in the active panel counts.</p>
+          <p><b>Level 2</b> requires touching the pictured target itself.</p>
+          <p><b>Level 3</b> introduces a moving target.</p>
+          <p><b>Level 4</b> asks the learner to find a named object from a small set.</p>
+          <p><b>Level 5</b> asks the learner to choose one named item from two options. It does not yet guarantee visual similarity.</p>
+          <p><b>Level 6</b> uses category reasoning.</p>
+          <p><b>Levels 7 to 10</b> move into Attention Training (AT): sustained, selective-spatial, orienting, and executive attention.</p>
+        </div>
+      </details>
+      <details class="docsDetails">
+        <summary>Attention Training terms</summary>
+        <div class="docsBody">
+          <p><b>Sustained attention</b> means staying ready over time and responding only when the target appears.</p>
+          <p><b>Selective-spatial attention</b> means finding the correct target among distractors while ignoring similar but wrong options.</p>
+          <p><b>Orienting</b> means using a cue to look in the right place, then reorienting when the cue is misleading.</p>
+          <p><b>Executive attention</b> means following the rule when there is conflict, such as ignoring distracting arrows or shapes.</p>
+          <p><b>Exploratory engagement</b> is an in-app practice metric built from timing and touch precision. It is not a clinical score.</p>
+        </div>
+      </details>
+      <details class="docsDetails">
+        <summary>Support, prompting, and data terms</summary>
+        <div class="docsBody">
+          <p><b>Prompt level</b> shows the strongest prompt used on that trial, from independent through to full support.</p>
+          <p><b>Support code</b> records the kind of help used, such as verbal, visual, model, reduced field, or physical support.</p>
+          <p><b>Independence status</b> records whether the learner was independent, prompted, or assisted.</p>
+          <p><b>Omission</b> means the learner did not respond within the question window.</p>
+          <p><b>Commission</b> means the learner made an incorrect response when the rule required a different action or no action.</p>
+          <p><b>RT variability</b> means how inconsistent reaction times were across the session. Higher variability can suggest less stable performance.</p>
+          <p><b>Artifact logs</b> are observational markers such as movement, speech, blinks, cap adjustments, or interrupted trials that may matter for later EEG data quality.</p>
+        </div>
+      </details>
+      <details class="docsDetails">
+        <summary>V1.6.0 teacher, learner, and research guide</summary>
+        <div class="docsBody">
+          <p><b>Teacher Panel</b> is designed for everyday classroom setup. Use it to select a pupil, choose a theme, add context notes, personalise content, and start or export a session quickly.</p>
+          <p><b>Admin Panel</b> stays collapsed by default. Open it only when you need advanced analytics, Attention Training tuning, touch debugging, EEG preparation, or fidelity and research settings.</p>
+          <p><b>Student-friendly mode</b> keeps the learner view simple by hiding technical labels, analytics, build text, debug panels, and research wording. The learner sees calm prompts, images, progress, and navigation only.</p>
+          <p><b>Context notes</b> are daily classroom observations such as mood, attention, tiredness, sensory environment, or support used. They help teachers interpret a session without using medical wording.</p>
+          <p><b>Personalised photos</b> can be labelled as Mum, Dad, Teacher, favourite toy, favourite food, classroom object, or preferred activity. These labels can be reused in question generation while exports keep the label metadata lightweight.</p>
+          <p><b>Signal Station</b>, <b>Ticket Hunt</b>, <b>Platform Pointer</b>, and <b>Traffic Lights</b> keep the AT families playful while preserving the underlying sustained, selective-spatial, orienting, and executive learning goals.</p>
+          <p><b>Future recommendations</b> are prepared through a local structured summary only. No session data is currently sent outside this static build.</p>
+        </div>
+      </details>
+        </div>
+
+        <div class="section" style="padding-top:14px">
+          <div class="sub">Prototype goals reflected here:</div>
+          <ul class="helperList">
+            <li>Simple touch-first discrimination tasks with progression.</li>
+            <li>Use of familiar, meaningful content to support motivation and recognition.</li>
+            <li>Short sessions with configurable rewards, exports, and future-ready research structure.</li>
+          </ul>
+        </div>
+      </div>
+    </details>
+  </aside>
+
+  <main class="main">
+    <div class="stage">
+      <div class="topBar">
+        <div class="learnerBanner" id="learnerBanner"><b>Learner mode</b><span class="tiny">Calmer full-screen view for pupils</span></div>
+        <div class="trackWrap">
+          <div class="badge student-hide-main" id="stageLabel">Welcome</div>
+          <div class="track" id="progressTrack"></div>
+          <div class="badge" id="starBadge">&#9733; 0</div>
+        </div>
+        <div class="badge" id="levelBadge">Level 1</div>
+      </div>
+
+      <div class="playArea" id="playArea">
+        <canvas id="trailCanvas" class="trailCanvas"></canvas>
+
+        <section class="screen active" id="screenWelcome">
+          <div class="hero">Welcome to ChoiceTrain for ShowMe</div>
+          <div class="heroSub">A calm, touch-first activity for finding familiar people, objects, and attention games with simple feedback and personalised content.</div>
+          <div class="navBtns">
+            <button id="beginFlow" class="primary">Play</button>
+          </div>
+        </section>
+
+        <section class="screen" id="screenPrompt">
+          <div class="hero" id="promptTitle">Get ready</div>
+          <div class="heroSub" id="promptSubtitle">Get ready.</div>
+          <div class="row" id="promptPreviewRow" style="justify-content:center"></div>
+        </section>
+
+        <section class="screen" id="screenChoice">
+          <div class="promptBox">
+            <div class="promptText" id="questionText">Find Mum</div>
+            <div class="promptMeta">
+              <div class="promptVariant student-hide-main" id="questionVariant">Variant</div>
+              <div class="promptRule student-hide-main" id="questionRule">Rule</div>
+            </div>
+          </div>
+          <div class="grid" id="choiceGrid"></div>
+        </section>
+
+        <section class="screen" id="screenReward">
+          <div class="hero" id="rewardTitle">Well Done!</div>
+          <div class="stars" id="rewardStars"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div>
+          <div class="heroSub" id="rewardSub">Next or repeat.</div>
+          <div class="navBtns">
+            <button id="rewardNext" class="primary">Next</button>
+            <button id="rewardRepeat">Repeat</button>
+          </div>
+        </section>
+
+        <section class="screen blankScreen" id="screenBlank" aria-label="Pause between questions">
+          <span class="blankIndicator">Pause between questions</span>
+        </section>
+
+        <section class="screen" id="screenBreak">
+          <div class="hero" id="breakTitle">Break Time</div>
+          <div class="heroSub" id="breakSubtitle">A short pause is active.</div>
+          <div class="countdownPill" id="breakCountdown">Resume in 6s</div>
+          <div class="breakActions">
+            <button id="continueFromBreak" class="primary">Continue now</button>
+            <button id="breakRepeatQuestion">Repeat previous question</button>
+          </div>
+        </section>
+
+        <section class="screen" id="screenSummary">
+          <div class="hero">Session Complete</div>
+          <div class="heroSub" id="summaryText">Ready to export results.</div>
+          <div class="navBtns">
+            <button id="summaryRestart" class="primary">Start Again</button>
+            <button id="summaryExport">Export Data</button>
+          </div>
+        </section>
+
+        <button id="adminModeFab" class="adminFab">Admin</button>
+        <div class="fx" id="fx">
+          <div class="pulseGood" id="pulseGood"></div>
+          <div class="pulseTry" id="pulseTry"></div>
+          <div class="bigBadge" id="badge"></div>
+        </div>
+      </div>
+
+      <div class="footerBar">
+        <div>
+          <div id="footerHint">Tap Play to begin.</div>
+          <div class="tiny student-hide-main">Questions can run in one or two stages, with reward, next, and repeat flow inspired by the client screenshots and settings deck.</div>
+        </div>
+        <div class="learnerControls">
+          <button id="learnerHelpBtn">Help</button>
+          <button id="learnerBreakBtn">Break</button>
+          <button id="learnerStopBtn">Stop</button>
+        </div>
+        <div class="row student-hide-main">
+          <span class="pillTag" id="touchInfo">Touch ready</span>
+          <span class="pillTag" id="modeInfo">Unlock</span>
+          <span class="pillTag" id="versionChip">Version</span>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<div id="imageEditor" class="editorOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="imageEditorTitle">
+  <div class="editorPanel">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div>
+        <div id="imageEditorTitle" class="title">Edit photo framing</div>
+        <div class="helperText">The original prepared image is kept. Apply creates a display copy without repeatedly cropping the previous result.</div>
+      </div>
+      <button id="imageEditorClose" type="button" aria-label="Close image editor">Close</button>
+    </div>
+    <div class="editorPreview"><img id="imageEditorPreview" alt="Photo framing preview" /></div>
+    <div class="editorControls">
+      <label class="toggle"><input id="imageEditorSquare" type="checkbox" /> Square crop</label>
+      <div><label for="imageEditorZoom">Zoom</label><input id="imageEditorZoom" type="range" min="1" max="3" step="0.05" value="1" /></div>
+      <div><label for="imageEditorRotation">Rotation</label><select id="imageEditorRotation"><option value="0">0 degrees</option><option value="90">90 degrees</option><option value="180">180 degrees</option><option value="270">270 degrees</option></select></div>
+      <div><label for="imageEditorFocusX">Horizontal focus</label><input id="imageEditorFocusX" type="range" min="0" max="1" step="0.01" value="0.5" /></div>
+      <div><label for="imageEditorFocusY">Vertical focus</label><input id="imageEditorFocusY" type="range" min="0" max="1" step="0.01" value="0.5" /></div>
+    </div>
+    <div class="row" style="margin-top:14px;justify-content:flex-end">
+      <button id="imageEditorReset" type="button">Reset</button>
+      <button id="imageEditorCancel" type="button">Cancel</button>
+      <button id="imageEditorApply" class="primary" type="button">Apply</button>
+    </div>
+    <div id="imageEditorStatus" class="saveStatus" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<script src="choice_train_V1.6.0.js"></script>
+</body>
+</html>

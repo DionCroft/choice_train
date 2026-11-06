@@ -52,7 +52,7 @@
     .bigCard{min-width:220px;min-height:220px;max-width:340px;border-radius:28px;background:linear-gradient(180deg,#1c2c44,#132036);border:1px solid rgba(255,255,255,.12);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;padding:18px;box-shadow:var(--shadow)}
     .faceCircle,.imgCircle{width:110px;height:110px;border-radius:24px;background:rgba(255,255,255,.08);display:grid;place-items:center;font-size:52px;overflow:hidden;border:1px solid rgba(255,255,255,.15)}
     .faceCircle.round{border-radius:999px}
-    .faceCircle img,.imgCircle img,.choiceMedia img{width:100%;height:100%;object-fit:cover}
+    .faceCircle img,.imgCircle img,.choiceMedia img{width:100%;height:100%;object-fit:contain}
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:20px;width:min(100%,980px)}
     .choice{position:relative;border-radius:26px;background:linear-gradient(180deg,#1c2b43,#142238);border:2px solid rgba(255,255,255,.11);padding:16px;min-height:230px;display:flex;flex-direction:column;justify-content:space-between;align-items:center;gap:14px;transition:transform .12s ease,border-color .12s ease, background .12s ease; box-shadow:var(--shadow)}
     .choice:active,.choice.pressed{transform:scale(.98)}
@@ -112,10 +112,48 @@
     .teacherGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
     .teacherGrid.single{grid-template-columns:1fr}
     .photoFormGrid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-    .photoLibrary{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin-top:12px}
-    .photoCard{padding:10px;border-radius:16px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);display:flex;flex-direction:column;gap:8px}
-    .photoThumb{width:100%;aspect-ratio:1/1;border-radius:14px;background:rgba(255,255,255,.06);display:grid;place-items:center;overflow:hidden;font-size:44px}
-    .photoThumb img{width:100%;height:100%;object-fit:cover}
+    .photoLibrary{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px;margin-top:12px}
+    .photoCard{display:grid;gap:9px;align-content:start;background:var(--card);border:1px solid rgba(255,255,255,.10);border-radius:16px;padding:10px;box-shadow:0 8px 20px rgba(0,0,0,.12)}
+    .photoThumb{position:relative;display:grid;place-items:center;aspect-ratio:1;background:var(--panel2);border:1px solid rgba(255,255,255,.09);border-radius:12px;overflow:hidden;padding:8px}
+    .photoThumb img,.faceCircle img,.imgCircle img,.choiceMedia img{width:100%;height:100%;object-fit:contain;object-position:center;border-radius:inherit}
+    .photoSelect{position:absolute;left:8px;top:8px;width:22px;height:22px;accent-color:var(--accent)}
+    .photoEditorGrid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+    .sourceBadge{display:inline-flex;width:max-content;align-items:center;border-radius:999px;padding:3px 8px;background:var(--btn2);color:var(--text);font-size:10px;font-weight:800;letter-spacing:.03em}
+    .sourceBadge.stock{background:rgba(113,212,255,.16)}
+    .sourceBadge.personalised{background:rgba(142,240,177,.16)}
+    .taskConfig{margin-top:12px;padding:12px;border:1px solid rgba(255,255,255,.12);border-radius:16px;background:var(--panel2)}
+    .taskConfig[hidden]{display:none}
+    .categoryChecklist{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:7px;margin:9px 0}
+    .categoryCheck{display:flex;align-items:center;gap:7px;padding:8px 9px;border:1px solid rgba(255,255,255,.10);border-radius:11px;background:var(--card);color:var(--text);font-size:12px}
+    .categoryCheck input{width:18px;height:18px;accent-color:var(--accent)}
+    .configSummary{margin-top:8px;padding:9px 10px;border-left:3px solid var(--accent);border-radius:8px;background:var(--card);font-size:11px;color:var(--muted);line-height:1.45}
+    .configSummary.invalid{border-left-color:var(--bad);color:var(--bad)}
+    .importStatus{white-space:pre-line;margin-top:8px;font-size:11px;color:var(--muted)}
+    .editorOverlay{position:fixed;inset:0;z-index:1000;display:grid;place-items:center;padding:18px;background:rgba(0,0,0,.72)}
+    .editorOverlay[hidden]{display:none}
+    .editorPanel{width:min(760px,100%);max-height:94vh;overflow:auto;background:var(--panel);border:1px solid rgba(255,255,255,.16);border-radius:20px;padding:16px;box-shadow:0 24px 70px rgba(0,0,0,.45)}
+    .editorPreview{display:grid;place-items:center;min-height:300px;background:var(--panel2);border-radius:16px;padding:16px;overflow:hidden}
+    .editorPreview img{display:block;max-width:100%;max-height:54vh;object-fit:contain;transform-origin:center}
+    .editorControls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
+    :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+    body.theme-plain-white,body.theme-plain-white .panel,body.theme-plain-white .main,body.theme-plain-white .stage,body.theme-plain-white .playArea{background:#fff!important}
+    body.theme-plain-white .section,body.theme-plain-white .menuSection,body.theme-plain-white .promptBox,body.theme-plain-white .choice,body.theme-plain-white .bigCard,body.theme-plain-white .dashCard,body.theme-plain-white .photoCard,body.theme-plain-white .taskConfig,body.theme-plain-white .editorPanel{background:#fff!important;border-color:#cbd2d8!important;box-shadow:none!important}
+    body.theme-plain-white .topBar,body.theme-plain-white .footerBar,body.theme-plain-white .controlGroup,body.theme-plain-white .categoryCheck,body.theme-plain-white .configSummary,body.theme-plain-white .photoThumb,body.theme-plain-white .editorPreview{background:#f7f7f5!important;border-color:#cbd2d8!important}
+    body.theme-plain-white .blankScreen{background:#fff!important}
+    body.theme-plain-white button,body.theme-plain-white .primary,body.theme-plain-white .ghostBtn,body.theme-plain-white .panelSwitchBtn,body.theme-plain-white .adminFab{background:#eef1f3!important;color:#17202a!important;border-color:#aeb8c0!important;box-shadow:none!important}
+    body.theme-plain-white .primary,body.theme-plain-white .panelSwitchBtn.active{background:#d9e9f5!important;border-color:#1264a3!important}
+    body.theme-plain-white .panelSwitchBtn.adminActive{background:#f3ead6!important;border-color:#8a5a00!important}
+    body.theme-plain-white .trackWrap,body.theme-plain-white .badge,body.theme-plain-white .pillTag,body.theme-plain-white .panelBadge,body.theme-plain-white .learnerBanner,body.theme-plain-white .faceCircle,body.theme-plain-white .imgCircle,body.theme-plain-white .choiceMedia{background:#f5f6f7!important;color:#17202a!important;border-color:#cbd2d8!important}
+    body.theme-plain-white .station{background:#edf0f2;color:#17202a;border-color:#aeb8c0}
+    body.theme-plain-white .station.done{background:#dff2e6;color:#174d2e;border-color:#207a45}
+    body.theme-plain-white .station.current{background:#d9e9f5;color:#123f63;border-color:#1264a3}
+    body.theme-plain-white .choice.correct{background:#e8f5ed!important;border-color:#207a45!important}
+    body.theme-plain-white .choice.incorrect{background:#faece9!important;border-color:#a2352a!important}
+    body.theme-plain-white .promptVariant,body.theme-plain-white .sectionTag,body.theme-plain-white .sectionTag.admin,body.theme-plain-white .countdownPill{color:#17202a!important}
+    body.theme-plain-white .bigBadge{background:#fff;color:#17202a;border-color:#aeb8c0}
+    body.theme-plain-white th{background:#f1f3f4}
+    body.theme-plain-white .heatmapCanvas,body.theme-plain-white .miniCanvas{background:#fff!important;border-color:#cbd2d8!important}
+    .photoThumb{width:100%;font-size:44px}
     .photoMetaTitle{font-size:13px;font-weight:700}
     .photoMetaTiny{font-size:11px;color:var(--muted);line-height:1.4}
     .photoActions{display:flex;gap:8px;flex-wrap:wrap}
@@ -237,6 +275,8 @@
       .aboutGrid{grid-template-columns:1fr}
       .metaList{grid-template-columns:1fr}
       .teacherGrid,.photoFormGrid,.resultGrid{grid-template-columns:1fr}
+      .photoEditorGrid,.editorControls{grid-template-columns:1fr}
+      .categoryChecklist{grid-template-columns:1fr 1fr}
       .footerBar .row{width:100%}
       .trackWrap{overflow-x:auto;justify-content:flex-start}
       .track{min-width:420px}
@@ -255,6 +295,10 @@
       .bigCard{min-width:150px;min-height:150px}
       .playArea{min-height:74vh}
       .adminFab{right:10px;bottom:10px;padding:9px 12px}
+      .categoryChecklist{grid-template-columns:1fr}
+      .editorOverlay{padding:8px}
+      .editorPanel{padding:12px;border-radius:16px}
+      .editorPreview{min-height:220px;padding:10px}
     }
   </style>
 </head>
@@ -267,7 +311,7 @@
         <div class="brandCopy">
           <div class="brandEyebrow">Developed for ShowMe</div>
           <div class="title">ChoiceTrain for ShowMe</div>
-          <div class="sub">Offline, touch-first classroom learning with learner mode, teacher setup, CPAT-style training, exports, and GitHub Pages deployment.</div>
+          <div class="sub">Offline, touch-first classroom learning with learner mode, teacher setup, Attention Training (AT), exports, and GitHub Pages deployment.</div>
         </div>
       </div>
       <div class="panelSwitch">
@@ -347,6 +391,7 @@
               <option value="high-contrast">High Contrast</option>
               <option value="low-stimulation-dark">Low Stimulation Dark</option>
               <option value="light-classroom">Light Classroom</option>
+              <option value="plain-white">Plain White</option>
             </select>
             <div class="helperText">Choose a colour theme that feels comfortable for the learner and classroom.</div>
           </div>
@@ -374,14 +419,14 @@
                 <option value="touch-object">Touch object</option>
                 <option value="moving-target">Moving target</option>
                 <option value="find-object">Find object</option>
-                <option value="discriminate-object">Discriminate object</option>
                 <option value="find-category">Find category</option>
+                <option value="discriminate-object">Discriminate object</option>
                 <option value="choice-preference">Choice preference</option>
-                <option value="cpat-suite">CPAT suite</option>
-                <option value="cpat-sustained">CPAT sustained attention</option>
-                <option value="cpat-selective">CPAT selective-spatial</option>
-                <option value="cpat-orienting">CPAT orienting</option>
-                <option value="cpat-executive">CPAT executive control</option>
+                <option value="cpat-suite">AT suite</option>
+                <option value="cpat-sustained">AT sustained attention</option>
+                <option value="cpat-selective">AT selective-spatial</option>
+                <option value="cpat-orienting">AT orienting</option>
+                <option value="cpat-executive">AT executive control</option>
               </select>
               <div class="helperText">Use the pupil's current level or choose one task type for this session.</div>
             </div>
@@ -456,6 +501,20 @@
         <div class="helperText">Changes are saved locally as you make them. Save pupil preferences also applies the selected prompt style to today's session.</div>
         <div id="preferenceSaveStatus" class="saveStatus" role="status" aria-live="polite"></div>
 
+        <div class="controlGroup" style="margin-top:12px">
+          <div class="controlGroupTitle">Category catalogue</div>
+          <div class="row">
+            <div style="flex:1 1 190px">
+              <label for="createCategoryName">Create new category</label>
+              <input id="createCategoryName" type="text" maxlength="40" placeholder="e.g. Musical instruments" />
+            </div>
+            <button id="createCategoryBtn" type="button" style="align-self:end">Save category</button>
+          </div>
+          <div class="helperText">Categories organise learning content. Stock or Personalised describes where an image came from and stays separate from its category.</div>
+          <div id="categoryCreateStatus" class="saveStatus" role="status" aria-live="polite"></div>
+          <div id="categoryCatalogueSummary" class="helperText"></div>
+        </div>
+
         <div class="photoFormGrid" style="margin-top:12px">
           <div>
             <label for="photoLabel">Photo label</label>
@@ -464,15 +523,7 @@
           </div>
           <div>
             <label for="photoCategory">Photo category</label>
-            <select id="photoCategory">
-              <option value="people">People</option>
-              <option value="toy">Favourite toy</option>
-              <option value="food">Favourite food</option>
-              <option value="animal">Favourite animal</option>
-              <option value="classroom">Classroom object</option>
-              <option value="activity">Preferred activity</option>
-              <option value="custom">Custom</option>
-            </select>
+            <select id="photoCategory"></select>
             <div class="helperText">Helps ChoiceTrain use the photo in the right kinds of questions.</div>
           </div>
           <div>
@@ -497,8 +548,21 @@
         <input id="faceUpload" type="file" accept="image/*" />
         <div class="helperText">This keeps the existing quick-upload flow for a primary familiar person photo.</div>
         <label for="customUpload" style="margin-top:10px">Bulk photo import</label>
+        <label for="bulkPhotoCategory">Destination category</label>
+        <select id="bulkPhotoCategory"></select>
         <input id="customUpload" type="file" accept="image/*" multiple />
-        <div class="helperText">Import several photos at once. You can adjust labels and categories after upload.</div>
+        <div class="helperText">Import up to 100 photos into the selected category. Valid files continue importing if another file fails.</div>
+        <div id="bulkUploadStatus" class="importStatus" role="status" aria-live="polite"></div>
+        <div class="controlGroup" style="margin-top:12px">
+          <div class="controlGroupTitle">Manage selected photos</div>
+          <div class="row">
+            <button id="selectAllPhotosBtn" type="button">Select all</button>
+            <button id="clearPhotoSelectionBtn" type="button">Clear selection</button>
+            <select id="bulkMoveCategory" aria-label="Category for selected photos"></select>
+            <button id="bulkMoveBtn" type="button">Move selected</button>
+          </div>
+          <div class="helperText">Moving a photo changes its category without changing its pupil, label, source, or crop.</div>
+        </div>
         <div id="photoLibraryList" class="photoLibrary"></div>
         <div id="photoLibraryEmpty" class="helperText">No personalised photos added for this pupil yet.</div>
       </div>
@@ -538,6 +602,36 @@
           </div>
           <div class="helperText">Adds a calm, empty pause after feedback and before the next question. Leave it off if the pupil benefits from a continuous flow.</div>
         </div>
+        <section id="findObjectConfig" class="taskConfig" hidden>
+          <div class="controlGroupTitle">Find object content</div>
+          <div class="helperText"><b>Find object</b> asks the learner to find one named item from several choices, for example “Find Cat”.</div>
+          <label>Select session categories</label>
+          <div id="findObjectCategoryList" class="categoryChecklist"></div>
+          <label for="findObjectSourceMode">Select session images</label>
+          <select id="findObjectSourceMode">
+            <option value="both">Both stock and personalised</option>
+            <option value="personalised">Personalised only</option>
+            <option value="stock">Stock only</option>
+          </select>
+          <div id="findObjectConfigSummary" class="configSummary" role="status"></div>
+        </section>
+        <section id="findCategoryConfig" class="taskConfig" hidden>
+          <div class="controlGroupTitle">Find category content</div>
+          <div class="helperText"><b>Find category</b> asks for an item from a named group, for example “Which one is an animal?”. At least two usable categories are required.</div>
+          <label>Select session categories</label>
+          <div id="findCategoryCategoryList" class="categoryChecklist"></div>
+          <label for="findCategorySourceMode">Select session images</label>
+          <select id="findCategorySourceMode">
+            <option value="both">Both stock and personalised</option>
+            <option value="personalised">Personalised only</option>
+            <option value="stock">Stock only</option>
+          </select>
+          <div id="findCategoryConfigSummary" class="configSummary" role="status"></div>
+        </section>
+        <div class="taskConfig">
+          <div class="helperText"><b>Discriminate object</b> currently asks the learner to choose one named item from two options. It does not yet guarantee visually similar alternatives; the numeric level sequence is unchanged.</div>
+        </div>
+        <div id="sessionSetupStatus" class="configSummary" hidden role="alert"></div>
         <div class="row">
           <button id="startBtn" class="primary">Start session</button>
           <button id="resetBtn">Reset session</button>
@@ -989,7 +1083,7 @@
                   <tbody id="familySummaryBody"></tbody>
                 </table>
               </div>
-              <div class="compactNote">Family-specific summaries are more meaningful than one generic attention label for CPAT-style tasks.</div>
+              <div class="compactNote">Family-specific summaries are more meaningful than one generic attention label for Attention Training tasks.</div>
             </div>
             <div class="chartCard span2">
               <h4>EEG block and artifact summary</h4>
@@ -1012,13 +1106,13 @@
         <div class="section" style="padding-top:14px">
           <div class="sub">About / Build Info</div>
           <div class="aboutGrid">
-            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.5.0</div></div>
+            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.6.0</div></div>
             <div class="dashCard"><div class="k">Status</div><div class="v" id="aboutChannel">Experimental</div></div>
             <div class="dashCard"><div class="k">Base commit</div><div class="v mono" id="aboutCommit">loading</div></div>
             <div class="dashCard"><div class="k">Build date</div><div class="v" id="aboutBuildDate">loading</div></div>
           </div>
           <div class="metaList">
-            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.5.0.html</b></div>
+            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.6.0.html</b></div>
             <div class="metaItem"><span>Published entry</span><b class="mono" id="aboutPublishedEntry">index.html</b></div>
             <div class="metaItem"><span>Live URL</span><b class="mono" id="aboutLiveUrl">https://dioncroft.github.io/choice_train/</b></div>
             <div class="metaItem"><span>Repository</span><b class="mono" id="aboutRepoUrl">https://github.com/DionCroft/choice_train</b></div>
@@ -1058,13 +1152,13 @@
           <p><b>Level 2</b> requires touching the pictured target itself.</p>
           <p><b>Level 3</b> introduces a moving target.</p>
           <p><b>Level 4</b> asks the learner to find a named object from a small set.</p>
-          <p><b>Level 5</b> increases discrimination demand between similar-looking items.</p>
+          <p><b>Level 5</b> asks the learner to choose one named item from two options. It does not yet guarantee visual similarity.</p>
           <p><b>Level 6</b> uses category reasoning.</p>
-          <p><b>Levels 7 to 10</b> move into the CPAT-style attention suite: sustained, selective-spatial, orienting, and executive attention.</p>
+          <p><b>Levels 7 to 10</b> move into Attention Training (AT): sustained, selective-spatial, orienting, and executive attention.</p>
         </div>
       </details>
       <details class="docsDetails">
-        <summary>CPAT and attention terms</summary>
+        <summary>Attention Training terms</summary>
         <div class="docsBody">
           <p><b>Sustained attention</b> means staying ready over time and responding only when the target appears.</p>
           <p><b>Selective-spatial attention</b> means finding the correct target among distractors while ignoring similar but wrong options.</p>
@@ -1086,14 +1180,14 @@
         </div>
       </details>
       <details class="docsDetails">
-        <summary>V1.5.0 teacher, learner, and research guide</summary>
+        <summary>V1.6.0 teacher, learner, and research guide</summary>
         <div class="docsBody">
           <p><b>Teacher Panel</b> is designed for everyday classroom setup. Use it to select a pupil, choose a theme, add context notes, personalise content, and start or export a session quickly.</p>
-          <p><b>Admin Panel</b> stays collapsed by default. Open it only when you need advanced analytics, CPAT tuning, touch debugging, EEG preparation, or fidelity and research settings.</p>
+          <p><b>Admin Panel</b> stays collapsed by default. Open it only when you need advanced analytics, Attention Training tuning, touch debugging, EEG preparation, or fidelity and research settings.</p>
           <p><b>Student-friendly mode</b> keeps the learner view simple by hiding technical labels, analytics, build text, debug panels, and research wording. The learner sees calm prompts, images, progress, and navigation only.</p>
           <p><b>Context notes</b> are daily classroom observations such as mood, attention, tiredness, sensory environment, or support used. They help teachers interpret a session without using medical wording.</p>
           <p><b>Personalised photos</b> can be labelled as Mum, Dad, Teacher, favourite toy, favourite food, classroom object, or preferred activity. These labels can be reused in question generation while exports keep the label metadata lightweight.</p>
-          <p><b>Signal Station</b>, <b>Ticket Hunt</b>, <b>Platform Pointer</b>, and <b>Traffic Lights</b> keep the CPAT families playful while preserving the underlying sustained, selective-spatial, orienting, and executive learning goals.</p>
+          <p><b>Signal Station</b>, <b>Ticket Hunt</b>, <b>Platform Pointer</b>, and <b>Traffic Lights</b> keep the AT families playful while preserving the underlying sustained, selective-spatial, orienting, and executive learning goals.</p>
           <p><b>Future recommendations</b> are prepared through a local structured summary only. No session data is currently sent outside this static build.</p>
         </div>
       </details>
@@ -1212,6 +1306,32 @@
   </main>
 </div>
 
-<script src="choice_train_V1.5.0.js"></script>
+<div id="imageEditor" class="editorOverlay" hidden role="dialog" aria-modal="true" aria-labelledby="imageEditorTitle">
+  <div class="editorPanel">
+    <div class="row" style="justify-content:space-between;align-items:center">
+      <div>
+        <div id="imageEditorTitle" class="title">Edit photo framing</div>
+        <div class="helperText">The original prepared image is kept. Apply creates a display copy without repeatedly cropping the previous result.</div>
+      </div>
+      <button id="imageEditorClose" type="button" aria-label="Close image editor">Close</button>
+    </div>
+    <div class="editorPreview"><img id="imageEditorPreview" alt="Photo framing preview" /></div>
+    <div class="editorControls">
+      <label class="toggle"><input id="imageEditorSquare" type="checkbox" /> Square crop</label>
+      <div><label for="imageEditorZoom">Zoom</label><input id="imageEditorZoom" type="range" min="1" max="3" step="0.05" value="1" /></div>
+      <div><label for="imageEditorRotation">Rotation</label><select id="imageEditorRotation"><option value="0">0 degrees</option><option value="90">90 degrees</option><option value="180">180 degrees</option><option value="270">270 degrees</option></select></div>
+      <div><label for="imageEditorFocusX">Horizontal focus</label><input id="imageEditorFocusX" type="range" min="0" max="1" step="0.01" value="0.5" /></div>
+      <div><label for="imageEditorFocusY">Vertical focus</label><input id="imageEditorFocusY" type="range" min="0" max="1" step="0.01" value="0.5" /></div>
+    </div>
+    <div class="row" style="margin-top:14px;justify-content:flex-end">
+      <button id="imageEditorReset" type="button">Reset</button>
+      <button id="imageEditorCancel" type="button">Cancel</button>
+      <button id="imageEditorApply" class="primary" type="button">Apply</button>
+    </div>
+    <div id="imageEditorStatus" class="saveStatus" role="status" aria-live="polite"></div>
+  </div>
+</div>
+
+<script src="choice_train_V1.6.0.js"></script>
 </body>
 </html>
