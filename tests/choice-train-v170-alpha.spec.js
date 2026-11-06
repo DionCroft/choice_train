@@ -219,6 +219,80 @@ test('every learner theme controls the complete active-task surface', async ({ p
   }
 });
 
+test('runtime-drawn learner colours follow the active semantic theme', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', false);
+  await setCheckbox(page, 'performanceMode', false);
+  await setValue(page, 'themeChoice', 'calm-light');
+  await setValue(page, 'startLevel', 8);
+  await setValue(page, 'sessionMax', 1);
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+  await expect(page.locator('#screenChoice.active [data-stimulus-color]').first()).toBeVisible();
+
+  const captureThemeColours = () => page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const normalise = value => {
+      const probe = document.createElement('span');
+      probe.style.color = value;
+      document.body.appendChild(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    };
+    const rgb = value => (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    const canvasRgb = id => Array.from(document.querySelector(id).getContext('2d').getImageData(1, 1, 1, 1).data).slice(0, 3);
+    const stimulus = document.querySelector('#screenChoice.active [data-stimulus-color]');
+    const stimulusName = stimulus.dataset.stimulusColor;
+    return {
+      theme: document.body.dataset.learnerTheme,
+      stimulus: getComputedStyle(stimulus).color,
+      expectedStimulus: normalise(root.getPropertyValue(`--stimulus-${stimulusName}`).trim()),
+      heatmap: canvasRgb('#heatmapCanvas'),
+      reactionChart: canvasRgb('#rtChart'),
+      expectedCanvas: rgb(normalise(root.getPropertyValue('--surface-raised').trim()))
+    };
+  });
+
+  const light = await captureThemeColours();
+  expect(light.theme).toBe('calm-light');
+  expect(light.stimulus).toBe(light.expectedStimulus);
+  expect(light.heatmap).toEqual(light.expectedCanvas);
+  expect(light.reactionChart).toEqual(light.expectedCanvas);
+
+  await setValue(page, 'themeChoice', 'low-stimulation-dark');
+  await page.waitForTimeout(80);
+  const dark = await captureThemeColours();
+  expect(dark.theme).toBe('low-stimulation-dark');
+  expect(dark.stimulus).toBe(dark.expectedStimulus);
+  expect(dark.stimulus).not.toBe(light.stimulus);
+  expect(dark.heatmap).toEqual(dark.expectedCanvas);
+  expect(dark.reactionChart).toEqual(dark.expectedCanvas);
+  expect(dark.expectedCanvas).not.toEqual(light.expectedCanvas);
+
+  await page.locator('#playArea').dispatchEvent('pointerdown', {
+    clientX: 240,
+    clientY: 260,
+    pointerType: 'mouse',
+    button: 0
+  });
+  const ripple = page.locator('.ripple').last();
+  await expect(ripple).toBeVisible();
+  const rippleColours = await ripple.evaluate(node => {
+    const root = getComputedStyle(document.documentElement);
+    const probe = document.createElement('span');
+    probe.style.color = root.getPropertyValue('--focus').trim();
+    document.body.appendChild(probe);
+    const expected = getComputedStyle(probe).color;
+    probe.remove();
+    return { actual: getComputedStyle(node).borderTopColor, expected };
+  });
+  expect(rippleColours.actual).toBe(rippleColours.expected);
+});
+
 test('admin and research workspace is separate and uses the full viewport', async ({ page }) => {
   await gotoAlpha(page);
   await page.locator('#adminPanelTab').click();

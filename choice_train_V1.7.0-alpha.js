@@ -296,14 +296,14 @@
     down: '\u2193'
   });
 
-  const COLOR_STYLES = {
+  const STIMULUS_COLOR_FALLBACKS = Object.freeze({
     blue: '#71d4ff',
     green: '#8ef0b1',
     amber: '#ffd27d',
     red: '#ffb39b',
     pink: '#ff98d1',
     violet: '#b99cff'
-  };
+  });
 
   const SESSION_CONTEXT_DEFAULTS = {
     communicationMode: 'spoken',
@@ -542,6 +542,31 @@
 
   function currentThemeChoice(){
     return normalizeThemeChoice(ui.themeChoice ? ui.themeChoice.value : 'calm-light');
+  }
+
+  function themeToken(name, fallback=''){
+    const value = window.getComputedStyle(document.documentElement)
+      .getPropertyValue(`--${name}`)
+      .trim();
+    return value || fallback;
+  }
+
+  function colourWithAlpha(value, alpha){
+    const safeAlpha = clamp(Number(alpha), 0, 1);
+    const colour = String(value || '').trim();
+    const shortHex = colour.match(/^#([0-9a-f]{3})$/i);
+    const longHex = colour.match(/^#([0-9a-f]{6})$/i);
+    if(shortHex){
+      const channels = shortHex[1].split('').map(channel => parseInt(`${channel}${channel}`, 16));
+      return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${safeAlpha})`;
+    }
+    if(longHex){
+      const channels = [0, 2, 4].map(index => parseInt(longHex[1].slice(index, index + 2), 16));
+      return `rgba(${channels[0]}, ${channels[1]}, ${channels[2]}, ${safeAlpha})`;
+    }
+    const rgb = colour.match(/^rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)/i);
+    if(rgb) return `rgba(${rgb[1]}, ${rgb[2]}, ${rgb[3]}, ${safeAlpha})`;
+    return colour || `rgba(113, 212, 255, ${safeAlpha})`;
   }
 
   function currentRewardChoice(){
@@ -1040,6 +1065,7 @@
       const reward = REWARD_META[currentRewardChoice()] || REWARD_META.stars;
       ui.touchInfo.textContent = `${theme.label} | ${reward.label}`;
     }
+    redrawThemeVisuals();
   }
 
   function currentFontChoice(){
@@ -2646,10 +2672,12 @@
     }
     if(option.symbol){
       media.textContent = option.symbol;
-      const color = COLOR_STYLES[option.color] || '#71d4ff';
-      media.style.color = color;
-      media.style.background = `linear-gradient(180deg, rgba(255,255,255,.08), rgba(255,255,255,.02)), ${color}22`;
-      media.style.border = `1px solid ${color}55`;
+      const colorName = STIMULUS_COLOR_FALLBACKS[option.color] ? option.color : 'blue';
+      const fallback = STIMULUS_COLOR_FALLBACKS[colorName];
+      media.dataset.stimulusColor = colorName;
+      media.style.color = `var(--stimulus-${colorName}, ${fallback})`;
+      media.style.background = 'var(--surface-subtle)';
+      media.style.border = `2px solid var(--stimulus-${colorName}, ${fallback})`;
       return media;
     }
     media.textContent = option.label || '?';
@@ -3159,7 +3187,7 @@
     if(state.phase !== 'choice' && state.phase !== 'prompt') return;
     const points = state.logs.filter(event => event.type.startsWith('pointer_') && event.session_id === state.sessionId).slice(-60);
     if(!points.length) return;
-    ctx.strokeStyle = 'rgba(113,212,255,0.8)';
+    ctx.strokeStyle = colourWithAlpha(themeToken('focus', STIMULUS_COLOR_FALLBACKS.blue), 0.8);
     ctx.lineWidth = 4;
     ctx.lineCap = 'round';
     ctx.beginPath();
@@ -3177,7 +3205,7 @@
         const canvasRect = ui.trailCanvas.getBoundingClientRect();
         const cx = rect.left - canvasRect.left + rect.width / 2;
         const cy = rect.top - canvasRect.top + rect.height / 2;
-        ctx.strokeStyle = 'rgba(255,210,125,0.95)';
+        ctx.strokeStyle = colourWithAlpha(themeToken('warning', STIMULUS_COLOR_FALLBACKS.amber), 0.95);
         ctx.lineWidth = 2;
         ctx.beginPath();
         ctx.arc(cx, cy, getAdaptiveHitRadius(), 0, Math.PI * 2);
@@ -3194,14 +3222,15 @@
     });
   }
 
-  function showRipple(x, y, color='#71d4ff'){
+  function showRipple(x, y, color=themeToken('focus', STIMULUS_COLOR_FALLBACKS.blue)){
     if(performanceModeEnabled() && state.lastPointerType === 'touch') return;
     const ripple = document.createElement('div');
     ripple.className = 'ripple';
     ripple.style.left = `${x}px`;
     ripple.style.top = `${y}px`;
     ripple.style.borderColor = `${color}`;
-    ripple.style.background = `${color}22`;
+    ripple.style.background = colourWithAlpha(color, 0.14);
+    ripple.style.boxShadow = `0 0 18px ${colourWithAlpha(color, 0.32)}`;
     ui.fx.appendChild(ripple);
     window.setTimeout(() => ripple.remove(), 620);
   }
@@ -3463,8 +3492,9 @@
     if(!targetNode) return;
     const original = targetNode.style.boxShadow;
     const originalBorder = targetNode.style.borderColor;
-    targetNode.style.boxShadow = '0 0 0 10px rgba(113,212,255,0.18), 0 0 28px rgba(113,212,255,0.35)';
-    targetNode.style.borderColor = 'rgba(113,212,255,0.95)';
+    const focus = themeToken('focus', STIMULUS_COLOR_FALLBACKS.blue);
+    targetNode.style.boxShadow = `0 0 0 10px ${colourWithAlpha(focus, 0.18)}, 0 0 28px ${colourWithAlpha(focus, 0.35)}`;
+    targetNode.style.borderColor = focus;
     window.setTimeout(() => {
       targetNode.style.boxShadow = original;
       targetNode.style.borderColor = originalBorder;
@@ -3582,8 +3612,9 @@
 
   function decorateControlTarget(node){
     if(!node) return;
-    node.style.boxShadow = '0 0 0 10px rgba(113,212,255,0.18), 0 0 30px rgba(113,212,255,0.28)';
-    node.style.borderColor = 'rgba(113,212,255,0.88)';
+    const focus = themeToken('focus', STIMULUS_COLOR_FALLBACKS.blue);
+    node.style.boxShadow = `0 0 0 10px ${colourWithAlpha(focus, 0.18)}, 0 0 30px ${colourWithAlpha(focus, 0.28)}`;
+    node.style.borderColor = focus;
   }
 
   function updateLearnerControls(){
@@ -4898,7 +4929,7 @@
     const canvas = ui.heatmapCanvas;
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    ctx.fillStyle = currentThemeChoice() === 'plain-white' ? '#ffffff' : '#0e1726';
+    ctx.fillStyle = themeToken('surface-raised', '#ffffff');
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if(!group){
       ui.heatmapMeta.textContent = 'No heat map data available yet.';
@@ -4908,7 +4939,11 @@
       if(!Number.isFinite(trial.pointer_play_x) || !Number.isFinite(trial.pointer_play_y)) return;
       const x = clamp(trial.pointer_play_x / Math.max(ui.playArea.clientWidth || 1, 1) * canvas.width, 0, canvas.width);
       const y = clamp(trial.pointer_play_y / Math.max(ui.playArea.clientHeight || 1, 1) * canvas.height, 0, canvas.height);
-      const color = trial.correct ? 'rgba(142,240,177,0.55)' : trial.omission ? 'rgba(255,210,125,0.35)' : 'rgba(255,179,155,0.55)';
+      const color = trial.correct
+        ? colourWithAlpha(themeToken('success', STIMULUS_COLOR_FALLBACKS.green), 0.55)
+        : trial.omission
+          ? colourWithAlpha(themeToken('warning', STIMULUS_COLOR_FALLBACKS.amber), 0.45)
+          : colourWithAlpha(themeToken('danger', STIMULUS_COLOR_FALLBACKS.red), 0.55);
       ctx.fillStyle = color;
       ctx.beginPath();
       ctx.arc(x, y, 10, 0, Math.PI * 2);
@@ -4920,11 +4955,10 @@
   function drawMiniChart(canvas, values, color){
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
-    const plainWhite = currentThemeChoice() === 'plain-white';
-    ctx.fillStyle = plainWhite ? '#ffffff' : 'rgba(255,255,255,0.02)';
+    ctx.fillStyle = themeToken('surface-raised', '#ffffff');
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     if(!values.length){
-      ctx.fillStyle = plainWhite ? 'rgba(23,32,42,0.58)' : 'rgba(255,255,255,0.45)';
+      ctx.fillStyle = themeToken('text-muted', '#52656d');
       ctx.font = '12px sans-serif';
       ctx.fillText('No data yet', 22, canvas.height / 2);
       return;
@@ -4942,6 +4976,18 @@
       else ctx.lineTo(x, y);
     });
     ctx.stroke();
+  }
+
+  function redrawThemeVisuals(){
+    if(ui.trailCanvas) drawTrail();
+    if(ui.heatmapCanvas && ui.heatmapQuestionSelect) renderHeatmap();
+    if(ui.rtChart && ui.distChart){
+      const finalTrials = latestTrialsByQuestion(state.trials);
+      const rtValues = finalTrials.map(trial => trial.response_time_ms).filter(Number.isFinite);
+      const distValues = finalTrials.map(trial => trial.distance_to_target_px).filter(Number.isFinite);
+      drawMiniChart(ui.rtChart, rtValues, themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue));
+      drawMiniChart(ui.distChart, distValues, themeToken('warning', STIMULUS_COLOR_FALLBACKS.amber));
+    }
   }
 
   function renderDashboard(){
@@ -5004,8 +5050,8 @@
 
     const rtValues = finalTrials.map(trial => trial.response_time_ms).filter(Number.isFinite);
     const distValues = finalTrials.map(trial => trial.distance_to_target_px).filter(Number.isFinite);
-    drawMiniChart(ui.rtChart, rtValues, '#71d4ff');
-    drawMiniChart(ui.distChart, distValues, '#ffd27d');
+    drawMiniChart(ui.rtChart, rtValues, themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue));
+    drawMiniChart(ui.distChart, distValues, themeToken('warning', STIMULUS_COLOR_FALLBACKS.amber));
 
     clearNode(ui.familySummaryBody);
     const familyRows = summary.domain_summaries && summary.domain_summaries.length
@@ -5351,7 +5397,13 @@
       pointer_play_y: Number(playPoint.y.toFixed(2))
     });
     if(type === 'down'){
-      showRipple(playPoint.x, playPoint.y, pointerType === 'touch' ? '#8ef0b1' : '#71d4ff');
+      showRipple(
+        playPoint.x,
+        playPoint.y,
+        pointerType === 'touch'
+          ? themeToken('success', STIMULUS_COLOR_FALLBACKS.green)
+          : themeToken('focus', STIMULUS_COLOR_FALLBACKS.blue)
+      );
       if(state.phase === 'prompt' && state.currentTrial){
         logEvent('premature_response', {
           trial_id: state.currentTrial.trial_id,
