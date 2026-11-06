@@ -82,6 +82,96 @@ test('teacher shell uses the bundled high-legibility font and accessible contras
   expect(result.ratio).toBeGreaterThanOrEqual(7);
 });
 
+test('staff workspace uses one semantic product palette', async ({ page }) => {
+  await gotoAlpha(page);
+  const audit = await page.evaluate(() => {
+    const root = getComputedStyle(document.documentElement);
+    const normalise = value => {
+      const probe = document.createElement('span');
+      probe.style.color = value;
+      document.body.appendChild(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    };
+    const token = name => normalise(root.getPropertyValue(`--shell-${name}`).trim());
+    const rgb = value => (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+    const luminance = value => {
+      const linear = rgb(value).map(channel => {
+        const normal = channel / 255;
+        return normal <= 0.04045 ? normal / 12.92 : ((normal + 0.055) / 1.055) ** 2.4;
+      });
+      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    };
+    const contrast = (a, b) => {
+      const first = luminance(a);
+      const second = luminance(b);
+      return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+    };
+    const background = selector => getComputedStyle(document.querySelector(selector)).backgroundColor;
+    const border = selector => getComputedStyle(document.querySelector(selector)).borderTopColor;
+    return {
+      ratios: {
+        text: contrast(token('text'), token('surface')),
+        muted: contrast(token('muted'), token('surface')),
+        primary: contrast(token('on-primary'), token('primary')),
+        primarySoft: contrast(token('primary-text'), token('primary-soft')),
+        secondarySoft: contrast(token('secondary-text'), token('secondary-soft')),
+        warningSoft: contrast(token('warning-text'), token('warning-soft')),
+        fieldBorder: contrast(token('border-strong'), token('field')),
+        focus: contrast(token('focus'), token('surface'))
+      },
+      roles: {
+        primaryButton: background('#quickStartSessionBtn'),
+        neutralButton: background('#learnerModeBtn'),
+        field: background('#pupilAlias'),
+        fieldBorder: border('#pupilAlias'),
+        teacherTab: background('#teacherPanelTab'),
+        warning: background('.alphaRibbon')
+      },
+      expected: {
+        primary: token('primary'),
+        control: token('control'),
+        field: token('field'),
+        fieldBorder: token('border-strong'),
+        primarySoft: token('primary-soft'),
+        warningSoft: token('warning-soft')
+      }
+    };
+  });
+  expect(audit.ratios.text).toBeGreaterThanOrEqual(4.5);
+  expect(audit.ratios.muted).toBeGreaterThanOrEqual(4.5);
+  expect(audit.ratios.primary).toBeGreaterThanOrEqual(4.5);
+  expect(audit.ratios.primarySoft).toBeGreaterThanOrEqual(4.5);
+  expect(audit.ratios.secondarySoft).toBeGreaterThanOrEqual(4.5);
+  expect(audit.ratios.warningSoft).toBeGreaterThanOrEqual(4.5);
+  expect(audit.ratios.fieldBorder).toBeGreaterThanOrEqual(3);
+  expect(audit.ratios.focus).toBeGreaterThanOrEqual(3);
+  expect(audit.roles.primaryButton).toBe(audit.expected.primary);
+  expect(audit.roles.neutralButton).toBe(audit.expected.control);
+  expect(audit.roles.field).toBe(audit.expected.field);
+  expect(audit.roles.fieldBorder).toBe(audit.expected.fieldBorder);
+  expect(audit.roles.teacherTab).toBe(audit.expected.primarySoft);
+  expect(audit.roles.warning).toBe(audit.expected.warningSoft);
+
+  await page.locator('#adminPanelTab').click();
+  const adminNav = await page.locator('#adminNavOverview').evaluate(node => {
+    const probe = document.createElement('span');
+    probe.style.color = getComputedStyle(document.documentElement).getPropertyValue('--shell-secondary-soft').trim();
+    document.body.appendChild(probe);
+    const expected = getComputedStyle(probe).color;
+    probe.remove();
+    return { actual: getComputedStyle(node).backgroundColor, expected };
+  });
+  expect(adminNav.actual).toBe(adminNav.expected);
+});
+
+test('alpha component styles do not bypass semantic colour tokens', () => {
+  const css = fs.readFileSync('choice_train_V1.7.0-alpha.css', 'utf8');
+  const componentCss = css.slice(css.indexOf('html {'));
+  expect(componentCss).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
+});
+
 test('every learner theme supplies a complete accessible semantic palette', async ({ page }) => {
   await gotoAlpha(page);
   const themes = await page.locator('#themeChoice option').evaluateAll(options => options.map(option => option.value));

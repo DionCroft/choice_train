@@ -57,20 +57,42 @@
   --stimulus-red: #a43b31;
   --stimulus-pink: #a23b72;
   --stimulus-violet: #6549a8;
+  --reward-drop-shadow: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.22));
   --shell-canvas: #f6f7f2;
   --shell-surface: #ffffff;
+  --shell-surface-raised: #ffffff;
   --shell-surface-soft: #eef3f4;
   --shell-text: #17233a;
   --shell-muted: #53627a;
   --shell-border: #cbd5dc;
+  --shell-border-strong: #71858f;
+  --shell-control: #e5edef;
+  --shell-control-hover: #d6e4e7;
+  --shell-field: #ffffff;
   --shell-primary: #0b6b68;
   --shell-primary-hover: #075653;
+  --shell-primary-soft: #d8eceb;
+  --shell-primary-text: #064d4a;
+  --shell-primary-border: #9bcac8;
   --shell-secondary: #1264a3;
+  --shell-secondary-soft: #e2ebf4;
+  --shell-secondary-text: #0b4f82;
+  --shell-secondary-border: #aac5da;
   --shell-success: #267a4a;
+  --shell-success-soft: #dff2e6;
   --shell-warning: #8a5a00;
+  --shell-warning-soft: #fff2cf;
+  --shell-warning-text: #744b00;
+  --shell-warning-border: #e5c678;
   --shell-danger: #b23a2e;
+  --shell-danger-soft: #f9e7e4;
   --shell-reward: #f3b63f;
   --shell-focus: #1264a3;
+  --shell-on-primary: #ffffff;
+  --shell-sticky: rgba(255, 255, 255, 0.97);
+  --shell-scrim: rgba(23, 35, 58, 0.72);
+  --shell-shadow-soft: 0 8px 22px rgba(23, 35, 58, 0.08);
+  --shell-shadow-subtle: 0 8px 22px rgba(23, 35, 58, 0.06);
   --shell-shadow: 0 16px 40px rgba(23, 35, 58, 0.12);
   --shell-radius-sm: 10px;
   --shell-radius-md: 16px;
@@ -117,7 +139,7 @@ body.motion-reduced *::after {
   transform: translateY(-160%);
   border-radius: var(--shell-radius-sm);
   background: var(--shell-text);
-  color: #ffffff;
+  color: var(--shell-on-primary);
   padding: 10px 14px;
   font-weight: 700;
 }
@@ -137,21 +159,21 @@ body.motion-reduced *::after {
   --panel2: var(--shell-surface-soft);
   --text: var(--shell-text);
   --muted: var(--shell-muted);
-  --btn: #e5edef;
-  --btn2: #d6e4e7;
+  --btn: var(--shell-control);
+  --btn2: var(--shell-control-hover);
   --accent: var(--shell-secondary);
   --good: var(--shell-success);
   --warn: var(--shell-warning);
   --bad: var(--shell-danger);
   --card: var(--shell-surface);
-  --cardHi: #e6eff2;
+  --cardHi: var(--shell-surface-soft);
   min-height: 100vh;
   max-height: 100vh;
   padding: 0 18px 30px;
   color: var(--shell-text);
   background: var(--shell-canvas) !important;
   border-right: 1px solid var(--shell-border);
-  box-shadow: 8px 0 28px rgba(23, 35, 58, 0.08);
+  box-shadow: var(--shell-shadow-soft);
 }
 
 .panel > .section:first-child {
@@ -160,9 +182,9 @@ body.motion-reduced *::after {
   z-index: 30;
   margin: 0 -18px 16px;
   padding: 16px 18px 14px;
-  background: rgba(255, 255, 255, 0.97);
+  background: var(--shell-sticky);
   border-bottom: 1px solid var(--shell-border);
-  box-shadow: 0 8px 22px rgba(23, 35, 58, 0.08);
+  box-shadow: var(--shell-shadow-soft);
   backdrop-filter: blur(12px);
 }
 
@@ -200,10 +222,10 @@ label {
   align-items: center;
   gap: 7px;
   margin-top: 8px;
-  border: 1px solid #d9b15a;
+  border: 1px solid var(--shell-warning-border);
   border-radius: 999px;
-  background: #fff5d9;
-  color: #6d4800;
+  background: var(--shell-warning-soft);
+  color: var(--shell-warning-text);
   padding: 5px 9px;
   font-size: 0.72rem;
   font-weight: 700;
@@ -223,21 +245,21 @@ label {
 }
 
 .panelSwitchBtn {
-  background: #edf2f3;
+  background: var(--shell-surface-soft);
   color: var(--shell-text);
   border-color: var(--shell-border);
 }
 
 .panelSwitchBtn.active {
-  background: #d8eceb;
-  color: #064d4a;
+  background: var(--shell-primary-soft);
+  color: var(--shell-primary-text);
   border-color: var(--shell-primary);
   box-shadow: inset 0 -3px 0 var(--shell-primary);
 }
 
 .panelSwitchBtn.adminActive {
-  background: #e2ebf4;
-  color: #0b4f82;
+  background: var(--shell-secondary-soft);
+  color: var(--shell-secondary-text);
   border-color: var(--shell-secondary);
   box-shadow: inset 0 -3px 0 var(--shell-secondary);
 }
@@ -270,9 +292,9 @@ body.panel-view-admin .adminWorkspaceNav {
 }
 
 .panel .adminNavBtn.active {
-  color: #0b4f82;
-  background: #e2ebf4;
-  border-color: #aac5da;
+  color: var(--shell-secondary-text);
+  background: var(--shell-secondary-soft);
+  border-color: var(--shell-secondary-border);
 }
 
 .panel .teacherNavBtn {
@@ -285,9 +307,9 @@ body.panel-view-admin .adminWorkspaceNav {
 }
 
 .panel .teacherNavBtn.active {
-  color: #064d4a;
-  background: #d8eceb;
-  border-color: #9bcac8;
+  color: var(--shell-primary-text);
+  background: var(--shell-primary-soft);
+  border-color: var(--shell-primary-border);
 }
 
 body.panel-view-admin .teacherWorkspaceNav {
@@ -307,20 +329,20 @@ body.teacher-page-results .teacherSection[data-teacher-view]:not([data-teacher-v
 .panel button {
   min-height: 48px;
   color: var(--shell-text);
-  background: #e5edef;
-  border-color: #adbec7;
+  background: var(--shell-control);
+  border-color: var(--shell-border-strong);
   border-radius: var(--shell-radius-sm);
   box-shadow: none;
   font-weight: 600;
 }
 
 .panel button:hover {
-  background: #d6e4e7;
+  background: var(--shell-control-hover);
 }
 
 .panel button.primary,
 .panel .modeBar button.primary {
-  color: #ffffff;
+  color: var(--shell-on-primary);
   background: var(--shell-primary);
   border-color: var(--shell-primary);
 }
@@ -336,8 +358,8 @@ body.teacher-page-results .teacherSection[data-teacher-view]:not([data-teacher-v
 .panel textarea {
   min-height: 48px;
   color: var(--shell-text);
-  background: #ffffff;
-  border: 1px solid #9eafb9;
+  background: var(--shell-field);
+  border: 1px solid var(--shell-border-strong);
   border-radius: var(--shell-radius-sm);
   font-size: 1rem;
 }
@@ -350,7 +372,7 @@ body.teacher-page-results .teacherSection[data-teacher-view]:not([data-teacher-v
 .panel .toggle {
   min-height: 48px;
   color: var(--shell-text);
-  background: #ffffff;
+  background: var(--shell-field);
   border-color: var(--shell-border);
   border-radius: var(--shell-radius-sm);
   font-size: 0.95rem;
@@ -367,7 +389,7 @@ body.teacher-page-results .teacherSection[data-teacher-view]:not([data-teacher-v
   border: 1px solid var(--shell-border);
   border-radius: var(--shell-radius-md);
   background: var(--shell-surface);
-  box-shadow: 0 8px 22px rgba(23, 35, 58, 0.06);
+  box-shadow: var(--shell-shadow-subtle);
 }
 
 .menuSection summary {
@@ -406,15 +428,15 @@ body.teacher-page-results .teacherSection[data-teacher-view]:not([data-teacher-v
 }
 
 .sectionTag {
-  color: #064d4a;
-  background: #d8eceb;
-  border-color: #9bcac8;
+  color: var(--shell-primary-text);
+  background: var(--shell-primary-soft);
+  border-color: var(--shell-primary-border);
 }
 
 .sectionTag.admin {
-  color: #744b00;
-  background: #fff2cf;
-  border-color: #e5c678;
+  color: var(--shell-warning-text);
+  background: var(--shell-warning-soft);
+  border-color: var(--shell-warning-border);
 }
 
 .quickStart,
@@ -429,14 +451,14 @@ body.teacher-page-results .teacherSection[data-teacher-view]:not([data-teacher-v
 .photoCard,
 .categoryCheck {
   color: var(--shell-text);
-  background: #ffffff;
+  background: var(--shell-surface-raised);
   border-color: var(--shell-border);
   box-shadow: none;
 }
 
 .quickStart {
   border-left: 5px solid var(--shell-primary);
-  background: #edf7f6;
+  background: var(--shell-primary-soft);
 }
 
 .quickStart h3,
@@ -467,9 +489,9 @@ td {
   gap: 10px;
   margin-top: 12px;
   padding: 14px;
-  border: 1px solid #9bcac8;
+  border: 1px solid var(--shell-primary-border);
   border-radius: var(--shell-radius-md);
-  background: #edf7f6;
+  background: var(--shell-primary-soft);
 }
 
 .sessionReadinessHeader {
@@ -487,8 +509,8 @@ td {
 
 .sessionReadinessState {
   border-radius: 999px;
-  background: #d8eceb;
-  color: #064d4a;
+  background: var(--shell-surface-raised);
+  color: var(--shell-primary-text);
   padding: 5px 9px;
   font-size: 0.75rem;
   font-weight: 700;
@@ -525,7 +547,7 @@ td {
   border: 2px solid var(--shell-secondary);
   border-radius: var(--shell-radius-md);
   color: var(--shell-text);
-  background: #ffffff;
+  background: var(--shell-surface-raised);
 }
 
 .preferencePreview strong {
@@ -544,8 +566,74 @@ td {
 }
 
 .photoThumb {
-  background: #f3f6f7;
+  background: var(--shell-surface-soft);
   border-color: var(--shell-border);
+}
+
+.panel .sourceBadge.stock {
+  color: var(--shell-secondary-text);
+  background: var(--shell-secondary-soft);
+  border: 1px solid var(--shell-secondary-border);
+}
+
+.panel .sourceBadge.personalised {
+  color: var(--shell-primary-text);
+  background: var(--shell-success-soft);
+  border: 1px solid var(--shell-primary-border);
+}
+
+.editorOverlay {
+  background: var(--shell-scrim);
+}
+
+.editorPanel {
+  color: var(--shell-text);
+  background: var(--shell-surface-raised);
+  border-color: var(--shell-border-strong);
+  box-shadow: var(--shell-shadow);
+}
+
+.panel .miniChip,
+.panel .attentionCall {
+  color: var(--shell-text);
+  background: var(--shell-surface-soft);
+  border: 1px solid var(--shell-border);
+}
+
+.panel .miniCanvas,
+.panel .heatmapCanvas {
+  background: var(--shell-surface-raised);
+  border: 1px solid var(--shell-border);
+}
+
+.panel .accuracyBar {
+  background: var(--shell-control);
+  border: 1px solid var(--shell-border);
+}
+
+.panel .accuracyFill {
+  background: linear-gradient(90deg, var(--shell-secondary), var(--shell-success));
+}
+
+.panel th,
+.panel td {
+  border-bottom-color: var(--shell-border);
+}
+
+.panel th {
+  color: var(--shell-text);
+  background: var(--shell-surface-soft);
+}
+
+.panel button:disabled,
+.panel input:disabled,
+.panel select:disabled,
+.panel textarea:disabled {
+  cursor: not-allowed;
+  color: var(--shell-muted);
+  background: var(--shell-surface-soft);
+  border-color: var(--shell-border);
+  opacity: 0.72;
 }
 
 .main {
@@ -562,6 +650,14 @@ td {
 
 .main button:hover {
   background: var(--control-hover);
+}
+
+.main button:disabled {
+  cursor: not-allowed;
+  color: var(--text-muted);
+  background: var(--control);
+  border-color: var(--border);
+  opacity: 0.72;
 }
 
 .main button.primary {
@@ -855,7 +951,7 @@ td {
   transform: translate(-50%, -62%);
   font-size: 2.2rem;
   transition: left 480ms ease;
-  filter: drop-shadow(0 5px 8px rgba(0, 0, 0, 0.22));
+  filter: var(--reward-drop-shadow);
 }
 
 .rewardJourneyLabel {
@@ -1038,11 +1134,17 @@ body.panel-view-admin .tableWrap {
 }
 
 body.panel-view-admin th {
-  background: #e7eef2;
+  background: var(--shell-surface-soft);
 }
 
 .panel :focus-visible {
-  outline-color: var(--shell-focus);
+  outline: 3px solid var(--shell-focus);
+  outline-offset: 3px;
+}
+
+.main :focus-visible {
+  outline: 3px solid var(--focus);
+  outline-offset: 3px;
 }
 
 @media (prefers-reduced-motion: reduce) {
