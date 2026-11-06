@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const APP_PATH = '/choice_train_V1.5.0.html';
+const APP_PATH = '/choice_train_V1.6.0.html';
 
 async function gotoApp(page) {
   await page.goto(APP_PATH);
@@ -30,6 +30,16 @@ async function setSelect(page, id, value) {
     node.dispatchEvent(new Event('input', { bubbles: true }));
     node.dispatchEvent(new Event('change', { bubbles: true }));
   }, value);
+}
+
+async function setCategorySelection(page, listId, selectedIds) {
+  await page.locator(`#${listId} input[data-category-id]`).evaluateAll((nodes, ids) => {
+    const selected = new Set(ids);
+    nodes.forEach(node => {
+      node.checked = selected.has(node.dataset.categoryId);
+      node.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }, selectedIds);
 }
 
 async function waitForChoiceScreen(page) {
@@ -75,12 +85,12 @@ function attachErrorTracking(page) {
   return errors;
 }
 
-test('live index loads the V1.5.0 stable build', async ({ page }) => {
+test('live index loads the V1.6.0 stable build', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await page.goto('/');
   await expect(page.locator('#beginFlow')).toBeVisible();
-  await expect(page.locator('#versionInfo')).toContainText('V1.5.0');
-  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.5.0.html');
+  await expect(page.locator('#versionInfo')).toContainText('V1.6.0');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.6.0.html');
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
@@ -141,10 +151,10 @@ const levelExpectations = [
   { level: 4, stage: 'Find object', question: friendlyFindPattern, correctTarget: true },
   { level: 5, stage: 'Discriminate object', question: friendlyFindPattern, correctTarget: true },
   { level: 6, stage: 'Find category', question: categoryPattern, correctTarget: true },
-  { level: 7, stage: 'CPAT sustained attention', question: /Tap only when you see the star/ },
-  { level: 8, stage: 'CPAT selective-spatial', question: /Find the blue star/ },
-  { level: 9, stage: 'CPAT orienting', question: /Use the cue, then tap the star/ },
-  { level: 10, stage: 'CPAT executive control', question: /Tap the direction of the middle arrow/ }
+  { level: 7, stage: 'AT sustained attention', question: /Tap only when you see the star/ },
+  { level: 8, stage: 'AT selective-spatial', question: /Find the blue star/ },
+  { level: 9, stage: 'AT orienting', question: /Use the cue, then tap the star/ },
+  { level: 10, stage: 'AT executive control', question: /Tap the direction of the middle arrow/ }
 ];
 
 test.describe('auto path level coverage', () => {
@@ -544,7 +554,7 @@ test('summary CTA matches the next level and starts it directly', async ({ page 
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
-test('level 10 does not progress beyond the final CPAT stage', async ({ page }) => {
+test('level 10 does not progress beyond the final Attention Training stage', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
@@ -558,7 +568,7 @@ test('level 10 does not progress beyond the final CPAT stage', async ({ page }) 
   await clickCorrectChoice(page);
   await waitForSummaryScreen(page);
 
-  await expect(page.locator('#summaryText')).toContainText('Level 10 complete. The learner is already at the final CPAT stage.');
+  await expect(page.locator('#summaryText')).toContainText('Level 10 complete. The learner is already at the final Attention Training stage.');
   await expect(page.locator('#summaryRestart')).toHaveText('Start Again');
   await expect(page.locator('#levelBadge')).toHaveText('Level 10');
 
@@ -716,9 +726,9 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await page.locator('#adminPanelTab').click();
   await page.locator('summary:has-text("Research / Debug Settings")').click();
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
-  await page.locator('summary:has-text("CPAT and attention terms")').click();
+  await page.locator('summary:has-text("Attention Training terms")').click();
   await expect(page.getByText('Exploratory engagement is an in-app practice metric', { exact: false })).toBeVisible();
-  await page.locator('summary:has-text("V1.5.0 teacher, learner, and research guide")').click();
+  await page.locator('summary:has-text("V1.6.0 teacher, learner, and research guide")').click();
   await expect(page.locator('text=Traffic Lights')).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -768,6 +778,9 @@ test('level description follows the number and manual task selection', async ({ 
   await expect(page.locator('#currentLevelDescription')).toContainText('selective-spatial attention');
   await page.locator('#sessionTaskType').selectOption('touch-object');
   await expect(page.locator('#currentLevelDescription')).toContainText('Touch object is selected');
+  await page.locator('#beginFlow').click();
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#footerHint')).toContainText('Touch object is selected for this session');
 
   expect(errors, errors.join('\n')).toEqual([]);
 });
@@ -989,6 +1002,246 @@ test('photo upload adds a labelled personalised photo and records its metadata i
   });
 
   expect(payload.photo_library_metadata.some(item => item.label === 'Favourite toy')).toBeTruthy();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('teacher-created categories reject duplicates and persist across reloads', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#createCategoryName').fill('Musical instruments');
+  await page.locator('#createCategoryBtn').click();
+  await expect(page.locator('#categoryCreateStatus')).toContainText('ready to use');
+  await expect(page.locator('#photoCategory option[value="custom-musical-instruments"]')).toHaveText('Musical instruments');
+
+  await page.locator('#createCategoryName').fill('  musical   instruments  ');
+  await page.locator('#createCategoryBtn').click();
+  await expect(page.locator('#categoryCreateStatus')).toContainText('already exists');
+  await page.waitForTimeout(300);
+  await page.reload();
+  await expect(page.locator('#photoCategory option[value="custom-musical-instruments"]')).toHaveText('Musical instruments');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('bulk import keeps its starting pupil and category while reporting per-file failures', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  const originalPupil = await page.locator('#pupilSelect').inputValue();
+  await page.locator('#bulkPhotoCategory').selectOption('animals');
+  await page.locator('#customUpload').setInputFiles([
+    {
+      name: 'cat.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80"><rect width="120" height="80" fill="#cde"/></svg>')
+    },
+    {
+      name: 'dog.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="120"><rect width="80" height="120" fill="#dec"/></svg>')
+    },
+    {
+      name: 'not-an-image.txt',
+      mimeType: 'text/plain',
+      buffer: Buffer.from('not an image')
+    }
+  ]);
+  await page.locator('#newPupilName').fill('Pupil B');
+  await page.locator('#addPupil').click();
+  await expect(page.locator('#bulkUploadStatus')).toContainText('2 imported, 1 failed', { timeout: 15_000 });
+  await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(0);
+
+  await page.locator('#pupilSelect').selectOption(originalPupil);
+  await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(2);
+  await expect(page.locator('#photoLibraryList')).toContainText('Animals');
+  await expect(page.locator('#photoLibraryList .sourceBadge.personalised')).toHaveCount(2);
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('selected photos can be reassigned without losing identity or source', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#bulkPhotoCategory').selectOption('toy');
+  await page.locator('#customUpload').setInputFiles([
+    {
+      name: 'blocks.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><rect width="100" height="100" fill="#fd8"/></svg>')
+    },
+    {
+      name: 'ball.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="100"><circle cx="50" cy="50" r="45" fill="#8df"/></svg>')
+    }
+  ]);
+  await expect(page.locator('#bulkUploadStatus')).toContainText('2 imported', { timeout: 15_000 });
+  const originalIds = await page.locator('#photoLibraryList .photoCard').evaluateAll(cards => cards.map(card => card.dataset.photoId).sort());
+  await page.locator('#selectAllPhotosBtn').click();
+  await page.locator('#bulkMoveCategory').selectOption('classroom');
+  await page.locator('#bulkMoveBtn').click();
+  await expect(page.locator('#photoLibraryList')).toContainText('Classroom objects');
+  const movedIds = await page.locator('#photoLibraryList .photoCard').evaluateAll(cards => cards.map(card => card.dataset.photoId).sort());
+  expect(movedIds).toEqual(originalIds);
+  await expect(page.locator('#photoLibraryList .sourceBadge.personalised')).toHaveCount(2);
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('photo crop and rotation are non-destructive and persist after reload', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await page.locator('#photoLabel').fill('Landscape scene');
+  await page.locator('#photoCategory').selectOption('classroom');
+  await page.locator('#photoUpload').setInputFiles({
+    name: 'landscape.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="240" height="100"><rect width="240" height="100" fill="#def"/><circle cx="210" cy="50" r="30" fill="#f90"/></svg>')
+  });
+  await page.locator('#addPhotoBtn').click();
+  await expect(page.locator('#photoLibraryList')).toContainText('Landscape scene');
+  await expect(page.locator('#photoLibraryList .photoThumb img')).toHaveCSS('object-fit', 'contain');
+  await page.locator('#photoLibraryList button:has-text("Crop / rotate")').click();
+  await expect(page.locator('#imageEditor')).toBeVisible();
+  await page.locator('#imageEditorSquare').check();
+  await page.locator('#imageEditorRotation').selectOption('90');
+  await page.locator('#imageEditorZoom').fill('1.5');
+  await page.locator('#imageEditorApply').click();
+  await expect(page.locator('#imageEditor')).toBeHidden({ timeout: 15_000 });
+  await page.reload();
+  await page.locator('#photoLibraryList button:has-text("Crop / rotate")').click();
+  await expect(page.locator('#imageEditorSquare')).toBeChecked();
+  await expect(page.locator('#imageEditorRotation')).toHaveValue('90');
+  await expect(page.locator('#imageEditorZoom')).toHaveValue('1.5');
+  await page.locator('#imageEditorReset').click();
+  await expect(page.locator('#imageEditorSquare')).not.toBeChecked();
+  await expect(page.locator('#imageEditorRotation')).toHaveValue('0');
+  await page.locator('#imageEditorCancel').click();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('Find object enforces category and source filters and records its snapshot', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+  await configureSession(page, {
+    startLevel: 4,
+    sessionMax: 1,
+    autoAdvance: true,
+    autoLevelPath: false,
+    sessionTaskType: 'find-object'
+  });
+  await page.locator('#teacherPanelTab').click();
+  await setCategorySelection(page, 'findObjectCategoryList', ['animals']);
+  await page.locator('#findObjectSourceMode').selectOption('stock');
+  await expect(page.locator('#findObjectConfigSummary')).toContainText('3 distinct usable items');
+  await page.locator('#beginFlow').click();
+  await waitForChoiceScreen(page);
+  const optionIds = await page.locator('#choiceGrid .choice').evaluateAll(nodes => nodes.map(node => node.dataset.id));
+  expect(optionIds.length).toBeGreaterThanOrEqual(2);
+  expect(optionIds.every(id => id.startsWith('animal-'))).toBeTruthy();
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+  const payload = await exportJsonAfter(page, async () => page.locator('#summaryExport').click());
+  expect(payload.content_configuration.find_object.source_mode).toBe('stock');
+  expect(payload.content_configuration.find_object.selected_categories.map(item => item.id)).toEqual(['animals']);
+  expect(payload.trials[0].option_metadata.every(item => item.source === 'stock')).toBeTruthy();
+  expect(JSON.stringify(payload)).not.toContain('data:image');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('Find object blocks an empty personalised-only selection', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+  await page.locator('#sessionTaskType').selectOption('find-object');
+  await setCategorySelection(page, 'findObjectCategoryList', ['animals']);
+  await page.locator('#findObjectSourceMode').selectOption('personalised');
+  await page.locator('#beginFlow').click();
+  await expect(page.locator('#screenWelcome.active')).toBeVisible();
+  await expect(page.locator('#sessionSetupStatus')).toContainText('at least two differently labelled usable items');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('Find category requires two fair usable categories and generates a natural prompt', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+  await page.locator('#sessionTaskType').selectOption('find-category');
+  await setCategorySelection(page, 'findCategoryCategoryList', ['animals']);
+  await page.locator('#findCategorySourceMode').selectOption('stock');
+  await page.locator('#beginFlow').click();
+  await expect(page.locator('#sessionSetupStatus')).toContainText('at least two selected categories');
+
+  await page.locator('#findCategoryCategoryList input[data-category-id="transport"]').check();
+  await expect(page.locator('#findCategoryConfigSummary')).toContainText('2 can produce fair');
+  await page.locator('#beginFlow').click();
+  await waitForChoiceScreen(page);
+  await expect(page.locator('#questionText')).toContainText(/animal|transport/i);
+  const ids = await page.locator('#choiceGrid .choice').evaluateAll(nodes => nodes.map(node => node.dataset.id));
+  expect(ids.every(id => id.startsWith('animal-') || id.startsWith('transport-'))).toBeTruthy();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('Plain White is readable, persists, and is included in exports', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+  await page.locator('#themeChoice').selectOption('plain-white');
+  await expect(page.locator('body')).toHaveClass(/theme-plain-white/);
+  await expect(page.locator('.playArea')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  await page.waitForTimeout(300);
+  await page.reload();
+  await expect(page.locator('#themeChoice')).toHaveValue('plain-white');
+  await startConfiguredSession(page, { startLevel: 2, sessionMax: 1, autoAdvance: true });
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+  const payload = await exportJsonAfter(page, async () => page.locator('#summaryExport').click());
+  expect(payload.theme_used).toBe('plain-white');
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('visual review captures Plain White, mixed image framing, and tablet learner mode', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  const visualDir = 'test-results/visual-review';
+  fs.mkdirSync(visualDir, { recursive: true });
+  await page.setViewportSize({ width: 1440, height: 1000 });
+  await gotoApp(page);
+  await page.locator('#themeChoice').selectOption('plain-white');
+  await page.screenshot({ path: `${visualDir}/plain-white-desktop.png`, fullPage: true });
+
+  await page.locator('#bulkPhotoCategory').selectOption('people');
+  await page.locator('#customUpload').setInputFiles([
+    {
+      name: 'portrait.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="100" height="240"><rect width="100" height="240" fill="#d9e9f5"/><circle cx="50" cy="45" r="35" fill="#f3a25f"/><rect x="30" y="90" width="40" height="130" fill="#2878a8"/></svg>')
+    },
+    {
+      name: 'landscape.svg',
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="260" height="100"><rect width="260" height="100" fill="#e7efd9"/><circle cx="220" cy="50" r="34" fill="#e49a3a"/><rect x="10" y="72" width="240" height="18" fill="#477c4a"/></svg>')
+    }
+  ]);
+  await expect(page.locator('#bulkUploadStatus')).toContainText('2 imported', { timeout: 15_000 });
+  await page.locator('#photoLibraryList button:has-text("Crop / rotate")').first().click();
+  await expect(page.locator('#imageEditor')).toBeVisible();
+  await page.screenshot({ path: `${visualDir}/image-editor-desktop.png` });
+  await page.locator('#imageEditorCancel').click();
+
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.locator('#sessionTaskType').selectOption('find-object');
+  await setCategorySelection(page, 'findObjectCategoryList', ['animals']);
+  await page.locator('#findObjectSourceMode').selectOption('stock');
+  await page.locator('#learnerModeBtn').click();
+  await page.locator('#beginFlow').click();
+  await waitForChoiceScreen(page);
+  await page.screenshot({ path: `${visualDir}/tablet-learner-find-object.png` });
 
   expect(errors, errors.join('\n')).toEqual([]);
 });

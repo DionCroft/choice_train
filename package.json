@@ -1,7 +1,7 @@
 {
-  "name": "choice-train-experimental-browser-tests",
+  "name": "choice-train-browser-tests",
   "private": true,
-  "description": "Playwright browser regression tests for the ChoiceTrain experimental build.",
+  "description": "Playwright regression and visual smoke tests for ChoiceTrain for ShowMe.",
   "scripts": {
     "test:browser": "node scripts/run-browser-tests.js",
     "test:browser:headed": "node scripts/run-browser-tests.js --headed",
