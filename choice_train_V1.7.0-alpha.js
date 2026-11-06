@@ -7,7 +7,7 @@
     source_file: 'choice_train_V1.7.0-alpha.html',
     source_script: 'choice_train_V1.7.0-alpha.js',
     based_on_branch: 'feature/v1.7.0-alpha-ui-ux',
-    based_on_commit: '06bbb72',
+    based_on_commit: '9f860cf',
     build_date: '2026-11-06',
     published_entry: 'index.html',
     live_url: 'https://dioncroft.github.io/choice_train/',
