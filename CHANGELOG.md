@@ -19,6 +19,8 @@ This is an isolated candidate build. The published GitHub Pages entry remains `V
 - EEG marker codes for `audio_onset` and `reward_onset`
 - schema version 4 export fields for sensory and presentation preferences
 - a dedicated alpha browser suite and decision, data-dictionary, and usability-test documentation
+- a semantic colour contract for every learner theme and a parallel product-shell token set for teacher/admin controls
+- a repeatable 17-view visual-audit script covering staff workspaces, learner states, responsive layouts, and all themes
 
 ### Changed
 
@@ -27,6 +29,17 @@ This is an isolated candidate build. The published GitHub Pages entry remains `V
 - made reduced motion, quiet feedback, text size, and familiar-font alternatives explicit rather than assuming one SEND-friendly configuration
 - fitted learner mode to the dynamic viewport and removed unused page scrolling on tablet-sized screens
 - prevented locally generated feedback tones from competing with prompt speech
+- made Overview, Sessions, Learners, EEG, and System focused Admin destinations instead of exposing one continuously scrolling research page
+- moved cue rings, pointer trails, ripples, task symbols, heatmaps, and analytics charts onto live theme tokens
+- removed theme-specific learner patches so every theme controls the complete task, feedback, reward, footer, modal, and chart surface
+
+### Fixed
+
+- kept `Next` and `Repeat` available when rewards and auto advance are both disabled, preventing a learner-session trap
+- replaced the opaque feedback wash with a readable semantic outcome ring and removed stale ripple elements between questions
+- kept Help, Break, and Stop visible inside a 390-pixel mobile learner viewport
+- corrected Admin landing alignment after history hydration and full-width reflow
+- added non-colour check/cross cues to correct and incorrect choice states
 
 ### Preserved
 
@@ -43,9 +56,10 @@ This is an isolated candidate build. The published GitHub Pages entry remains `V
 
 ### Validation
 
-- dedicated alpha Playwright tests cover loading, contrast, workspace separation, navigation, exports, sensory persistence, learner containment, rewards, EEG/audio metadata, and tablet controls
-- 71 Playwright tests passed across the stable entry, archived V1.5 path, V1.6 regression suite, and 15 dedicated alpha checks
-- visual review was completed for desktop admin and tablet learner views; real school-device and assisted-technology testing remains a promotion gate
+- 21 dedicated alpha Playwright checks cover loading, local-only operation, staff and learner contrast, semantic-token completeness, runtime theme effects, focused workspace navigation, exports, sensory persistence, learner containment, reward and no-reward flows, EEG/audio metadata, tablet controls, and mobile containment
+- 77 Playwright tests passed across the stable entry, archived V1.5 path, V1.6 regression suite, and alpha candidate: 56 stable/archive checks plus 21 alpha checks
+- the repeatable visual audit captured 17 synthetic-data views spanning teacher, Admin, active learner, reward, no-reward feedback, break, tablet, mobile, and every theme
+- desktop Chromium visual review is complete; physical school-device, Safari, Silk, assistive-technology, staff, and learner testing remains a promotion gate
 
 ## [1.6.0] - 2026-11-06
 

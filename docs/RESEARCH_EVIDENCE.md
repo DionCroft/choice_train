@@ -121,6 +121,8 @@ The following sources guide implementation but are not peer-reviewed evidence th
 - [Atkinson Hyperlegible Next](https://www.brailleinstitute.org/freefont/) was designed by the Braille Institute for character distinction and low-vision legibility. Its inclusion is licensed and local; it is not presented as a SEND-wide or dyslexia-specific treatment.
 - Duolingo is a product inspiration only at the level of general visible-progress and immediate-feedback principles. ChoiceTrain uses original visuals, wording and generated sounds.
 
+The V1.7 semantic colour audit is therefore a standards-based accessibility and product-consistency intervention, not a peer-reviewed claim that a particular palette improves cognition, attention, or SEND outcomes. Automated contrast, non-colour state cues, and consistent semantic roles reduce avoidable interface ambiguity; individual theme suitability still requires observation with learners and practitioners.
+
 ## Feature-to-Paper Mapping
 
 The papers above were used to support these broad feature areas:

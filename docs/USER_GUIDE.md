@@ -107,7 +107,7 @@ The alpha keeps the same capabilities but gives each role a focused workspace:
 - `Today` contains pupil selection, session readiness, daily settings, context and the primary start action.
 - `Personalise` contains pupil baseline preferences, images, categories and content choices.
 - `Results` contains the current session summary and school-friendly export.
-- `Admin & research` opens a full-width workspace with Overview, Sessions, Learners, EEG and System destinations.
+- `Admin & research` opens a full-width workspace with focused Overview, Sessions, Learners, EEG and System destinations. Only the groups relevant to the selected destination are shown, so staff do not need to search one very long research page.
 
 Select `Start learner session` to apply learner view and begin in one action. In learner mode, press and hold the small lock control for about 1.2 seconds to return to the teacher workspace. A normal tap does not exit; keyboard activation remains immediate for staff who use keyboard access.
 
@@ -158,6 +158,14 @@ This opens the advanced settings sections:
 
 - `Advanced Admin Settings`
 - `Research / Debug Settings`
+
+In `V1.7.0-alpha`, select `Admin & research` instead. Then use:
+
+- `Overview` for export and the current analytics summary
+- `Sessions` for stored history and session exports
+- `Learners` for profile, prompt, and fidelity records
+- `EEG` for research blocks, markers, and EEG exports
+- `System` for advanced settings, debug controls, documentation, and build information
 
 ### During Learner Mode
 
@@ -292,6 +300,8 @@ ChoiceTrain avoids medical or diagnostic wording here. These notes are for class
 Settings save locally as they are changed. `Save pupil preferences` also applies the selected prompt style to the text, image, and speech controls and displays a save confirmation.
 
 `Reset session` clears the current unsaved attempt and returns to the welcome screen. It keeps the pupil profile, saved settings, and stored session history.
+
+After a response, `Auto advance` can move to the next task automatically. If auto advance is off, use `Next` or `Repeat`. Those controls stay available when the reward screen is disabled; the learner sees concise feedback rather than a star celebration.
 
 ### Optional Blank Screen
 
@@ -440,6 +450,7 @@ If browser speech support is unavailable, the app should continue working withou
 
 The current theme options are:
 
+- Calm Light (`V1.7.0-alpha` default)
 - Calm Blue
 - Soft Green
 - Warm Neutral
@@ -451,6 +462,8 @@ The current theme options are:
 Themes are intended as configurable classroom presentation options. Teachers should choose whichever theme works best for the learner and setting.
 
 Theme choice is stored locally and may also follow the selected pupil profile on that device.
+
+In the alpha, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
 
 ### Alpha Display and Sensory Preferences
 
@@ -609,6 +622,8 @@ Use the `Teacher Panel` and `Admin Panel` buttons at the top of the side panel.
 
 If you are currently in learner mode, press the floating `Admin` button first to return to teacher view and open the Admin Panel.
 
+In `V1.7.0-alpha`, select `Admin & research` at the top of the teacher workspace, then choose Overview, Sessions, Learners, EEG, or System. Advanced settings and debug controls are under `System`.
+
 ### Speech does not work
 
 Check:
@@ -646,6 +661,7 @@ ChoiceTrain should always be used alongside professional educational judgement. 
 - [SCHOOL_READINESS_AUDIT.md](SCHOOL_READINESS_AUDIT.md)
 - [DATA_AND_PRIVACY.md](DATA_AND_PRIVACY.md)
 - [V1.7.0_ALPHA_DESIGN_DECISIONS.md](V1.7.0_ALPHA_DESIGN_DECISIONS.md)
+- [V1.7.0_COLOUR_SYSTEM_AUDIT.md](V1.7.0_COLOUR_SYSTEM_AUDIT.md)
 - [DATA_DICTIONARY.md](DATA_DICTIONARY.md)
 - [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md)
 - [CHANGELOG.md](../CHANGELOG.md)

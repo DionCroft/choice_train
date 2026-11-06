@@ -17,7 +17,11 @@ This information remains on the device unless a user deliberately downloads an e
 
 `V1.7.0-alpha` also stores presentation preferences: font choice, text scale, motion level, feedback-sound level, and celebration intensity. These settings may be associated with a local pupil profile because presentation needs can differ between learners. They are included in session exports so the conditions under which a result was collected can be interpreted.
 
+The V1.7 semantic colour refactor changes presentation only. It does not add a data category, remote service, tracking request, or colour-based learner classification. Theme names and selections are access preferences and must not be interpreted as a diagnosis or sensory profile.
+
 Alpha feedback sounds are generated on the device with the Web Audio API. ChoiceTrain does not use the microphone, record the learner, upload audio, or fetch sound files from a remote service.
+
+The repository's repeatable visual-audit script uses synthetic/default pupil data. Its generated screenshots and bounds manifest are written under the ignored `test-results/` directory and are not committed or uploaded by the application. Staff must not substitute identifiable pupil profiles when creating development screenshots or attach pupil data to public issues.
 
 ## School Responsibilities
 

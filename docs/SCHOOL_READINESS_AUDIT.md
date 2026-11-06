@@ -11,17 +11,19 @@
 
 The immediate usability scope was implemented in `V1.5.0`. `V1.6.0` adds teacher-controlled category catalogues and per-session content filters without changing the established level meanings. A broader automatic progression hierarchy remains deliberately deferred for practitioner design.
 
-`V1.7.0-alpha` is an isolated product-readiness candidate. It separates teacher, learner, and admin/research workspaces; adds configurable legibility and sensory presentation; and introduces an original train progress reward and local generated sounds. It does not change the live `index.html` or the established learning pathway.
+`V1.7.0-alpha` is an isolated product-readiness candidate. It separates teacher, learner, and admin/research workspaces; adds configurable legibility and sensory presentation; introduces an original train progress reward and local generated sounds; and now applies a consistent semantic colour system across all workspaces, themes, states, and runtime visuals. It does not change the live `index.html` or the established learning pathway.
 
 ### V1.7 Candidate Status
 
 Implemented and automatically covered:
 
 - focused Today, Personalise, and Results teacher navigation
-- full-width Overview, Sessions, Learners, EEG, and System admin navigation
+- full-width, focused Overview, Sessions, Learners, EEG, and System admin destinations
 - one-action learner start and deliberate press-and-hold return
-- high-contrast calm-light shell, bundled licensed font, text scaling, reduced motion, sound and celebration controls
+- semantic staff-shell and learner-theme roles with automated contrast, token-completeness, runtime-canvas, and non-colour-state safeguards
+- calm-light default, bundled licensed font, text scaling, reduced motion, sound and celebration controls
 - learner dynamic-viewport containment and tablet target sizing
+- mobile containment for prompt, progress, Help, Break, and Stop controls
 - schema 4 sensory-preference exports and audio/reward EEG markers
 - preservation of the stable runtime and local-only data boundary
 
@@ -35,7 +37,7 @@ Still required before stable promotion:
 - research-team review of browser marker semantics and a separate timing-validation plan before EEG synchronisation
 - explicit product-owner approval to update `index.html`
 
-The detailed protocol and acceptance criteria are in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
+The detailed protocol and acceptance criteria are in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md). The colour baseline, semantic contract, remediation, and evidence limits are in [V1.7.0_COLOUR_SYSTEM_AUDIT.md](V1.7.0_COLOUR_SYSTEM_AUDIT.md).
 
 Validation completed:
 
@@ -46,8 +48,9 @@ Validation completed:
 
 Alpha branch validation completed:
 
-- all 71 Playwright tests passed together: 56 stable/archive checks and 15 alpha-specific checks
-- the alpha checks include workspace navigation, contrast, local-only requests, sensory persistence, reduced motion, learner containment, reward progress, export metadata, and tablet/mobile sizing
+- all 77 Playwright tests passed together: 56 stable/archive checks and 21 alpha-specific checks
+- the alpha checks include focused workspace navigation, staff and learner contrast, semantic-token completeness, runtime theme colours, local-only requests, sensory persistence, reduced motion, learner containment, reward and reward-disabled flows, export metadata, and tablet/mobile sizing
+- the repeatable visual audit produced 17 synthetic-data captures spanning teacher, Admin, active learner, reward, reward-disabled feedback, break, tablet, mobile, and every theme
 - syntax checks passed for both V1.6.0 and V1.7.0-alpha, and the stable entry/versioned files have no alpha diff
 
 ## Feedback Outcomes
@@ -71,6 +74,8 @@ Alpha branch validation completed:
 
 - Resolved in `V1.5.0`: the Playwright setup no longer depends on hidden panel controls being visibly clickable, while dedicated tests still verify the actual Teacher/Admin navigation.
 - Resolved in `V1.5.0`: modern browsers use Pointer Events only, while older browsers receive separate touch and mouse fallbacks. This prevents dual Pointer/Touch emission from inflating raw research logs.
+- Resolved in `V1.7.0-alpha`: disabling both rewards and auto advance no longer traps the learner; the feedback surface keeps `Next` and `Repeat` available.
+- Resolved in `V1.7.0-alpha`: Admin history hydration no longer shifts the selected destination into a large blank area, and a 390-pixel mobile learner viewport retains the regulation controls.
 
 ### Medium priority
 
@@ -78,6 +83,7 @@ Alpha branch validation completed:
 - V1.7 moves its new presentation rules into a separate versioned stylesheet, but the inherited HTML and JavaScript remain large single files. A module-level refactor is deferred until after school workflow validation to avoid changing tested task logic and persistence at the same time as the interface.
 - Settings auto-save on both `input` and `change`; the debounce limits writes, but text/number changes can still trigger repeated pupil-profile persistence.
 - The current `Current level` input allows a manual task override that may not match the level description unless both are displayed together.
+- Automated Chromium contrast and screenshot checks do not establish suitability for a learner or replace physical Safari, Silk, touchscreen, keyboard, and assistive-technology review.
 
 ### Preserved behavior
 
@@ -112,6 +118,8 @@ The implementation will use the following established guidance without claiming 
 - Optional blank inter-trial screen works with a configurable duration and is logged/exported.
 - Existing session, Attention Training, EEG, export, photo, theme, and learner-mode tests continue to pass.
 - New browser tests cover the revised teacher controls, student-friendly persistence, blank interval, task description, and reset behavior.
+- Every learner theme supplies the complete semantic contract; runtime-drawn cues and analytics follow theme changes; important states retain non-colour cues.
+- Focused Admin destinations and reward-disabled/manual navigation remain operable at desktop, tablet, and tested mobile sizes.
 
 ## Implemented Session Filtering
 
