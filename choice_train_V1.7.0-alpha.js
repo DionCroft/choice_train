@@ -662,6 +662,7 @@
   }
 
   function flash(kind, text){
+    if(ui.fx) ui.fx.querySelectorAll('.ripple').forEach(ripple => ripple.remove());
     const pulse = kind === 'good' ? ui.pulseGood : ui.pulseTry;
     if(pulse){
       pulse.style.animation = 'none';
@@ -1216,6 +1217,18 @@
     if(ui.teacherExitHold) ui.teacherExitHold.hidden = state.viewMode !== 'learner';
   }
 
+  function scrollWorkspaceTarget(target, behavior='auto'){
+    if(!target) return;
+    const header = document.querySelector('.panel > .section:first-child');
+    const headerHeight = header ? header.getBoundingClientRect().height : 0;
+    const top = Math.max(0, target.getBoundingClientRect().top + window.scrollY - headerHeight - 16);
+    try {
+      window.scrollTo({ top, behavior });
+    } catch(_err){
+      window.scrollTo(0, top);
+    }
+  }
+
   function applyPanelView(view, options={}){
     state.panelView = view === 'admin' ? 'admin' : 'teacher';
     document.body.classList.toggle('panel-view-admin', state.panelView === 'admin');
@@ -1239,11 +1252,7 @@
     const teacherSection = document.querySelector('.teacherSection');
     if(teacherSection) teacherSection.open = true;
     if(options.scroll && teacherSection){
-      try {
-        teacherSection.scrollIntoView({ block: 'start', behavior: 'smooth' });
-      } catch(_err){
-        teacherSection.scrollIntoView();
-      }
+      scrollWorkspaceTarget(teacherSection, options.behavior || 'auto');
     }
   }
 
@@ -1262,11 +1271,8 @@
     const section = document.querySelector(`.teacherSection[data-teacher-view="${nextPage}"]`);
     if(section) section.open = true;
     if(options.scroll && section){
-      try {
-        section.scrollIntoView({ block: 'start', behavior: currentMotionPreference() === 'reduced' ? 'auto' : 'smooth' });
-      } catch(_err){
-        section.scrollIntoView();
-      }
+      const behavior = options.behavior || (currentMotionPreference() === 'reduced' ? 'auto' : 'smooth');
+      scrollWorkspaceTarget(section, behavior);
     }
   }
 
@@ -1288,6 +1294,7 @@
     const nextPage = targets[page] ? page : 'overview';
     state.adminPage = nextPage;
     Object.keys(buttons).forEach(value => {
+      document.body.classList.toggle(`admin-page-${value}`, value === nextPage);
       if(!buttons[value]) return;
       const active = value === nextPage;
       buttons[value].classList.toggle('active', active);
@@ -1298,27 +1305,27 @@
     } else if(ui.adminResearchWorkspace){
       ui.adminResearchWorkspace.open = true;
     }
-    const target = targets[nextPage];
-    if(options.scroll && target){
-      try {
-        target.scrollIntoView({ block: 'start', behavior: currentMotionPreference() === 'reduced' ? 'auto' : 'smooth' });
-      } catch(_err){
-        target.scrollIntoView();
-      }
-    }
     if(nextPage === 'overview') refreshDashboard(true);
     if(nextPage === 'sessions') refreshHistoryManager();
+    const target = targets[nextPage];
+    if(options.scroll && target){
+      const behavior = options.behavior || (currentMotionPreference() === 'reduced' ? 'auto' : 'smooth');
+      scrollWorkspaceTarget(target, behavior);
+    }
   }
 
   function openTeacherPanel(){
     applyViewMode('desktop');
-    applyPanelView('teacher', { scroll: true });
+    applyPanelView('teacher', { scroll: true, behavior: 'auto' });
     applyTeacherPage(state.teacherPage || 'today');
   }
 
   function openAdminPanel(){
     applyViewMode('desktop');
-    applyPanelView('admin', { scroll: true });
+    applyPanelView('admin');
+    window.requestAnimationFrame(() => {
+      applyAdminPage(state.adminPage || 'overview', { scroll: true, behavior: 'auto' });
+    });
   }
 
   function fidelityChecks(){
@@ -3919,8 +3926,13 @@
     scheduleCurrentSessionPersist();
     state.phase = 'feedback';
 
-    if(ui.useReward.checked){
-      ui.rewardTitle.textContent = trial.correct ? 'Well Done!' : (trial.correct_rejection ? 'Good waiting!' : 'Good Try!');
+    const rewardEnabled = ui.useReward.checked;
+    const showFeedbackControls = rewardEnabled || !ui.autoAdvance.checked;
+    if(showFeedbackControls){
+      ui.screenReward.classList.toggle('feedbackOnly', !rewardEnabled);
+      ui.rewardTitle.textContent = rewardEnabled
+        ? (trial.correct ? 'Well Done!' : (trial.correct_rejection ? 'Good waiting!' : 'Good Try!'))
+        : (trial.correct ? 'Nice work' : 'Let’s keep going');
       ui.rewardSub.textContent = studentFriendlyModeEnabled()
         ? (trial.correct ? 'Ready for the next one.' : 'Let’s try another one.')
         : trial.correct
@@ -3928,15 +3940,18 @@
           : trial.response_type === 'omission'
             ? (ui.autoAdvance.checked ? 'No response recorded. Repeat if more support is needed.' : 'No response recorded. Repeat or move on with support.')
             : (ui.autoAdvance.checked ? 'Moving on automatically. Repeat if more practice is needed.' : 'Repeat or move on with support.');
-      state.phase = 'reward';
-      pushEegMarker('reward_onset', {
-        trial_id: trial.trial_id,
-        task_kind: trial.task_kind,
-        response_type: trial.response_type,
-        correct: trial.correct
-      });
+      state.phase = rewardEnabled ? 'reward' : 'feedback';
+      if(rewardEnabled){
+        pushEegMarker('reward_onset', {
+          trial_id: trial.trial_id,
+          task_kind: trial.task_kind,
+          response_type: trial.response_type,
+          correct: trial.correct
+        });
+      }
       showScreen('screenReward');
     } else {
+      ui.screenReward.classList.remove('feedbackOnly');
       showScreen('screenChoice');
     }
 

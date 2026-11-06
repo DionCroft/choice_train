@@ -387,9 +387,19 @@ test('admin and research workspace is separate and uses the full viewport', asyn
   await gotoAlpha(page);
   await page.locator('#adminPanelTab').click();
   await expect(page.locator('body')).toHaveClass(/panel-view-admin/);
-  await expect(page.locator('#adminPanelDetails')).toBeVisible();
+  await expect(page.locator('body')).toHaveClass(/admin-page-overview/);
+  await expect(page.locator('#adminResearchWorkspace')).toBeVisible();
+  await expect(page.locator('#adminAnalyticsSection')).toBeVisible();
+  await expect(page.locator('#adminPanelDetails')).toBeHidden();
+  await expect(page.locator('#adminHistorySection')).toBeHidden();
   await expect(page.locator('.main')).toBeHidden();
   await expect(page.locator('.modeBar')).toBeHidden();
+  const landing = await page.evaluate(() => {
+    const header = document.querySelector('.panel > .section:first-child').getBoundingClientRect();
+    const target = document.querySelector('#adminAnalyticsSection').getBoundingClientRect();
+    return { headerBottom: header.bottom, targetTop: target.top };
+  });
+  expect(landing.targetTop).toBeGreaterThanOrEqual(landing.headerBottom);
   const panelWidth = await page.locator('.panel').evaluate(node => node.getBoundingClientRect().width);
   expect(panelWidth).toBeGreaterThan(900);
 });
@@ -528,6 +538,77 @@ test('reward journey advances after a completed learner response', async ({ page
   expect(progress).toBe(100);
 });
 
+test('manual feedback remains navigable when reward and auto advance are off', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', false);
+  await setValue(page, 'sessionMax', 2);
+  await setValue(page, 'startLevel', 4);
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+
+  const incorrect = page.locator('#choiceGrid button.choice:not([data-role="correct-target"])').first();
+  await incorrect.click();
+  await expect(incorrect).toHaveClass(/incorrect/);
+  await expect(page.locator('#screenReward.active.feedbackOnly')).toBeVisible();
+  await expect(page.locator('#screenReward .stars')).toBeHidden();
+  await expect(page.locator('#screenReward .rewardJourney')).toBeHidden();
+  await expect(page.locator('#rewardNext')).toBeVisible();
+  await expect(page.locator('#rewardRepeat')).toBeVisible();
+  const incorrectState = await incorrect.evaluate(node => {
+    const root = getComputedStyle(document.documentElement);
+    const normalise = value => {
+      const probe = document.createElement('span');
+      probe.style.color = value;
+      document.body.appendChild(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    };
+    return {
+      background: getComputedStyle(node).backgroundColor,
+      expected: normalise(root.getPropertyValue('--danger-soft').trim()),
+      marker: getComputedStyle(node, '::after').content
+    };
+  });
+  expect(incorrectState.background).toBe(incorrectState.expected);
+  expect(incorrectState.marker).not.toBe('none');
+  const pulseStyle = await page.locator('#pulseTry').evaluate(node => {
+    const style = getComputedStyle(node);
+    return { background: style.backgroundColor, shadow: style.boxShadow };
+  });
+  expect(pulseStyle.background).toBe('rgba(0, 0, 0, 0)');
+  expect(pulseStyle.shadow).not.toBe('none');
+
+  await page.locator('#rewardRepeat').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+  const correct = page.locator('#choiceGrid [data-role="correct-target"]').first();
+  await correct.click();
+  await expect(correct).toHaveClass(/correct/);
+  const correctState = await correct.evaluate(node => {
+    const root = getComputedStyle(document.documentElement);
+    const normalise = value => {
+      const probe = document.createElement('span');
+      probe.style.color = value;
+      document.body.appendChild(probe);
+      const colour = getComputedStyle(probe).color;
+      probe.remove();
+      return colour;
+    };
+    return {
+      background: getComputedStyle(node).backgroundColor,
+      expected: normalise(root.getPropertyValue('--success-soft').trim()),
+      marker: getComputedStyle(node, '::after').content
+    };
+  });
+  expect(correctState.background).toBe(correctState.expected);
+  expect(correctState.marker).not.toBe('none');
+  await page.locator('#rewardNext').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+});
+
 test('alpha exports include sensory preferences and sound metadata', async ({ page }) => {
   await gotoAlpha(page);
   await setValue(page, 'themeChoice', 'calm-light');
@@ -591,4 +672,14 @@ test('mobile learner layout stays within the viewport', async ({ page }) => {
   const returnBox = await page.locator('#teacherExitHold').boundingBox();
   expect(returnBox.width).toBeGreaterThanOrEqual(44);
   expect(returnBox.height).toBeGreaterThanOrEqual(44);
+  const learnerControlsFit = await page.locator('#learnerHelpBtn, #learnerBreakBtn, #learnerStopBtn').evaluateAll(nodes => nodes.map(node => {
+    const rect = node.getBoundingClientRect();
+    return { top: rect.top, bottom: rect.bottom, left: rect.left, right: rect.right };
+  }));
+  learnerControlsFit.forEach(rect => {
+    expect(rect.top).toBeGreaterThanOrEqual(0);
+    expect(rect.bottom).toBeLessThanOrEqual(dimensions.height);
+    expect(rect.left).toBeGreaterThanOrEqual(0);
+    expect(rect.right).toBeLessThanOrEqual(dimensions.width);
+  });
 });

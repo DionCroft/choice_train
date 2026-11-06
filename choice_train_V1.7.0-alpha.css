@@ -868,11 +868,13 @@ td {
 }
 
 .pulseGood {
-  background: var(--success-soft);
+  background: transparent;
+  box-shadow: inset 0 0 0 10px var(--success);
 }
 
 .pulseTry {
-  background: var(--warning-soft);
+  background: transparent;
+  box-shadow: inset 0 0 0 10px var(--warning);
 }
 
 .hero,
@@ -963,6 +965,15 @@ td {
 .rewardCollection {
   color: var(--text-muted);
   font-size: 0.88rem;
+}
+
+#screenReward.feedbackOnly .stars,
+#screenReward.feedbackOnly .rewardJourney {
+  display: none;
+}
+
+#screenReward.feedbackOnly .hero {
+  color: var(--text);
 }
 
 body.celebration-quiet .rewardJourney {
@@ -1072,6 +1083,20 @@ body.panel-view-admin .wrap:not(.learner) .panel > .section:first-child {
 body.panel-view-admin .wrap:not(.learner) .panel > .adminSection {
   width: min(1380px, 100%);
   margin: 16px auto 0;
+}
+
+body.panel-view-admin #adminPanelDetails,
+body.panel-view-admin #adminResearchWorkspace [data-admin-pages] {
+  display: none;
+}
+
+body.panel-view-admin.admin-page-system #adminPanelDetails,
+body.panel-view-admin.admin-page-overview #adminResearchWorkspace [data-admin-pages~="overview"],
+body.panel-view-admin.admin-page-sessions #adminResearchWorkspace [data-admin-pages~="sessions"],
+body.panel-view-admin.admin-page-learners #adminResearchWorkspace [data-admin-pages~="learners"],
+body.panel-view-admin.admin-page-eeg #adminResearchWorkspace [data-admin-pages~="eeg"],
+body.panel-view-admin.admin-page-system #adminResearchWorkspace [data-admin-pages~="system"] {
+  display: block;
 }
 
 body.panel-view-admin .wrap:not(.learner) .main {
@@ -1243,6 +1268,62 @@ body.panel-view-admin th {
   .playArea {
     min-height: 76vh;
     border-radius: 20px;
+  }
+
+  .wrap.learner .stage {
+    height: 100vh;
+    height: 100dvh;
+    min-height: 0;
+    gap: 8px;
+  }
+
+  .wrap.learner .topBar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    flex: 0 0 auto;
+    align-items: center;
+  }
+
+  .wrap.learner .learnerBanner {
+    grid-column: 1 / -1;
+  }
+
+  .wrap.learner .trackWrap {
+    grid-column: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .wrap.learner #levelBadge {
+    grid-column: 2;
+  }
+
+  .wrap.learner .track {
+    min-width: 0;
+  }
+
+  .wrap.learner .playArea {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .wrap.learner .screen {
+    padding: 12px;
+  }
+
+  .wrap.learner .choice {
+    min-height: 180px;
+  }
+
+  .wrap.learner .footerBar {
+    flex: 0 0 auto;
+    min-height: 0;
+    gap: 7px;
+    padding: 8px;
+  }
+
+  .wrap.learner .footerBar > div:first-child {
+    width: 100%;
   }
 
   .topBar {
