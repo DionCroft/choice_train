@@ -215,6 +215,32 @@ label {
   margin-top: 10px;
 }
 
+.adminWorkspaceNav {
+  display: none;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+  margin-top: 10px;
+}
+
+body.panel-view-admin .adminWorkspaceNav {
+  display: grid;
+}
+
+.panel .adminNavBtn {
+  min-height: 42px;
+  padding: 8px;
+  border-color: transparent;
+  background: transparent;
+  color: var(--shell-muted);
+  font-size: 0.84rem;
+}
+
+.panel .adminNavBtn.active {
+  color: #0b4f82;
+  background: #e2ebf4;
+  border-color: #aac5da;
+}
+
 .panel .teacherNavBtn {
   min-height: 42px;
   padding: 8px;
@@ -231,6 +257,10 @@ label {
 }
 
 body.panel-view-admin .teacherWorkspaceNav {
+  display: none;
+}
+
+body.panel-view-admin .modeBar {
   display: none;
 }
 
@@ -664,6 +694,49 @@ body.celebration-lively .stars span.on:nth-child(3) {
   display: none;
 }
 
+.wrap.learner {
+  width: 100%;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 100vh;
+  min-height: 100dvh;
+  overflow: hidden;
+}
+
+.wrap.learner .main,
+.wrap.learner .stage {
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+body.theme-calm-light .main .footerBar,
+body.theme-light-classroom .main .footerBar {
+  color: #ffffff;
+  background: #17233a;
+  border-color: #2f405c;
+}
+
+body.theme-calm-light .main .footerBar #footerHint,
+body.theme-light-classroom .main .footerBar #footerHint {
+  color: #ffffff;
+}
+
+body.theme-calm-light .main .badge,
+body.theme-light-classroom .main .badge {
+  color: #17233a;
+  background: #dceaf4;
+  border-color: #9eb5c7;
+}
+
+body.theme-calm-light .main .trackWrap .badge,
+body.theme-light-classroom .main .trackWrap .badge {
+  color: #ffffff;
+  background: #2f405c;
+  border-color: #73819a;
+}
+
 body.panel-view-admin .wrap:not(.learner) {
   display: block;
   min-height: 100vh;
@@ -707,6 +780,45 @@ body.panel-view-admin .metaItem {
 body.panel-view-admin .tableWrap {
   max-height: 420px;
   border: 1px solid var(--shell-border);
+}
+
+.adminAnchor {
+  scroll-margin-top: 180px;
+}
+
+.exportCentre {
+  border-top: 2px solid var(--shell-secondary);
+}
+
+.exportCentreGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 10px 0;
+}
+
+.panel .exportCentreGrid button {
+  min-height: 120px;
+  padding: 16px;
+  text-align: left;
+}
+
+.exportCentreGrid button b,
+.exportCentreGrid button span {
+  display: block;
+}
+
+.exportCentreGrid button b {
+  margin-bottom: 7px;
+  font-size: 1rem;
+}
+
+.exportCentreGrid button span {
+  color: inherit;
+  font-size: 0.82rem;
+  font-weight: 400;
+  line-height: 1.4;
+  opacity: 0.86;
 }
 
 body.panel-view-admin th {
@@ -848,6 +960,14 @@ body.panel-view-admin th {
   }
 
   body.panel-view-admin .analyticsPanel {
+    grid-template-columns: 1fr;
+  }
+
+  .adminWorkspaceNav {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .exportCentreGrid {
     grid-template-columns: 1fr;
   }
 }

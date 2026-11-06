@@ -284,6 +284,7 @@
     viewMode: 'desktop',
     panelView: 'teacher',
     teacherPage: 'today',
+    adminPage: 'overview',
     phase: 'idle',
     sessionId: '',
     sessionStartMs: 0,
@@ -1108,14 +1109,7 @@
       ui.adminPanelTab.setAttribute('aria-pressed', String(active));
     }
     if(state.panelView === 'admin'){
-      if(ui.adminPanelDetails) ui.adminPanelDetails.open = true;
-      if(options.scroll && ui.adminPanelDetails){
-        try {
-          ui.adminPanelDetails.scrollIntoView({ block: 'start', behavior: 'smooth' });
-        } catch(_err){
-          ui.adminPanelDetails.scrollIntoView();
-        }
-      }
+      applyAdminPage(state.adminPage || 'overview', options);
       return;
     }
     const teacherSection = document.querySelector('.teacherSection');
@@ -1150,6 +1144,46 @@
         section.scrollIntoView();
       }
     }
+  }
+
+  function applyAdminPage(page, options={}){
+    const targets = {
+      overview: ui.adminAnalyticsSection,
+      sessions: ui.adminHistorySection,
+      learners: ui.adminLearnerProfileSection,
+      eeg: ui.adminEegSection,
+      system: ui.adminPanelDetails
+    };
+    const buttons = {
+      overview: ui.adminNavOverview,
+      sessions: ui.adminNavSessions,
+      learners: ui.adminNavLearners,
+      eeg: ui.adminNavEeg,
+      system: ui.adminNavSystem
+    };
+    const nextPage = targets[page] ? page : 'overview';
+    state.adminPage = nextPage;
+    Object.keys(buttons).forEach(value => {
+      if(!buttons[value]) return;
+      const active = value === nextPage;
+      buttons[value].classList.toggle('active', active);
+      buttons[value].setAttribute('aria-pressed', String(active));
+    });
+    if(nextPage === 'system'){
+      if(ui.adminPanelDetails) ui.adminPanelDetails.open = true;
+    } else if(ui.adminResearchWorkspace){
+      ui.adminResearchWorkspace.open = true;
+    }
+    const target = targets[nextPage];
+    if(options.scroll && target){
+      try {
+        target.scrollIntoView({ block: 'start', behavior: currentMotionPreference() === 'reduced' ? 'auto' : 'smooth' });
+      } catch(_err){
+        target.scrollIntoView();
+      }
+    }
+    if(nextPage === 'overview') refreshDashboard(true);
+    if(nextPage === 'sessions') refreshHistoryManager();
   }
 
   function openTeacherPanel(){
@@ -5269,6 +5303,11 @@
     bindAction(ui.adminModeFab, openAdminPanel);
     bindAction(ui.teacherPanelTab, openTeacherPanel);
     bindAction(ui.adminPanelTab, openAdminPanel);
+    bindAction(ui.adminNavOverview, () => applyAdminPage('overview', { scroll: true }));
+    bindAction(ui.adminNavSessions, () => applyAdminPage('sessions', { scroll: true }));
+    bindAction(ui.adminNavLearners, () => applyAdminPage('learners', { scroll: true }));
+    bindAction(ui.adminNavEeg, () => applyAdminPage('eeg', { scroll: true }));
+    bindAction(ui.adminNavSystem, () => applyAdminPage('system', { scroll: true }));
     bindAction(ui.teacherNavToday, () => {
       openTeacherPanel();
       applyTeacherPage('today', { scroll: true });
@@ -5282,6 +5321,9 @@
       applyTeacherPage('results', { scroll: true });
     });
     bindAction(ui.soundPreviewBtn, () => playSoundCue('preview', { source: 'teacher-preview' }));
+    bindAction(ui.adminExportSessionBtn, exportLogs);
+    bindAction(ui.adminExportResearchBtn, exportEegMarkers);
+    bindAction(ui.adminExportHistoryBtn, exportStoredHistory);
     bindAction(ui.addPupil, () => {
       const name = ui.newPupilName.value.trim();
       if(!name) return;

@@ -75,8 +75,39 @@ test('admin and research workspace is separate and uses the full viewport', asyn
   await expect(page.locator('body')).toHaveClass(/panel-view-admin/);
   await expect(page.locator('#adminPanelDetails')).toBeVisible();
   await expect(page.locator('.main')).toBeHidden();
+  await expect(page.locator('.modeBar')).toBeHidden();
   const panelWidth = await page.locator('.panel').evaluate(node => node.getBoundingClientRect().width);
   expect(panelWidth).toBeGreaterThan(900);
+});
+
+test('admin navigation opens the correct research and system destinations', async ({ page }) => {
+  await gotoAlpha(page);
+  await page.locator('#adminPanelTab').click();
+  await expect(page.locator('#adminResearchWorkspace')).toHaveAttribute('open', '');
+  await expect(page.locator('#adminNavOverview')).toHaveAttribute('aria-pressed', 'true');
+  await page.locator('#adminNavSessions').click();
+  await expect(page.locator('#adminNavSessions')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#adminHistorySection')).toBeVisible();
+  await page.locator('#adminNavLearners').click();
+  await expect(page.locator('#adminLearnerProfileSection')).toBeVisible();
+  await page.locator('#adminNavEeg').click();
+  await expect(page.locator('#adminEegSection')).toBeVisible();
+  await page.locator('#adminNavSystem').click();
+  await expect(page.locator('#adminPanelDetails')).toHaveAttribute('open', '');
+});
+
+test('admin export centre provides a complete local session export', async ({ page }) => {
+  await gotoAlpha(page);
+  await page.locator('#adminPanelTab').click();
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#adminExportSessionBtn').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_.+_session\.json$/);
+  const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  expect(payload.build.version).toBe('1.7.0-alpha');
+  expect(payload).toHaveProperty('trials');
+  expect(payload).toHaveProperty('eeg_markers');
+  expect(payload).toHaveProperty('sensory_preferences');
 });
 
 test('teacher navigation shows one focused workflow at a time', async ({ page }) => {
@@ -131,6 +162,20 @@ test('learner view hides configuration and provides a deliberate teacher return'
   await expect(page.locator('.panel')).toBeHidden();
   await expect(page.locator('#adminModeFab')).toBeHidden();
   await expect(page.locator('#teacherExitHold')).toBeVisible();
+  const viewportFit = await page.evaluate(() => ({ height: innerHeight, scrollHeight: document.documentElement.scrollHeight }));
+  expect(viewportFit.scrollHeight).toBeLessThanOrEqual(viewportFit.height + 2);
+  const footerContrast = await page.locator('.footerBar').evaluate(node => {
+    const luminance = colour => {
+      const values = colour.match(/[\d.]+/g).slice(0, 3).map(value => Number(value) / 255);
+      const linear = values.map(value => value <= 0.03928 ? value / 12.92 : ((value + 0.055) / 1.055) ** 2.4);
+      return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+    };
+    const style = getComputedStyle(node);
+    const foreground = luminance(style.color);
+    const background = luminance(style.backgroundColor);
+    return (Math.max(foreground, background) + 0.05) / (Math.min(foreground, background) + 0.05);
+  });
+  expect(footerContrast).toBeGreaterThanOrEqual(4.5);
   await page.locator('#teacherExitHold').dispatchEvent('pointerdown', { button: 0 });
   await page.waitForTimeout(1300);
   await expect(page.locator('.panel')).toBeVisible();

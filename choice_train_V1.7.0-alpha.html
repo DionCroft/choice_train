@@ -331,6 +331,13 @@
         <button id="teacherNavPersonalise" class="teacherNavBtn" type="button" aria-pressed="false">Personalise</button>
         <button id="teacherNavResults" class="teacherNavBtn" type="button" aria-pressed="false">Results</button>
       </nav>
+      <nav class="adminWorkspaceNav" aria-label="Admin and research workspace pages">
+        <button id="adminNavOverview" class="adminNavBtn active" type="button" aria-pressed="true">Overview</button>
+        <button id="adminNavSessions" class="adminNavBtn" type="button" aria-pressed="false">Sessions</button>
+        <button id="adminNavLearners" class="adminNavBtn" type="button" aria-pressed="false">Learners</button>
+        <button id="adminNavEeg" class="adminNavBtn" type="button" aria-pressed="false">EEG</button>
+        <button id="adminNavSystem" class="adminNavBtn" type="button" aria-pressed="false">System</button>
+      </nav>
     </div>
 
     <details class="section menuSection teacherSection" data-teacher-view="today" open>
@@ -812,7 +819,7 @@
       </div>
     </details>
 
-    <details class="section menuSection adminSection student-hide-panel">
+    <details id="adminResearchWorkspace" class="section menuSection adminSection student-hide-panel">
       <summary>Research / Debug Settings</summary>
       <div class="menuBody">
         <div class="sectionIntro">
@@ -881,7 +888,7 @@
           </div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminPromptSection" class="section adminAnchor" style="padding-top:14px">
           <div class="sub">Prompting and support</div>
           <div class="dashboard">
             <div class="dashCard"><div class="k">Current prompt level</div><div class="v" id="currentPromptLabel">Independent</div></div>
@@ -900,7 +907,7 @@
           <div class="compactNote">Structured prompt levels help teachers and researchers interpret whether a response was independent, prompted, or assisted.</div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminLearnerProfileSection" class="section adminAnchor" style="padding-top:14px">
           <div class="sub">Learner profile and research foundation</div>
           <div class="adminGrid">
             <div>
@@ -1027,7 +1034,7 @@
           <textarea id="classroomTransferNotes" placeholder="Teacher-rated attention, work completion, classroom transfer, confidence, reading, writing, maths, or independence observations..."></textarea>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminEegSection" class="section adminAnchor" style="padding-top:14px">
           <div class="sub">EEG and observational data quality</div>
           <div class="dashboard">
             <div class="dashCard"><div class="k">Current block</div><div class="v" id="eegCurrentBlock">1</div></div>
@@ -1045,7 +1052,7 @@
           <div class="compactNote">Artifact logs are observational quality markers for later EEG interpretation. They do not change the learner score.</div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminFidelitySection" class="section adminAnchor" style="padding-top:14px">
           <div class="sub">Fidelity and coaching</div>
           <div class="dashboard">
             <div class="dashCard"><div class="k">Fidelity score</div><div class="v" id="fidelityScore">0%</div></div>
@@ -1073,7 +1080,7 @@
           <textarea id="coachingReviewNotes" placeholder="What worked, what support was needed, what to try next session, and any teacher or TA coaching reflections..."></textarea>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminHistorySection" class="section adminAnchor" style="padding-top:14px">
           <div class="sub">Session History Manager</div>
           <div class="dashboard">
             <div class="dashCard"><div class="k">Active sessions</div><div class="v" id="historyActiveCount">0</div></div>
@@ -1103,7 +1110,26 @@
           <div class="compactNote" id="historyStatus">History is loaded from IndexedDB to keep long-term session records out of synchronous browser storage.</div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminExportSection" class="section adminAnchor exportCentre" style="padding-top:14px">
+          <div class="sub">Export centre</div>
+          <div class="exportCentreGrid">
+            <button id="adminExportSessionBtn" class="primary" type="button">
+              <b>Session JSON</b>
+              <span>School-friendly session, pupil context, sensory preferences, trials, and events.</span>
+            </button>
+            <button id="adminExportResearchBtn" type="button">
+              <b>EEG / research data</b>
+              <span>Markers, blocks, artifacts, trial timing, and selected research format.</span>
+            </button>
+            <button id="adminExportHistoryBtn" type="button">
+              <b>Stored history</b>
+              <span>Filtered longitudinal sessions from local IndexedDB storage.</span>
+            </button>
+          </div>
+          <div class="compactNote">Exports are created locally. ChoiceTrain does not upload pupil, image, touch, or research data to an external service.</div>
+        </div>
+
+        <div id="adminAnalyticsSection" class="section adminAnchor" style="padding-top:14px">
           <div class="sub">Detailed analytics</div>
           <div class="analyticsGrid">
             <div class="dashCard"><div class="k">Session task lock</div><div class="v" id="dashTaskLock">Auto</div></div>
@@ -1187,7 +1213,7 @@
           </div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminBuildSection" class="section adminAnchor" style="padding-top:14px">
           <div class="sub">About / Build Info</div>
           <div class="aboutGrid">
             <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.7.0-alpha</div></div>
