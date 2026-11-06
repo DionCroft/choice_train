@@ -1,0 +1,19 @@
+cff-version: 1.2.0
+message: If you use ChoiceTrain in research, please cite this software and the relevant papers listed in docs/RESEARCH_EVIDENCE.md.
+title: ChoiceTrain for ShowMe
+type: software
+authors:
+  - given-names: Dion
+    family-names: Croft
+version: 1.6.0
+date-released: 2026-11-06
+repository-code: https://github.com/DionCroft/choice_train
+url: https://dioncroft.github.io/choice_train/
+abstract: A local-first, touch-first teaching and research-support application for SEND classrooms, with personalised content, Attention Training activities, structured exports, and EEG-ready event markers.
+keywords:
+  - SEND
+  - education
+  - accessibility
+  - attention training
+  - touch interaction
+  - EEG research

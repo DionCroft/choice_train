@@ -1,17 +1,22 @@
 # ChoiceTrain for ShowMe
 
+[![Browser tests](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml)
+[![GitHub Pages](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml)
+
+**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
+
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
-The current review release is `V1.6.0`. Historical versioned builds remain in the repository for traceability.
+The current stable release is `V1.6.0`. Historical versioned builds remain in `releases/` for traceability.
 
 Live site:
 `https://dioncroft.github.io/choice_train/`
 
 User guide:
-[userguide.md](userguide.md)
+[docs/USER_GUIDE.md](docs/USER_GUIDE.md)
 
 School-readiness audit:
-[SCHOOL_READINESS_AUDIT.md](SCHOOL_READINESS_AUDIT.md)
+[docs/SCHOOL_READINESS_AUDIT.md](docs/SCHOOL_READINESS_AUDIT.md)
 
 ## What ChoiceTrain Is
 
@@ -31,9 +36,11 @@ ChoiceTrain is currently a teaching and research-support tool. It is not a diagn
 
 The app can support structured classroom activities, teacher observation, and research-linked data collection, but practitioner judgement and school safeguarding processes still sit around its use.
 
+Pupil data stays in the current browser unless a user deliberately downloads an export. Schools should review [the data and privacy notes](docs/DATA_AND_PRIVACY.md) before adding identifiable profiles or photographs.
+
 ## Research Evidence
 
-A dedicated peer-reviewed evidence list is available in [RESEARCH_EVIDENCE.md](RESEARCH_EVIDENCE.md).
+A dedicated peer-reviewed evidence list is available in [docs/RESEARCH_EVIDENCE.md](docs/RESEARCH_EVIDENCE.md).
 
 That file groups the papers used to justify major ChoiceTrain feature areas, including:
 
@@ -464,7 +471,7 @@ npm run test:browser
 The `V1.6.0` work is validated with:
 
 - `node --check choice_train_V1.6.0.js`
-- 55 passing Playwright browser tests covering the live entry point, levels 1-10, AT and EEG flows, Teacher/Admin switching, Student-friendly mode, prompt wording, blank intervals, reset behavior, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, theme persistence, photo personalisation, and desktop/tablet visual review
+- 56 passing Playwright browser tests covering the live entry point, archived-release loading, levels 1-10, AT and EEG flows, Teacher/Admin switching, Student-friendly mode, prompt wording, blank intervals, reset behavior, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, theme persistence, photo personalisation, and desktop/tablet visual review
 
 ## Current Limitations
 
@@ -491,13 +498,19 @@ Planned or likely next steps include:
 Key files and folders:
 
 - `index.html` - current live entry file
-- `choice_train_V1.6.0.html` - versioned review HTML snapshot
-- `choice_train_V1.6.0.js` - paired runtime for the review snapshot
+- `choice_train_V1.6.0.html` - current versioned HTML build
+- `choice_train_V1.6.0.js` - paired current runtime
 - `assets/` - branding and static assets
+- `docs/` - user, privacy, architecture, evidence, and school-readiness documentation
+- `releases/` - preserved historical builds and their shared archive assets
 - `tests/` - Playwright browser tests
-- `scripts/` - local test and utility scripts
-- `SCHOOL_READINESS_AUDIT.md` - Brackensfield pilot feedback, audit findings, accessibility basis, and deferred progression questions
+- `scripts/` - local test, static-server, and release-stamping utilities
+- `.github/` - CI, GitHub Pages, issue, and pull-request configuration
 - `CHANGELOG.md` - release history
+- `CONTRIBUTING.md` - contribution and verification workflow
+- `SECURITY.md` - private vulnerability-reporting guidance
+
+For implementation boundaries and the release process, see [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Contributions should follow [CONTRIBUTING.md](CONTRIBUTING.md), particularly the prohibition on real pupil data in issues, fixtures, and pull requests.
 
 ## ShowMe Branding
 

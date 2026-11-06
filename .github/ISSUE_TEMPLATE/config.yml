@@ -1,0 +1,5 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Private security report
+    url: https://github.com/DionCroft/choice_train/security/advisories/new
+    about: Report security or privacy vulnerabilities privately. Never include pupil data in a public issue.

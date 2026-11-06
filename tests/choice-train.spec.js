@@ -94,6 +94,16 @@ test('live index loads the V1.6.0 stable build', async ({ page }) => {
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
+test('archived V1.5.0 release remains runnable from the releases folder', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await page.goto('/releases/choice_train_V1.5.0.html');
+  await expect(page.locator('#beginFlow')).toBeVisible();
+  await expect(page.locator('#versionInfo')).toContainText('V1.5.0');
+  await expect(page.locator('.brandLogo')).toHaveAttribute('src', 'assets/showme-logo.png');
+  await expect(page.locator('.brandLogo')).toBeVisible();
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
 async function configureSession(page, overrides = {}) {
   const settings = {
     ttsToggle: false,

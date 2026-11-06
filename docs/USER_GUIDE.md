@@ -598,10 +598,11 @@ ChoiceTrain should always be used alongside professional educational judgement. 
 
 ## 23. Related Documentation
 
-- [README.md](README.md)
+- [README.md](../README.md)
 - [RESEARCH_EVIDENCE.md](RESEARCH_EVIDENCE.md)
 - [SCHOOL_READINESS_AUDIT.md](SCHOOL_READINESS_AUDIT.md)
-- [CHANGELOG.md](CHANGELOG.md)
+- [DATA_AND_PRIVACY.md](DATA_AND_PRIVACY.md)
+- [CHANGELOG.md](../CHANGELOG.md)
 
 ---
 

@@ -1,3 +1,11 @@
 node_modules/
 playwright-report/
 test-results/
+.DS_Store
+Thumbs.db
+.env
+.env.*
+ChoiceTrain_*_session.json
+ChoiceTrain_*_eeg.json
+ChoiceTrain_*_eeg.tsv
+choice_train_history_*.json

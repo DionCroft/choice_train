@@ -1,0 +1,31 @@
+name: Feature request
+description: Suggest a classroom, accessibility, research, or maintenance improvement.
+title: "[Feature]: "
+labels:
+  - enhancement
+body:
+  - type: textarea
+    id: need
+    attributes:
+      label: Classroom or research need
+      description: Describe the problem without including identifiable pupil information.
+    validations:
+      required: true
+  - type: textarea
+    id: outcome
+    attributes:
+      label: Desired outcome
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence or guidance
+      description: Add peer-reviewed or authoritative sources where the request changes educational behaviour.
+  - type: checkboxes
+    id: considerations
+    attributes:
+      label: Considerations
+      options:
+        - label: Accessibility and touchscreen use have been considered.
+        - label: Privacy, consent, and safeguarding implications have been considered.

@@ -39,7 +39,7 @@ function Escape-JsValue {
   return (($Value -replace '\\', '\\\\') -replace "'", "\\'")
 }
 
-$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '.'))
+$repoRoot = [System.IO.Path]::GetFullPath((Join-Path $PSScriptRoot '..'))
 if(-not $ReleaseLabel){
   $ReleaseLabel = "V$Version"
 }

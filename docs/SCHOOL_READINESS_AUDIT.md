@@ -13,7 +13,7 @@ Validation completed:
 
 - JavaScript syntax check passed for `choice_train_V1.6.0.js`
 - no duplicate HTML element IDs were found in the versioned build
-- all 55 Playwright tests passed, including V1.6.0 category, image, filter, export, theme, and visual-review coverage
+- all 56 Playwright tests passed, including V1.6.0 category, image, filter, export, theme, archived-release, and visual-review coverage
 - the tested version retains the static GitHub Pages deployment model
 
 ## Feedback Outcomes

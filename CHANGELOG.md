@@ -25,6 +25,10 @@ All notable changes to ChoiceTrain are listed here.
 - expanded the stock catalogue across family, people, animals, transport, food, fruit, and symbols / shapes
 - changed all photo presentation surfaces to proportional `contain` framing by default instead of cutting images to fill a square
 - expanded ordinary exports with schema and content-configuration metadata while continuing to omit raw image data
+- reorganised superseded V1.2 to V1.5 builds into a documented `releases/` archive while keeping the current Pages entry and V1.6.0 pair at the root
+- moved user, research, privacy, architecture, and school-readiness material into `docs/`
+- moved release stamping into `scripts/` and added CI validation before GitHub Pages deployment
+- added contribution, security, issue, pull-request, editor, citation, and line-ending metadata for a more maintainable public repository
 
 ### Fixed
 
@@ -46,7 +50,7 @@ All notable changes to ChoiceTrain are listed here.
 
 - `node --check choice_train_V1.6.0.js`
 - 266 unique HTML element IDs with no duplicates
-- 55 Playwright tests passed against the promoted `index.html` and versioned V1.6.0 build
+- 56 Playwright tests passed against the promoted `index.html`, versioned V1.6.0 build, and archived V1.5.0 path
 - desktop and tablet screenshots were inspected for Plain White readability, portrait/landscape framing, the photo editor, and learner-mode target layout
 
 ## [1.5.0] - 2026-11-05
