@@ -148,6 +148,77 @@ test('every learner theme supplies a complete accessible semantic palette', asyn
   }
 });
 
+test('every learner theme controls the complete active-task surface', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', false);
+  await setValue(page, 'startLevel', 2);
+  await setValue(page, 'sessionMax', 1);
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+  const themes = await page.locator('#themeChoice option').evaluateAll(options => options.map(option => option.value));
+
+  for(const theme of themes){
+    await setValue(page, 'themeChoice', theme);
+    await page.waitForTimeout(160);
+    const audit = await page.evaluate(() => {
+      const root = getComputedStyle(document.documentElement);
+      const normalise = value => {
+        const probe = document.createElement('span');
+        probe.style.color = value;
+        document.body.appendChild(probe);
+        const colour = getComputedStyle(probe).color;
+        probe.remove();
+        return colour;
+      };
+      const token = name => normalise(root.getPropertyValue(`--${name}`).trim());
+      const background = selector => getComputedStyle(document.querySelector(selector)).backgroundColor;
+      const foreground = selector => getComputedStyle(document.querySelector(selector)).color;
+      const rgb = value => (value.match(/[\d.]+/g) || []).slice(0, 3).map(Number);
+      const luminance = value => {
+        const linear = rgb(value).map(channel => {
+          const normal = channel / 255;
+          return normal <= 0.04045 ? normal / 12.92 : ((normal + 0.055) / 1.055) ** 2.4;
+        });
+        return 0.2126 * linear[0] + 0.7152 * linear[1] + 0.0722 * linear[2];
+      };
+      const contrast = (a, b) => {
+        const first = luminance(a);
+        const second = luminance(b);
+        return (Math.max(first, second) + 0.05) / (Math.min(first, second) + 0.05);
+      };
+      const pairs = ['.promptBox', '.choice', '.footerBar', '.trackWrap'].map(selector => ({
+        selector,
+        ratio: contrast(foreground(selector), background(selector))
+      }));
+      return {
+        expected: {
+          raised: token('surface-raised'),
+          subtle: token('surface-subtle')
+        },
+        actual: {
+          prompt: background('.promptBox'),
+          choice: background('.choice'),
+          media: background('.choiceMedia'),
+          footer: background('.footerBar'),
+          track: background('.trackWrap'),
+          playArea: background('.playArea')
+        },
+        pairs
+      };
+    });
+    expect(audit.actual.prompt).toBe(audit.expected.raised);
+    expect(audit.actual.choice).toBe(audit.expected.raised);
+    expect(audit.actual.media).toBe(audit.expected.subtle);
+    expect(audit.actual.footer).toBe(audit.expected.raised);
+    expect(audit.actual.track).toBe(audit.expected.raised);
+    expect(audit.actual.playArea).toBe(audit.expected.subtle);
+    audit.pairs.forEach(pair => expect(pair.ratio, `${theme} ${pair.selector}`).toBeGreaterThanOrEqual(4.5));
+  }
+});
+
 test('admin and research workspace is separate and uses the full viewport', async ({ page }) => {
   await gotoAlpha(page);
   await page.locator('#adminPanelTab').click();

@@ -550,16 +550,29 @@ td {
 
 .main {
   min-width: 0;
+  color: var(--text);
+}
+
+.main button {
+  color: var(--text);
+  background: var(--control);
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.main button:hover {
+  background: var(--control-hover);
 }
 
 .main button.primary {
-  color: #ffffff;
-  background: #0b6b68;
-  border-color: #0b6b68;
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: var(--primary);
 }
 
 .main button.primary:hover {
-  background: #075653;
+  background: var(--primary-hover);
+  border-color: var(--primary-hover);
 }
 
 .stage {
@@ -569,10 +582,201 @@ td {
 .playArea {
   min-height: 620px;
   border-radius: 32px;
+  color: var(--text);
+  background: var(--surface-subtle);
+  border-color: var(--border);
+  box-shadow: inset 0 0 0 1px var(--surface);
 }
 
 .screen {
   padding: clamp(20px, 4vw, 52px);
+}
+
+.topBar {
+  color: var(--text);
+}
+
+.trackWrap {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+  backdrop-filter: none;
+}
+
+.station {
+  color: var(--text-muted);
+  background: var(--control);
+  border-color: var(--border);
+}
+
+.station.done {
+  color: var(--success);
+  background: var(--success-soft);
+  border-color: var(--success);
+  box-shadow: inset 0 -3px 0 var(--success);
+}
+
+.station.current {
+  color: var(--on-primary);
+  background: var(--primary);
+  border-color: var(--primary);
+  box-shadow: 0 0 0 6px var(--focus-soft);
+}
+
+.trackLine {
+  background: var(--control);
+  border: 1px solid var(--border);
+}
+
+.trackFill {
+  background: linear-gradient(90deg, var(--primary), var(--success));
+}
+
+.badge,
+.pillTag,
+.learnerBanner,
+.countdownPill {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--border);
+}
+
+.learnerBanner .tiny {
+  color: var(--text-muted);
+}
+
+.hero,
+.promptText,
+.choiceLabel {
+  color: var(--text);
+}
+
+.heroSub,
+.promptRule,
+.choiceSmall {
+  color: var(--text-muted);
+}
+
+.promptBox {
+  color: var(--text);
+  background: var(--surface-raised);
+  border: 2px solid var(--border);
+  box-shadow: var(--shadow);
+}
+
+.promptVariant {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.bigCard,
+.main button.choice {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--border-strong);
+  box-shadow: var(--shadow);
+}
+
+.main button.choice:hover {
+  border-color: var(--focus);
+  box-shadow: 0 0 0 4px var(--focus-soft);
+}
+
+.main button.choice.correct {
+  color: var(--text);
+  background: var(--success-soft);
+  border-color: var(--success);
+  box-shadow: inset 0 -5px 0 var(--success);
+}
+
+.main button.choice.incorrect {
+  color: var(--text);
+  background: var(--danger-soft);
+  border-color: var(--danger);
+  box-shadow: inset 0 -5px 0 var(--danger);
+}
+
+.main button.choice.correct::after,
+.main button.choice.incorrect::after {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  display: grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border: 2px solid currentColor;
+  border-radius: 50%;
+  background: var(--surface-raised);
+  font-size: 1.2rem;
+  font-weight: 800;
+}
+
+.main button.choice.correct::after {
+  content: '\2713';
+  color: var(--success);
+}
+
+.main button.choice.incorrect::after {
+  content: '\00d7';
+  color: var(--danger);
+}
+
+.faceCircle,
+.imgCircle,
+.choiceMedia {
+  color: var(--text);
+  background: var(--surface-subtle);
+  border-color: var(--border);
+}
+
+.blankScreen {
+  background: var(--canvas);
+}
+
+.footerBar {
+  color: var(--text);
+  background: var(--surface-raised);
+  border-color: var(--border);
+  box-shadow: var(--shadow);
+}
+
+.footerBar .tiny {
+  color: var(--text-muted);
+}
+
+.learnerControls #learnerHelpBtn {
+  color: var(--primary);
+  background: var(--primary-soft);
+  border-color: var(--primary);
+}
+
+.learnerControls #learnerBreakBtn {
+  color: var(--warning);
+  background: var(--warning-soft);
+  border-color: var(--warning);
+}
+
+.learnerControls #learnerStopBtn {
+  color: var(--danger);
+  background: var(--danger-soft);
+  border-color: var(--danger);
+}
+
+.bigBadge {
+  color: var(--on-inverse);
+  background: var(--inverse);
+  border-color: var(--border-strong);
+}
+
+.pulseGood {
+  background: var(--success-soft);
+}
+
+.pulseTry {
+  background: var(--warning-soft);
 }
 
 .hero,
@@ -622,9 +826,9 @@ td {
 .rewardJourney {
   width: min(680px, 92%);
   padding: 16px 18px;
-  border: 1px solid rgba(255, 255, 255, 0.16);
+  border: 1px solid var(--border);
   border-radius: 20px;
-  background: rgba(255, 255, 255, 0.07);
+  background: var(--reward-soft);
 }
 
 .rewardRail {
@@ -632,14 +836,15 @@ td {
   height: 12px;
   margin: 24px 8px 10px;
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.16);
+  background: var(--control);
+  border: 1px solid var(--border);
 }
 
 .rewardRailFill {
   width: 0;
   height: 100%;
   border-radius: inherit;
-  background: linear-gradient(90deg, var(--accent), var(--good));
+  background: linear-gradient(90deg, var(--reward), var(--success));
   transition: width 480ms ease;
 }
 
@@ -660,12 +865,12 @@ td {
 }
 
 .rewardCollection {
-  color: var(--muted);
+  color: var(--text-muted);
   font-size: 0.88rem;
 }
 
 body.celebration-quiet .rewardJourney {
-  background: transparent;
+  background: var(--surface-raised);
 }
 
 body.celebration-quiet .rewardTrain,
@@ -714,6 +919,9 @@ body.celebration-lively .stars span.on:nth-child(3) {
   min-height: 52px;
   border-radius: 50%;
   opacity: 0.42;
+  color: var(--on-inverse);
+  background: var(--inverse);
+  border-color: var(--border-strong);
   box-shadow: none;
 }
 
@@ -743,32 +951,6 @@ body.celebration-lively .stars span.on:nth-child(3) {
   height: 100dvh;
   min-height: 0;
   overflow: hidden;
-}
-
-body.theme-calm-light .main .footerBar,
-body.theme-light-classroom .main .footerBar {
-  color: #ffffff;
-  background: #17233a;
-  border-color: #2f405c;
-}
-
-body.theme-calm-light .main .footerBar #footerHint,
-body.theme-light-classroom .main .footerBar #footerHint {
-  color: #ffffff;
-}
-
-body.theme-calm-light .main .badge,
-body.theme-light-classroom .main .badge {
-  color: #17233a;
-  background: #dceaf4;
-  border-color: #9eb5c7;
-}
-
-body.theme-calm-light .main .trackWrap .badge,
-body.theme-light-classroom .main .trackWrap .badge {
-  color: #ffffff;
-  background: #2f405c;
-  border-color: #73819a;
 }
 
 body.panel-view-admin .wrap:not(.learner) {
