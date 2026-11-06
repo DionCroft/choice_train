@@ -1,6 +1,8 @@
 # ChoiceTrain User Guide
 
-**Version:** `V1.6.0`
+**Published version:** `V1.6.0`
+
+**Preview version:** `V1.7.0-alpha` (not the live GitHub Pages build)
 **Project:** ChoiceTrain for ShowMe  
 **Repository:** https://github.com/DionCroft/choice_train  
 **Live site:** https://dioncroft.github.io/choice_train/
@@ -29,6 +31,16 @@ ChoiceTrain is designed to:
 - remain usable on school devices without requiring cloud services
 
 ChoiceTrain is a **teaching and research-support tool**. It is **not** a diagnostic, medical, or clinical system.
+
+### About the V1.7.0-alpha Preview
+
+The alpha preview is available only from its versioned local file or feature branch. The public live link still opens V1.6.0. Use:
+
+`http://localhost:8000/choice_train_V1.7.0-alpha.html`
+
+after starting a local server from the repository root. Do not use the alpha as the school's record of production sessions until its usability and data process have been approved.
+
+The automated repository matrix currently contains 71 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
 
 ---
 
@@ -87,6 +99,17 @@ It includes:
 - research and fidelity settings
 
 The Admin Panel is hidden by default and is intended for advanced users rather than everyday classroom setup.
+
+### V1.7 Workspace Navigation
+
+The alpha keeps the same capabilities but gives each role a focused workspace:
+
+- `Today` contains pupil selection, session readiness, daily settings, context and the primary start action.
+- `Personalise` contains pupil baseline preferences, images, categories and content choices.
+- `Results` contains the current session summary and school-friendly export.
+- `Admin & research` opens a full-width workspace with Overview, Sessions, Learners, EEG and System destinations.
+
+Select `Start learner session` to apply learner view and begin in one action. In learner mode, press and hold the small lock control for about 1.2 seconds to return to the teacher workspace. A normal tap does not exit; keyboard activation remains immediate for staff who use keyboard access.
 
 ---
 
@@ -429,6 +452,26 @@ Themes are intended as configurable classroom presentation options. Teachers sho
 
 Theme choice is stored locally and may also follow the selected pupil profile on that device.
 
+### Alpha Display and Sensory Preferences
+
+V1.7.0-alpha adds:
+
+- high-legibility or familiar sans-serif font
+- 90%, 100%, 115% or 130% text size
+- reduced, gentle or full motion
+- off, low or standard feedback sounds
+- quiet, gentle or lively celebrations
+
+These are individual access and presentation choices. A setting should be tried with the learner and adjusted when it causes distraction, discomfort or reduced task understanding. No font, colour, sound or animation is described as universally SEND-friendly.
+
+Atkinson Hyperlegible Next is bundled locally as the high-legibility option. It was designed to make letters more distinguishable for low-vision readers, but ChoiceTrain does not claim that it treats dyslexia or improves every learner's reading.
+
+### Reward and Sound
+
+The alpha uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
+
+Feedback cues are generated locally on the device. They can be muted, do not use a microphone and are not recordings. ChoiceTrain stops active tones before speaking a prompt to reduce overlap. In a research session, audio and reward onset are logged so presentation conditions can be interpreted.
+
 ---
 
 ## 15. Analytics and Touch Data
@@ -602,6 +645,9 @@ ChoiceTrain should always be used alongside professional educational judgement. 
 - [RESEARCH_EVIDENCE.md](RESEARCH_EVIDENCE.md)
 - [SCHOOL_READINESS_AUDIT.md](SCHOOL_READINESS_AUDIT.md)
 - [DATA_AND_PRIVACY.md](DATA_AND_PRIVACY.md)
+- [V1.7.0_ALPHA_DESIGN_DECISIONS.md](V1.7.0_ALPHA_DESIGN_DECISIONS.md)
+- [DATA_DICTIONARY.md](DATA_DICTIONARY.md)
+- [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md)
 - [CHANGELOG.md](../CHANGELOG.md)
 
 ---

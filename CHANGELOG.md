@@ -2,6 +2,51 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.7.0-alpha] - 2026-11-06
+
+This is an isolated candidate build. The published GitHub Pages entry remains `V1.6.0` until school usability, device, accessibility, privacy, and regression checks support promotion.
+
+### Added
+
+- three distinct workspaces: a focused teacher workflow, a full-viewport learner experience, and a full-width admin/research workspace
+- teacher navigation for Today, Personalise, and Results, with a readiness summary and one-action learner-session start
+- admin navigation for Overview, Sessions, Learners, EEG, and System, plus a local export centre
+- per-device and per-pupil font, text-scale, motion, feedback-sound, and celebration preferences
+- locally bundled Atkinson Hyperlegible Next font files and the SIL Open Font License
+- an original ChoiceTrain train-journey progress display and configurable celebration intensity
+- locally generated Web Audio feedback cues with off, low, and standard settings; no downloaded or copied game sounds
+- a deliberate press-and-hold teacher return from learner mode to reduce accidental exits
+- EEG marker codes for `audio_onset` and `reward_onset`
+- schema version 4 export fields for sensory and presentation preferences
+- a dedicated alpha browser suite and decision, data-dictionary, and usability-test documentation
+
+### Changed
+
+- replaced the dense shared desktop layout in the alpha with task-focused teacher and admin views while preserving the complete underlying controls
+- changed the alpha default presentation to a warm light, high-contrast shell with larger classroom controls
+- made reduced motion, quiet feedback, text size, and familiar-font alternatives explicit rather than assuming one SEND-friendly configuration
+- fitted learner mode to the dynamic viewport and removed unused page scrolling on tablet-sized screens
+- prevented locally generated feedback tones from competing with prompt speech
+
+### Preserved
+
+- the published `V1.6.0` files and `index.html`
+- levels 1-10, Attention Training families, pupil profiles, text-to-speech, photo personalisation, themes, local persistence, touch tracking, heatmaps, history, exports, EEG markers, fidelity tools, and GitHub Pages compatibility
+- local-first operation with no external pupil-data, analytics, audio, or LLM service
+
+### Evidence boundaries
+
+- the high-legibility font is a configurable accessibility option, not a claim of universal benefit for SEND learners or dyslexia
+- colour, motion, sound, and reward settings must be validated with each learner and practitioner
+- gamification is intentionally lightweight so it supports engagement without replacing or obscuring the training rule
+- the interface remains a teaching and research-support tool, not a diagnostic, medical, or clinically validated intervention
+
+### Validation
+
+- dedicated alpha Playwright tests cover loading, contrast, workspace separation, navigation, exports, sensory persistence, learner containment, rewards, EEG/audio metadata, and tablet controls
+- 71 Playwright tests passed across the stable entry, archived V1.5 path, V1.6 regression suite, and 15 dedicated alpha checks
+- visual review was completed for desktop admin and tablet learner views; real school-device and assisted-technology testing remains a promotion gate
+
 ## [1.6.0] - 2026-11-06
 
 ### Added

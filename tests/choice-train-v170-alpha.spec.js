@@ -51,6 +51,19 @@ test('V1.7.0 alpha loads its isolated product shell without browser errors', asy
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
+test('alpha loads without making external runtime requests', async ({ page }) => {
+  const requests = [];
+  page.on('request', request => requests.push(request.url()));
+  await gotoAlpha(page);
+  await page.locator('#soundPreviewBtn').click();
+  const appOrigin = new URL(page.url()).origin;
+  const external = requests.filter(url => {
+    const protocol = new URL(url).protocol;
+    return !['data:', 'blob:'].includes(protocol) && new URL(url).origin !== appOrigin;
+  });
+  expect(external).toEqual([]);
+});
+
 test('teacher shell uses the bundled high-legibility font and accessible contrast', async ({ page }) => {
   await gotoAlpha(page);
   const result = await page.locator('.panel').evaluate(node => {
@@ -156,6 +169,20 @@ test('sensory and display preferences persist and apply immediately', async ({ p
   await expect(page.locator('#celebrationIntensity')).toHaveValue('quiet');
 });
 
+test('reduced motion preference suppresses non-essential transitions', async ({ page }) => {
+  await gotoAlpha(page);
+  await setValue(page, 'motionPreference', 'reduced');
+  const timing = await page.locator('#rewardTrain').evaluate(node => {
+    const style = getComputedStyle(node);
+    return {
+      animation: parseFloat(style.animationDuration) || 0,
+      transition: parseFloat(style.transitionDuration) || 0
+    };
+  });
+  expect(timing.animation).toBeLessThanOrEqual(0.001);
+  expect(timing.transition).toBeLessThanOrEqual(0.001);
+});
+
 test('learner view hides configuration and provides a deliberate teacher return', async ({ page }) => {
   await gotoAlpha(page);
   await page.locator('#learnerModeBtn').click();
@@ -239,4 +266,28 @@ test('tablet learner layout keeps large controls and a two-column choice surface
   const box = await target.boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(150);
   expect(box.height).toBeGreaterThanOrEqual(180);
+});
+
+test('mobile learner layout stays within the viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', false);
+  await setValue(page, 'startLevel', 2);
+  await setValue(page, 'sessionMax', 1);
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+  const dimensions = await page.evaluate(() => ({
+    width: innerWidth,
+    scrollWidth: document.documentElement.scrollWidth,
+    height: innerHeight,
+    scrollHeight: document.documentElement.scrollHeight
+  }));
+  expect(dimensions.scrollWidth).toBeLessThanOrEqual(dimensions.width + 2);
+  expect(dimensions.scrollHeight).toBeLessThanOrEqual(dimensions.height + 2);
+  const returnBox = await page.locator('#teacherExitHold').boundingBox();
+  expect(returnBox.width).toBeGreaterThanOrEqual(44);
+  expect(returnBox.height).toBeGreaterThanOrEqual(44);
 });

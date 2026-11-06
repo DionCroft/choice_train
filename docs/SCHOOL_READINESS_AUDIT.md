@@ -2,12 +2,40 @@
 
 **Audit date:** 6 November 2026
 
-**Baseline release:** `V1.5.0`
+**Published baseline:** `V1.6.0`
+
+**Candidate under review:** `V1.7.0-alpha`
 **Purpose:** Prepare ChoiceTrain for initial teacher-led pupil testing at Brackensfield while preserving the existing learner, research, EEG, analytics, personalisation, and export features.
 
 ## Implementation Status
 
 The immediate usability scope was implemented in `V1.5.0`. `V1.6.0` adds teacher-controlled category catalogues and per-session content filters without changing the established level meanings. A broader automatic progression hierarchy remains deliberately deferred for practitioner design.
+
+`V1.7.0-alpha` is an isolated product-readiness candidate. It separates teacher, learner, and admin/research workspaces; adds configurable legibility and sensory presentation; and introduces an original train progress reward and local generated sounds. It does not change the live `index.html` or the established learning pathway.
+
+### V1.7 Candidate Status
+
+Implemented and automatically covered:
+
+- focused Today, Personalise, and Results teacher navigation
+- full-width Overview, Sessions, Learners, EEG, and System admin navigation
+- one-action learner start and deliberate press-and-hold return
+- high-contrast calm-light shell, bundled licensed font, text scaling, reduced motion, sound and celebration controls
+- learner dynamic-viewport containment and tablet target sizing
+- schema 4 sensory-preference exports and audio/reward EEG markers
+- preservation of the stable runtime and local-only data boundary
+
+Still required before stable promotion:
+
+- structured teacher/TA usability sessions at Brackensfield
+- appropriately consented learner observation across different access and sensory preferences
+- physical Windows touchscreen, iPad Safari, Android Chrome, and intended Kindle Silk checks
+- keyboard and assistive-technology review beyond automated Chromium coverage
+- school data-protection review of profiles, photographs, context notes and downloaded exports
+- research-team review of browser marker semantics and a separate timing-validation plan before EEG synchronisation
+- explicit product-owner approval to update `index.html`
+
+The detailed protocol and acceptance criteria are in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
 
 Validation completed:
 
@@ -15,6 +43,12 @@ Validation completed:
 - no duplicate HTML element IDs were found in the versioned build
 - all 56 Playwright tests passed, including V1.6.0 category, image, filter, export, theme, archived-release, and visual-review coverage
 - the tested version retains the static GitHub Pages deployment model
+
+Alpha branch validation completed:
+
+- all 71 Playwright tests passed together: 56 stable/archive checks and 15 alpha-specific checks
+- the alpha checks include workspace navigation, contrast, local-only requests, sensory persistence, reduced motion, learner containment, reward progress, export metadata, and tablet/mobile sizing
+- syntax checks passed for both V1.6.0 and V1.7.0-alpha, and the stable entry/versioned files have no alpha diff
 
 ## Feedback Outcomes
 
@@ -41,6 +75,7 @@ Validation completed:
 ### Medium priority
 
 - All styling and markup remain embedded in large versioned HTML files. This preserves the static deployment model but increases release-diff size and maintenance risk.
+- V1.7 moves its new presentation rules into a separate versioned stylesheet, but the inherited HTML and JavaScript remain large single files. A module-level refactor is deferred until after school workflow validation to avoid changing tested task logic and persistence at the same time as the interface.
 - Settings auto-save on both `input` and `change`; the debounce limits writes, but text/number changes can still trigger repeated pupil-profile persistence.
 - The current `Current level` input allows a manual task override that may not match the level description unless both are displayed together.
 

@@ -16,7 +16,7 @@ npm ci
 npm run test:browser
 ```
 
-The current application is `index.html` plus the matching versioned HTML and JavaScript pair. Test changes against both the versioned path and `/`.
+The published application is `index.html` plus the matching stable HTML and JavaScript pair. Experimental candidates such as `V1.7.0-alpha` must remain directly addressable versioned files and must not replace `index.html` until they pass the documented promotion gates.
 
 ## Pull Requests
 
@@ -26,7 +26,12 @@ Run before requesting review:
 
 ```bash
 node --check choice_train_V1.6.0.js
+node --check choice_train_V1.7.0-alpha.js
 npm run test:browser
 ```
 
 Do not promote a new `index.html` or stamp a stable build until the complete suite passes.
+
+For V1.7 work, also review [the alpha decision record](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md), [data dictionary](docs/DATA_DICTIONARY.md), and [usability test plan](docs/V1.7.0_USABILITY_TEST_PLAN.md). Do not describe a font, palette, reward, or sensory option as universally SEND-friendly or clinically proven. Preserve user choice and record the configuration used.
+
+Third-party fonts or other assets require a compatible licence in `LICENSES/`, local serving where possible, and attribution in the pull request. Never copy another product's characters, artwork, sounds, wording, or reward assets; product inspiration should remain at the level of general interaction principles.

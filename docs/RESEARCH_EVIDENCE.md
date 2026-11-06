@@ -95,6 +95,32 @@ These papers inform design choices, classroom workflow decisions, ChoiceTrain At
   Link: https://pmc.ncbi.nlm.nih.gov/articles/PMC7848153/
   Why it matters: this shaped the wording around neuroplasticity. ChoiceTrain should talk about training-related neural change cautiously and not overclaim that EEG alone proves new neural pathways.
 
+## 6. Legibility, Sensory Choice, and V1.7 Presentation
+
+- Kuster, S. M., van Weerdenburg, M., Gompel, M., & Bosman, A. M. T. (2018). *Dyslexie font does not benefit reading in children with or without dyslexia*. Annals of Dyslexia, 68(1), 25-42.
+  Link: https://doi.org/10.1007/s11881-017-0154-6
+  Why it matters: children did not read faster or more accurately in Dyslexie than common comparison fonts. This supports ChoiceTrain offering font choice, scale, spacing and learner validation rather than advertising any typeface as a dyslexia treatment.
+
+- Joseph, H., & Powell, D. (2022). *Does a specialist typeface affect how fluently children with and without dyslexia process letters, words, and passages?* Dyslexia, 28(4), 448-470.
+  Link: https://doi.org/10.1002/dys.1727
+  Why it matters: results were nuanced, with no word or passage reading advantage when spacing was controlled, although distinctive letters may help letter identification. V1.7 therefore treats Atkinson Hyperlegible Next as a configurable high-legibility option, not a guaranteed reading intervention.
+
+- Stewart, C. R., Sanchez, S. S., Grenesko, E. L., Brown, C. M., Chen, C. P., Keehn, B., Velasquez, F., Lincoln, A. J., & Muller, R.-A. (2016). *Sensory Symptoms and Processing of Nonverbal Auditory and Visual Stimuli in Children with Autism Spectrum Disorder*. Journal of Autism and Developmental Disorders, 46(5), 1590-1601.
+  Link: https://doi.org/10.1007/s10803-015-2367-z
+  Why it matters: sensory reports, particularly auditory differences, varied in autistic children and experimental findings were not reducible to one simple deficit. This supports adjustable rather than mandatory audio and visual intensity.
+
+- Chevalier, P., Ghiglino, D., Floris, F., Priolo, T., & Wykowska, A. (2022). *Visual and Hearing Sensitivity Affect Robot-Based Training for Children Diagnosed With Autism Spectrum Disorder*. Frontiers in Robotics and AI, 8, 746311.
+  Link: https://doi.org/10.3389/frobt.2021.746311
+  Why it matters: sensory sensitivity was relevant to response during technology-based training. It supports recording and adapting visual and sound settings, while not establishing a universal ChoiceTrain sensory profile.
+
+## Standards and Design Sources
+
+The following sources guide implementation but are not peer-reviewed evidence that ChoiceTrain improves an educational or clinical outcome:
+
+- [WCAG 2.2](https://www.w3.org/TR/WCAG22/) informs contrast, visible focus, keyboard access, reflow, reduced-motion considerations, and target size.
+- [Atkinson Hyperlegible Next](https://www.brailleinstitute.org/freefont/) was designed by the Braille Institute for character distinction and low-vision legibility. Its inclusion is licensed and local; it is not presented as a SEND-wide or dyslexia-specific treatment.
+- Duolingo is a product inspiration only at the level of general visible-progress and immediate-feedback principles. ChoiceTrain uses original visuals, wording and generated sounds.
+
 ## Feature-to-Paper Mapping
 
 The papers above were used to support these broad feature areas:
@@ -110,6 +136,9 @@ The papers above were used to support these broad feature areas:
 
 - **Gentle gamification and touch-first interface decisions**
   Supported mainly by Lumsden et al. (2016), Prins et al. (2011), and Russo-Johnson et al. (2017).
+
+- **V1.7 font choice, sensory controls, and cautious accessibility wording**
+  Supported mainly by Kuster et al. (2018), Joseph and Powell (2022), Stewart et al. (2016), and Chevalier et al. (2022), with WCAG 2.2 used as an implementation standard.
 
 - **EEG research mode, event markers, artifact logging, and cautious neuroplasticity framing**
   Supported mainly by Brooker et al. (2020), Xu et al. (2022), Jiang et al. (2019), and Tymofiyeva & Gaschler (2021).

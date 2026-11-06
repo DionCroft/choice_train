@@ -3,11 +3,13 @@
 [![Browser tests](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml)
 
-**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
+**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.7 alpha decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
 The current stable release is `V1.6.0`. Historical versioned builds remain in `releases/` for traceability.
+
+`V1.7.0-alpha` is an isolated product-experience candidate on the `feature/v1.7.0-alpha-ui-ux` branch. It is not the GitHub Pages release and does not replace `index.html`. The candidate introduces focused teacher, learner, and admin/research workspaces; configurable presentation and sensory preferences; an original train-journey reward; and local generated feedback sounds. See the [design decision record](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md), [data dictionary](docs/DATA_DICTIONARY.md), and [school usability plan](docs/V1.7.0_USABILITY_TEST_PLAN.md).
 
 Live site:
 `https://dioncroft.github.io/choice_train/`
@@ -64,6 +66,26 @@ Published files:
 - `assets/showme-logo.png`
 
 The runtime is versioned so experimental builds can be tested locally before a stable snapshot is promoted into the GitHub Pages copy.
+
+### V1.7.0-alpha Candidate
+
+The alpha candidate is available locally at:
+
+- `choice_train_V1.7.0-alpha.html`
+- `choice_train_V1.7.0-alpha.js`
+- `choice_train_V1.7.0-alpha.css`
+
+Its main product decisions are:
+
+- a focused `Today`, `Personalise`, and `Results` teacher workflow
+- a separate full-width admin/research workspace with direct navigation and a local export centre
+- a distraction-reduced learner viewport with a deliberate press-and-hold teacher return
+- locally bundled Atkinson Hyperlegible Next as one configurable high-legibility option, not a universal SEND or dyslexia treatment
+- per-pupil text size, font, motion, sound, and celebration preferences
+- original train-progress feedback and locally synthesised audio cues, with quiet and off settings
+- retained local-first storage, Attention Training, touch logging, heatmaps, EEG markers, pupil profiles, exports, and personalisation
+
+These decisions are candidates for school testing, not claims that one visual or sensory configuration suits every learner. The alpha must pass staff usability, learner observation, accessibility, device, privacy, and regression gates before promotion.
 
 ## Teacher Panel and Admin Panel
 
@@ -433,6 +455,10 @@ Then open:
 
 `http://localhost:8000/`
 
+To review the isolated alpha without changing the live site, open:
+
+`http://localhost:8000/choice_train_V1.7.0-alpha.html`
+
 ### Versioned snapshot
 
 If you want the published snapshot directly, open:
@@ -473,6 +499,8 @@ The `V1.6.0` work is validated with:
 - `node --check choice_train_V1.6.0.js`
 - 56 passing Playwright browser tests covering the live entry point, archived-release loading, levels 1-10, AT and EEG flows, Teacher/Admin switching, Student-friendly mode, prompt wording, blank intervals, reset behavior, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, theme persistence, photo personalisation, and desktop/tablet visual review
 
+The isolated `V1.7.0-alpha` suite additionally checks workspace separation and navigation, high-legibility font loading and contrast, learner viewport containment, deliberate teacher return, per-pupil sensory settings, reward progression, zero external runtime requests, reduced motion, local audio/EEG metadata, alpha exports, and tablet/mobile sizing. The complete stable-and-alpha matrix contains 71 passing Playwright tests.
+
 ## Current Limitations
 
 - data is local to the device unless exported manually
@@ -500,7 +528,12 @@ Key files and folders:
 - `index.html` - current live entry file
 - `choice_train_V1.6.0.html` - current versioned HTML build
 - `choice_train_V1.6.0.js` - paired current runtime
+- `choice_train_V1.7.0-alpha.html` - isolated alpha interface candidate, not the published entry
+- `choice_train_V1.7.0-alpha.js` - alpha runtime and data schema
+- `choice_train_V1.7.0-alpha.css` - alpha-only workspace and learner presentation layer
 - `assets/` - branding and static assets
+- `assets/fonts/` - locally bundled, licensed interface fonts used by the alpha
+- `LICENSES/` - third-party asset licences
 - `docs/` - user, privacy, architecture, evidence, and school-readiness documentation
 - `releases/` - preserved historical builds and their shared archive assets
 - `tests/` - Playwright browser tests
