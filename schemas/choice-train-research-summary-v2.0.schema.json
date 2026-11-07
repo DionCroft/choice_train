@@ -1,0 +1,191 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-research-summary-v2.0.schema.json",
+  "title": "ChoiceTrain Research workspace summary core contract v2.0",
+  "type": "object",
+  "required": [
+    "export_schema_version",
+    "scope",
+    "session_count",
+    "final_trial_count",
+    "privacy_manifest",
+    "skill_summaries",
+    "attention_families",
+    "retention_planning",
+    "category_skill_states",
+    "category_matching",
+    "category_group_completion",
+    "category_exclusion",
+    "attribute_selection",
+    "category_lesson_coverage",
+    "data_quality",
+    "model_dataset_composition",
+    "recommendation_application_summary",
+    "teacher_decisions",
+    "interpretation_boundary"
+  ],
+  "properties": {
+    "export_schema_version": { "const": "2.0.0" },
+    "scope": { "enum": ["current-session", "current-learner", "all-learners"] },
+    "session_count": { "type": "integer", "minimum": 0 },
+    "final_trial_count": { "type": "integer", "minimum": 0 },
+    "privacy_manifest": { "type": "object" },
+    "skill_summaries": { "type": "array", "items": { "type": "object" } },
+    "attention_families": { "type": "array", "items": { "type": "object" } },
+    "retention_planning": {
+      "type": "object",
+      "required": ["version", "configured_gap_days", "minimum_scored_opportunities_per_observation", "due_rule", "comparison_rule", "skill_count", "due_now_count", "not_yet_due_count", "observed_comparison_count", "small_sample_comparison_count", "rows", "interpretation_boundary"],
+      "properties": {
+        "version": { "const": "1.0.0" },
+        "configured_gap_days": { "type": "integer", "minimum": 1, "maximum": 365 },
+        "minimum_scored_opportunities_per_observation": { "const": 3 },
+        "due_rule": { "type": "string", "minLength": 1 },
+        "comparison_rule": { "type": "string", "minLength": 1 },
+        "skill_count": { "type": "integer", "minimum": 0 },
+        "due_now_count": { "type": "integer", "minimum": 0 },
+        "not_yet_due_count": { "type": "integer", "minimum": 0 },
+        "observed_comparison_count": { "type": "integer", "minimum": 0 },
+        "small_sample_comparison_count": { "type": "integer", "minimum": 0 },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["skill_id", "label", "last_practised_date", "next_retention_check_date", "configured_gap_days", "retention_due_status", "days_until_retention_due", "days_past_retention_due", "retention_status", "retention_gap_days", "retention_difference_pct"],
+            "properties": {
+              "skill_id": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "last_practised_date": { "type": ["string", "null"], "pattern": "^(\\d{4}-\\d{2}-\\d{2})$" },
+              "next_retention_check_date": { "type": ["string", "null"], "pattern": "^(\\d{4}-\\d{2}-\\d{2})$" },
+              "configured_gap_days": { "type": "integer", "minimum": 1, "maximum": 365 },
+              "retention_due_status": { "enum": ["due", "not-yet-due"] },
+              "days_until_retention_due": { "type": ["integer", "null"], "minimum": 0 },
+              "days_past_retention_due": { "type": ["integer", "null"], "minimum": 0 },
+              "retention_status": { "enum": ["not-observed", "spaced-sample-small", "observed-lower", "observed-similar", "observed-higher"] },
+              "retention_gap_days": { "type": ["integer", "null"], "minimum": 0 },
+              "retention_difference_pct": { "type": ["number", "null"], "minimum": -100, "maximum": 100 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "interpretation_boundary": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "category_skill_states": {
+      "type": "object",
+      "required": ["version", "scope_mode", "combination_count", "category_count", "skill_count", "scored_opportunity_count", "rows", "interpretation_boundary"],
+      "properties": {
+        "version": { "const": "1.0.0" },
+        "scope_mode": { "enum": ["single-learner", "pooled"] },
+        "combination_count": { "type": "integer", "minimum": 0 },
+        "category_count": { "type": "integer", "minimum": 0 },
+        "skill_count": { "type": "integer", "minimum": 0 },
+        "scored_opportunity_count": { "type": "integer", "minimum": 0 },
+        "rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["category_id", "category_label", "skill_id", "skill_label", "practice_status", "trend_status", "sessions_observed", "opportunities", "scored_opportunities", "correct", "accuracy_pct", "independent_correct", "independent_success_pct", "support_status_observed", "recent_window_sessions", "recent_accuracy_pct", "recent_independent_success_pct", "omissions", "commissions", "median_reaction_time_ms", "days_since_last_observation", "first_observed_date", "last_observed_date"],
+            "properties": {
+              "category_id": { "type": "string", "minLength": 1 },
+              "category_label": { "type": "string", "minLength": 1 },
+              "skill_id": { "type": "string", "minLength": 1 },
+              "skill_label": { "type": "string", "minLength": 1 },
+              "practice_status": { "enum": ["not-scored", "pooled-coverage", "insufficient-sample", "needs-support", "developing", "consistent-current-sample"] },
+              "trend_status": { "enum": ["not-enough-data", "pooled-not-sequenced", "lower", "similar", "higher"] },
+              "sessions_observed": { "type": "integer", "minimum": 1 },
+              "opportunities": { "type": "integer", "minimum": 1 },
+              "scored_opportunities": { "type": "integer", "minimum": 0 },
+              "correct": { "type": "integer", "minimum": 0 },
+              "accuracy_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+              "independent_correct": { "type": "integer", "minimum": 0 },
+              "independent_success_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+              "support_status_observed": { "type": "integer", "minimum": 0 },
+              "recent_window_sessions": { "type": ["integer", "null"], "minimum": 0, "maximum": 3 },
+              "recent_accuracy_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+              "recent_independent_success_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+              "omissions": { "type": "integer", "minimum": 0 },
+              "commissions": { "type": "integer", "minimum": 0 },
+              "median_reaction_time_ms": { "type": ["integer", "null"], "minimum": 0 },
+              "days_since_last_observation": { "type": ["integer", "null"], "minimum": 0 },
+              "first_observed_date": { "type": ["string", "null"], "pattern": "^(\\d{4}-\\d{2}-\\d{2})$" },
+              "last_observed_date": { "type": ["string", "null"], "pattern": "^(\\d{4}-\\d{2}-\\d{2})$" }
+            },
+            "additionalProperties": false
+          }
+        },
+        "interpretation_boundary": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "category_matching": { "type": "array", "items": { "type": "object" } },
+    "category_group_completion": { "type": "array", "items": { "type": "object" } },
+    "category_exclusion": { "type": "array", "items": { "type": "object" } },
+    "attribute_selection": { "type": "array", "items": { "type": "object" } },
+    "category_lesson_coverage": { "type": "array", "items": { "type": "object" } },
+    "data_quality": { "$ref": "choice-train-data-quality-v1.schema.json" },
+    "model_dataset_composition": {
+      "type": "object",
+      "required": ["profile_version", "participant_count", "session_count", "final_trial_count", "participant_session_depth", "skill_rows", "condition_rows", "outcome_counts", "support_counts", "split_policy", "interpretation_boundary"],
+      "properties": {
+        "profile_version": { "const": "1.0.0" },
+        "participant_count": { "type": "integer", "minimum": 0 },
+        "session_count": { "type": "integer", "minimum": 0 },
+        "final_trial_count": { "type": "integer", "minimum": 0 },
+        "participant_session_depth": { "type": "object" },
+        "skill_rows": { "type": "array", "items": { "type": "object" } },
+        "condition_rows": { "type": "array", "items": { "type": "object" } },
+        "outcome_counts": { "type": "object" },
+        "support_counts": { "type": "object" },
+        "split_policy": {
+          "type": "object",
+          "required": ["participant_separated_split_required", "automatic_split_performed", "random_trial_split_allowed"],
+          "properties": {
+            "participant_separated_split_required": { "const": true },
+            "automatic_split_performed": { "const": false },
+            "random_trial_split_allowed": { "const": false }
+          },
+          "additionalProperties": false
+        },
+        "interpretation_boundary": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": true
+    },
+    "recommendation_application_summary": {
+      "type": "object",
+      "required": ["current_approved_plan_count", "applied_session_count", "approved_not_yet_linked_count", "category_focused_session_count"],
+      "properties": {
+        "current_approved_plan_count": { "type": "integer", "minimum": 0 },
+        "applied_session_count": { "type": "integer", "minimum": 0 },
+        "approved_not_yet_linked_count": { "type": "integer", "minimum": 0 },
+        "category_focused_session_count": { "type": "integer", "minimum": 0 }
+      },
+      "additionalProperties": false
+    },
+    "teacher_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "learner_alias", "recommendation_id", "decision", "proposed_action", "skill_id", "proposed_category_focus_id", "proposed_category_focus_label", "final_task_kind", "final_level", "final_category_focus_id", "final_category_focus_label", "applied_session_count"],
+        "properties": {
+          "date": { "type": ["string", "null"], "pattern": "^(\\d{4}-\\d{2}-\\d{2})$" },
+          "learner_alias": { "type": "string" },
+          "recommendation_id": { "type": "string" },
+          "decision": { "enum": ["approved", "adjusted", "declined", "deferred"] },
+          "proposed_action": { "type": ["string", "null"] },
+          "skill_id": { "type": ["string", "null"] },
+          "proposed_category_focus_id": { "type": ["string", "null"] },
+          "proposed_category_focus_label": { "type": ["string", "null"] },
+          "final_task_kind": { "type": ["string", "null"] },
+          "final_level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+          "final_category_focus_id": { "type": ["string", "null"] },
+          "final_category_focus_label": { "type": ["string", "null"] },
+          "applied_session_count": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "interpretation_boundary": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}

@@ -149,7 +149,7 @@ These papers inform design choices, classroom workflow decisions, ChoiceTrain At
   Link: https://doi.org/10.1007/s10803-018-3551-8
   Why it matters: benefits from multiple examples and structural alignment were not uniform. This supports learner-specific review of exemplar breadth and careful interpretation rather than assuming that varied examples automatically produce generalisation.
 
-ChoiceTrain's category-by-skill state combines these two evidence strands cautiously: Corbett and Anderson motivate an explicit skill-specific state structure, while Wimmer et al., Ellawadi et al., and Snape et al. support recording category performance through repeated, multi-signal observations and avoiding uniform generalisation assumptions. The implemented thresholds are transparent product rules for planning and have not been validated as a knowledge-tracing, mastery, diagnostic, transfer, or neural-plasticity measure.
+ChoiceTrain's category-by-skill state combines these two evidence strands cautiously: Corbett and Anderson motivate an explicit skill-specific state structure, while Wimmer et al., Ellawadi et al., and Snape et al. support recording category performance through repeated, multi-signal observations and avoiding uniform generalisation assumptions. Recommendation contract 1.4.0 uses those observations only to propose a constraint-valid, one-session category focus for teacher review. This category ranking and its thresholds are a product-design inference, not a method tested or endorsed by those papers. They have not been validated as a knowledge-tracing, mastery, diagnostic, transfer, intervention, or neural-plasticity measure.
 
 ## Standards and Design Sources
 
@@ -189,6 +189,9 @@ The papers above were used to support these broad feature areas:
 
 - **V1.8 category matching, group completion, category difference, exemplar breadth, and Research profiles**
   Informed by Wimmer et al. (2023), Ellawadi et al. (2017), and Snape et al. (2018). The papers support category processing as a relevant measurement area and justify collecting accuracy, response time, stability, and exemplar exposure. Snape et al. also cautions that benefits from multiple examples are not uniform. These papers do not validate ChoiceTrain as an intervention or establish conceptual mastery, classroom transfer, or neural change.
+
+- **V1.8 teacher-reviewed category focus**
+  This is an explicitly labelled design inference from the skill-specific modelling rationale in Corbett and Anderson (1994) and the heterogeneous category-learning evidence in Wimmer et al. (2023), Ellawadi et al. (2017), and Snape et al. (2018). ChoiceTrain therefore shows the underlying observations, checks that the activity is generatable, requires a teacher decision, applies the focus once, and records overrides. No cited paper validates the current ranking rule or establishes that the suggested category is the best teaching decision for an individual pupil.
 
 ## Important Note
 

@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 
 const APP_PATH = '/choice_train_V1.8.0-alpha.html';
 const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.schema.json', 'utf8'));
-const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v1.9.schema.json', 'utf8'));
+const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v2.0.schema.json', 'utf8'));
 const DATA_QUALITY_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-data-quality-v1.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
 
@@ -670,7 +670,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('1.9.0');
+  expect(researchPayload.export_schema_version).toBe('2.0.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.trials, 0)).toBe(8);
@@ -748,7 +748,7 @@ test('Complete the group uses two distinct cues and one same-category answer acr
   await expect(page.locator('#researchGroupCategoryNote')).toContainText('multiple examples');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.9.0');
+  expect(researchPayload.export_schema_version).toBe('2.0.0');
   expect(researchPayload.category_group_completion).toHaveLength(4);
   expect(researchPayload.category_group_completion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -816,7 +816,7 @@ test('Find the different one keeps exactly one outside-category target and visua
   await expect(page.locator('#researchExclusionCategoryNote')).toContainText('not a pupil outcome');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.9.0');
+  expect(researchPayload.export_schema_version).toBe('2.0.0');
   expect(researchPayload.category_exclusion).toHaveLength(4);
   expect(researchPayload.category_exclusion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -946,7 +946,7 @@ test('Find by colour uses teacher-declared metadata with deterministic one-answe
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('1.9.0');
+  expect(researchPayload.export_schema_version).toBe('2.0.0');
   expect(researchPayload.attribute_selection).toHaveLength(1);
   expect(researchPayload.attribute_selection.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.find_attribute_trials, 0)).toBe(1);
@@ -1217,7 +1217,7 @@ test('Research visualises future AI dataset composition without performing a mod
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('1.9.0');
+  expect(researchPayload.export_schema_version).toBe('2.0.0');
   expect(researchPayload.model_dataset_composition).toEqual(expect.objectContaining({
     profile_version: '1.0.0',
     participant_count: 2,
@@ -1386,7 +1386,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('1.9.0');
+  expect(researchPayload.export_schema_version).toBe('2.0.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);
@@ -1622,6 +1622,7 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
   await setValue(page, 'recommendationDecision', 'adjusted');
   await setValue(page, 'recommendationOverrideTask', 'find-category');
   await setValue(page, 'recommendationOverrideLevel', 5);
+  await setValue(page, 'recommendationOverrideCategory', '__none__');
   await page.locator('#recommendationReviewNote').fill('Use familiar animal photos and review after two short sessions.');
   await page.locator('#saveRecommendationReviewBtn').click();
 
@@ -1661,7 +1662,7 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
     decision: 'adjusted',
     note: 'Use familiar animal photos and review after two short sessions.'
   }));
-  expect(adjustedReview.final_plan).toEqual(expect.objectContaining({ task_kind: 'find-category', level: 5 }));
+  expect(adjustedReview.final_plan).toEqual(expect.objectContaining({ task_kind: 'find-category', level: 5, category_focus: null }));
   expect(deferredReview).toEqual(expect.objectContaining({
     decision: 'deferred',
     note: 'Wait for a second classroom observation before deciding.',
@@ -1669,7 +1670,7 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
     final_plan: null
   }));
   expect(payload.practice_status_version).toBe('1.1.0');
-  expect(payload.recommendation_version).toBe('1.3.0');
+  expect(payload.recommendation_version).toBe('1.4.0');
   expect(payload.local_recommendation_summary.external_transmission).toBe(false);
 });
 
@@ -1711,10 +1712,10 @@ test('an approved recommendation is explicitly staged, linked to one session, an
   const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
   const application = payload.recommendation_application;
   expect(application).toEqual(expect.objectContaining({
-    application_schema_version: '1.0.0',
+    application_schema_version: '1.1.0',
     application_status: 'applied-as-reviewed',
     application_method: 'teacher-explicit',
-    recommendation_version: '1.3.0',
+    recommendation_version: '1.4.0',
     review_decision: 'adjusted',
     task_kind: 'find-object',
     level: 5,
@@ -1729,7 +1730,7 @@ test('an approved recommendation is explicitly staged, linked to one session, an
   expect(payload.trials[0]).toEqual(expect.objectContaining({
     recommendation_id: application.recommendation_id,
     recommendation_review_id: application.review_id,
-    recommendation_version: '1.3.0',
+    recommendation_version: '1.4.0',
     recommendation_review_decision: 'adjusted',
     recommendation_application_status: 'applied-as-reviewed'
   }));
@@ -1744,7 +1745,7 @@ test('an approved recommendation is explicitly staged, linked to one session, an
   await expect(page.locator('#researchRecommendationPendingCount')).toHaveText('0');
   await expect(page.locator('#researchRecommendationUseChart')).toBeVisible();
   const reviewRow = page.locator('#researchRecommendationBody tr').filter({ hasText: 'Use the reviewed task and level' });
-  await expect(reviewRow.locator('td').nth(7)).toHaveText('1');
+  await expect(reviewRow.locator('td').nth(8)).toHaveText('1');
 });
 
 test('current-learner research does not merge pupils that share an export alias', async ({ page }) => {
@@ -1936,6 +1937,10 @@ test('Research visualises versioned category-by-skill learner state without pool
     scored_opportunities: 8,
     practice_status: 'consistent-current-sample'
   }));
+  await page.locator('#findObjectCategoryList input[data-category-id="family"]').evaluate(node => {
+    node.checked = true;
+    node.dispatchEvent(new Event('change', { bubbles: true }));
+  });
 
   await page.locator('#teacherExitHold').focus();
   await page.locator('#teacherExitHold').press('Enter');
@@ -1956,7 +1961,7 @@ test('Research visualises versioned category-by-skill learner state without pool
 
   const research = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(research, RESEARCH_SCHEMA);
-  expect(research.export_schema_version).toBe('1.9.0');
+  expect(research.export_schema_version).toBe('2.0.0');
   expect(research.category_skill_states).toEqual(expect.objectContaining({
     version: '1.0.0',
     scope_mode: 'single-learner',
@@ -1979,6 +1984,60 @@ test('Research visualises versioned category-by-skill learner state without pool
   }));
   expect(research.category_skill_states.rows[0].last_observed_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   expect(JSON.stringify(research.category_skill_states)).not.toContain('wall_ms');
+
+  await expect(page.locator('#researchRecommendationSummary')).toContainText('One-session category focus: Animals');
+  await expect(page.locator('#researchRecommendationRationale')).toContainText('one-session category focus');
+  await setValue(page, 'recommendationDecision', 'approved');
+  await page.locator('#recommendationReviewNote').fill('Use the observed animal category for one reviewed session.');
+  await page.locator('#saveRecommendationReviewBtn').click();
+  await expect(page.locator('#researchRecommendationBody')).toContainText('Animals');
+  await page.locator('#applyRecommendationPlanBtn').click();
+
+  await expect(page.locator('#stagedRecommendationText')).toContainText('category focus Animals');
+  await expect(page.locator('#findObjectCategoryList input[data-category-id="animals"]')).toBeChecked();
+  await expect(page.locator('#findObjectCategoryList input[data-category-id="family"]')).toBeChecked();
+  await setValue(page, 'sessionMax', 1);
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  const focusedSession = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  expect(focusedSession.recommendation_application).toEqual(expect.objectContaining({
+    application_schema_version: '1.1.0',
+    recommendation_version: '1.4.0',
+    application_method: 'teacher-explicit',
+    category_focus: expect.objectContaining({
+      category_id: 'animals',
+      category_label: 'Animals'
+    })
+  }));
+  expect(focusedSession.content_configuration.find_object.selected_categories).toEqual([
+    expect.objectContaining({ id: 'animals', label: 'Animals' })
+  ]);
+  expect(focusedSession.learner_profile.contentFilters.findObjectCategories).toEqual(expect.arrayContaining(['animals', 'family']));
+  expect(focusedSession.lesson_plan.constraints.recommendation_category_focus).toEqual(expect.objectContaining({ category_id: 'animals' }));
+  expect(focusedSession.trials[0]).toEqual(expect.objectContaining({
+    recommendation_category_focus_id: 'animals',
+    target_category: 'animals'
+  }));
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#refreshResearchBtn').click();
+  await expect(page.locator('#researchRecommendationCategoryFocusCount')).toHaveText('1');
+  const focusedReviewRow = page.locator('#researchRecommendationBody tr').filter({ hasText: 'Use the observed animal category' });
+  await expect(focusedReviewRow.locator('td').nth(7)).toHaveText('Animals');
+  await expect(focusedReviewRow.locator('td').nth(8)).toHaveText('1');
+  const focusedResearch = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expectCoreSchema(focusedResearch, RESEARCH_SCHEMA);
+  expect(focusedResearch.recommendation_application_summary.category_focused_session_count).toBe(1);
+  expect(focusedResearch.teacher_decisions.at(-1)).toEqual(expect.objectContaining({
+    proposed_category_focus_id: 'animals',
+    final_category_focus_id: 'animals',
+    final_category_focus_label: 'Animals',
+    applied_session_count: 1
+  }));
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await page.locator('#refreshResearchBtn').click();
@@ -2265,12 +2324,17 @@ test('pseudonymised AI research export excludes direct identifiers and free text
           skill_id: 'recognition.named_object',
           recommended_task_kind: 'find-object',
           recommended_level: 4,
+          recommended_category_focus: {
+            category_id: 'secret-teacher-category',
+            category_label: 'SECRET-CATEGORY-LABEL'
+          },
           support_direction: 'maintain',
           rationale_codes: ['LEGACY_SAMPLE']
         },
         final_plan: {
           task_kind: 'cpat-executive',
           level: 9,
+          category_focus: null,
           support_direction: 'fade'
         }
       },
@@ -2285,12 +2349,20 @@ test('pseudonymised AI research export excludes direct identifiers and free text
           skill_id: 'recognition.named_object',
           recommended_task_kind: 'find-object',
           recommended_level: 4,
+          recommended_category_focus: {
+            category_id: 'secret-teacher-category',
+            category_label: 'SECRET-CATEGORY-LABEL'
+          },
           support_direction: 'maintain',
           rationale_codes: ['LEGACY_SAMPLE']
         },
         final_plan: {
           task_kind: 'find-object',
           level: 4,
+          category_focus: {
+            category_id: 'secret-teacher-category',
+            category_label: 'SECRET-CATEGORY-LABEL'
+          },
           support_direction: 'maintain'
         }
       }
@@ -2311,7 +2383,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
     });
     sessions.forEach(session => {
       session.recommendation_application = {
-        application_schema_version: '1.0.0',
+        application_schema_version: '1.1.0',
         application_status: 'applied-as-reviewed',
         application_method: 'teacher-explicit',
         recommendation_id: 'SECRET-APPLIED-RECOMMENDATION-ID',
@@ -2321,6 +2393,10 @@ test('pseudonymised AI research export excludes direct identifiers and free text
         reviewer: 'SECRET-REVIEWER-NAME',
         task_kind: 'find-object',
         level: 4,
+        category_focus: {
+          category_id: 'secret-teacher-category',
+          category_label: 'SECRET-CATEGORY-LABEL'
+        },
         support_direction: 'maintain',
         plan_matches_session_settings: true,
         applied_at_wall_ms: 1893456000000
@@ -2368,6 +2444,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
 
   expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_Pseudonymised_\d{4}-\d{2}-\d{2}_\d{4}_research-dataset\.json$/);
   expect(payload.privacy_status).toBe('pseudonymised-not-anonymous');
+  expect(payload.export_schema_version).toBe('1.2.0');
   expect(payload.governance).toEqual(expect.objectContaining({
     consent_or_other_authority_status: 'recorded-separately-local-declaration',
     participant_profiles_checked: 1,
@@ -2383,6 +2460,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
     free_text_included: false,
     image_data_included: false,
     photo_labels_included: false,
+    teacher_created_category_labels_included: false,
     exact_timestamps_included: false,
     raw_touch_coordinates_included: false,
     prompt_wording_included: false,
@@ -2407,11 +2485,15 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(payload.sessions[0].trials[0].correct).toBe(true);
   expect(payload.sessions[0].recommendation_application).toEqual({
     applied: true,
-    application_schema_version: '1.0.0',
+    application_schema_version: '1.1.0',
     recommendation_version: '1.0.0',
     review_decision: 'adjusted',
     planned_task_kind: 'find-object',
     planned_level: 4,
+    category_focus: {
+      category_code: 'custom',
+      category_origin: 'teacher-created-or-legacy'
+    },
     support_direction: 'maintain',
     plan_matches_session_settings: true
   });
@@ -2428,7 +2510,14 @@ test('pseudonymised AI research export excludes direct identifiers and free text
     recommendation_version: '1.0.0',
     decision: 'adjusted',
     applied_session_count: 1,
-    final_plan: expect.objectContaining({ task_kind: 'find-object', level: 4 })
+    final_plan: expect.objectContaining({
+      task_kind: 'find-object',
+      level: 4,
+      category_focus: {
+        category_code: 'custom',
+        category_origin: 'teacher-created-or-legacy'
+      }
+    })
   }));
   expect(Object.keys(payload.sessions[0].eeg_marker_diagnostics).sort()).toEqual([
     'version',
@@ -2455,6 +2544,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(exportedText).not.toContain('private-visit-label');
   expect(exportedText).not.toContain('Private device serial');
   expect(exportedText).not.toContain('SECRET-GOVERNANCE-REFERENCE');
+  expect(exportedText).not.toContain('SECRET-CATEGORY-LABEL');
   expect(exportedText).not.toContain('SECRET-DIAGNOSTIC');
   expect(exportedText).not.toContain('SECRET-REVIEW');
   expect(exportedText).not.toContain('SECRET-APPLIED');
@@ -2471,4 +2561,96 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(exportedKeys).not.toContain('operator_notes');
   expect(exportedKeys).not.toContain('exact_wall_time_ms');
   expect(exportedKeys).not.toContain('source_session_id');
+});
+
+test('optional blank interval occurs between the question and answer choices', async ({ page }) => {
+  await gotoAlpha(page);
+  await setValue(page, 'sessionTaskType', 'touch-object');
+  await setValue(page, 'startLevel', 2);
+  await setValue(page, 'sessionMax', 1);
+  await setValue(page, 'delaySec', 0.4);
+  await setValue(page, 'blankIntervalSec', 0.5);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useBlankInterval', true);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'ttsToggle', false);
+
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenPrompt.active')).toBeVisible();
+  await expect(page.locator('#screenBlank.active')).toBeVisible({ timeout: 2000 });
+  await expect(page.locator('#screenChoice.active')).toBeVisible({ timeout: 2000 });
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+
+  const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  const eventTypes = payload.events.map(event => event.type);
+  const promptIndex = eventTypes.indexOf('prompt_onset');
+  const blankOnsetIndex = eventTypes.indexOf('question_answer_blank_onset');
+  const blankOffsetIndex = eventTypes.indexOf('question_answer_blank_offset');
+  const stimulusIndex = eventTypes.indexOf('stimulus_onset');
+
+  expect(promptIndex).toBeGreaterThanOrEqual(0);
+  expect(blankOnsetIndex).toBeGreaterThan(promptIndex);
+  expect(blankOffsetIndex).toBeGreaterThan(blankOnsetIndex);
+  expect(stimulusIndex).toBeGreaterThan(blankOffsetIndex);
+  expect(eventTypes).not.toContain('inter_trial_blank_onset');
+  expect(payload.blank_interval_position).toBe('between-question-and-answer');
+  expect(payload.session_overview.blank_interval_position).toBe('between-question-and-answer');
+  expect(payload.eeg_markers.map(marker => marker.name)).toEqual(expect.arrayContaining([
+    'question_answer_blank_onset',
+    'question_answer_blank_offset'
+  ]));
+});
+
+[
+  { name: 'phone', width: 390, height: 844 },
+  { name: 'Kindle-sized tablet', width: 600, height: 960 },
+  { name: 'short laptop', width: 1366, height: 768 }
+].forEach(viewport => {
+  test(`learner Q&A fits within a ${viewport.name} viewport`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await gotoAlpha(page);
+    await setValue(page, 'sessionTaskType', 'find-object');
+    await setValue(page, 'startLevel', 4);
+    await setValue(page, 'sessionMax', 1);
+    await setValue(page, 'maxObjects', 4);
+    await setCheckbox(page, 'useTwoStage', false);
+    await setCheckbox(page, 'useBlankInterval', false);
+    await setCheckbox(page, 'ttsToggle', false);
+    await page.locator('#quickStartSessionBtn').click();
+    await expect(page.locator('#screenChoice.active')).toBeVisible();
+
+    const layout = await page.evaluate(() => {
+      const stage = document.querySelector('.stage').getBoundingClientRect();
+      const playArea = document.querySelector('#playArea').getBoundingClientRect();
+      const footer = document.querySelector('.footerBar').getBoundingClientRect();
+      const choices = Array.from(document.querySelectorAll('#choiceGrid .choice')).map(node => {
+        const rect = node.getBoundingClientRect();
+        return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left };
+      });
+      return {
+        bodyWidth: document.documentElement.scrollWidth,
+        viewportWidth: document.documentElement.clientWidth,
+        viewportHeight: window.innerHeight,
+        stageBottom: stage.bottom,
+        playTop: playArea.top,
+        playRight: playArea.right,
+        playBottom: playArea.bottom,
+        playLeft: playArea.left,
+        footerBottom: footer.bottom,
+        choices
+      };
+    });
+
+    expect(layout.choices).toHaveLength(4);
+    expect(layout.bodyWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(layout.stageBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+    expect(layout.footerBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+    layout.choices.forEach(rect => {
+      expect(rect.left).toBeGreaterThanOrEqual(layout.playLeft - 1);
+      expect(rect.right).toBeLessThanOrEqual(layout.playRight + 1);
+      expect(rect.top).toBeGreaterThanOrEqual(layout.playTop - 1);
+      expect(rect.bottom).toBeLessThanOrEqual(layout.playBottom + 1);
+    });
+  });
 });

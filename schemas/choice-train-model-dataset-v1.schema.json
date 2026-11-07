@@ -6,7 +6,7 @@
   "required": ["app", "export_schema_version", "purpose", "privacy_status", "governance", "privacy_manifest", "participant_count", "session_count", "sessions", "teacher_decisions", "interpretation_boundary"],
   "properties": {
     "app": { "const": "ChoiceTrain for ShowMe" },
-    "export_schema_version": { "const": "1.1.0" },
+    "export_schema_version": { "const": "1.2.0" },
     "purpose": { "type": "string", "minLength": 1 },
     "privacy_status": { "const": "pseudonymised-not-anonymous" },
     "governance": {
@@ -21,13 +21,14 @@
     },
     "privacy_manifest": {
       "type": "object",
-      "required": ["names_included", "aliases_included", "free_text_included", "image_data_included", "photo_labels_included", "exact_timestamps_included", "raw_touch_coordinates_included", "prompt_wording_included", "source_session_ids_included", "recommendation_ids_included", "recommendation_review_ids_included", "external_transmission"],
+      "required": ["names_included", "aliases_included", "free_text_included", "image_data_included", "photo_labels_included", "teacher_created_category_labels_included", "exact_timestamps_included", "raw_touch_coordinates_included", "prompt_wording_included", "source_session_ids_included", "recommendation_ids_included", "recommendation_review_ids_included", "external_transmission"],
       "properties": {
         "names_included": { "const": false },
         "aliases_included": { "const": false },
         "free_text_included": { "const": false },
         "image_data_included": { "const": false },
         "photo_labels_included": { "const": false },
+        "teacher_created_category_labels_included": { "const": false },
         "exact_timestamps_included": { "const": false },
         "raw_touch_coordinates_included": { "const": false },
         "prompt_wording_included": { "const": false },
@@ -133,12 +134,18 @@
     },
     "privacySafeRecommendationProposal": {
       "type": "object",
-      "required": ["action", "skill_id", "recommended_task_kind", "recommended_level", "support_direction", "rationale_codes"],
+      "required": ["action", "skill_id", "recommended_task_kind", "recommended_level", "recommended_category_focus", "support_direction", "rationale_codes"],
       "properties": {
         "action": { "type": ["string", "null"] },
         "skill_id": { "type": ["string", "null"] },
         "recommended_task_kind": { "type": ["string", "null"] },
         "recommended_level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+        "recommended_category_focus": {
+          "oneOf": [
+            { "$ref": "#/$defs/privacySafeCategoryFocus" },
+            { "type": "null" }
+          ]
+        },
         "support_direction": { "type": ["string", "null"] },
         "rationale_codes": { "type": "array", "items": { "type": "string" } }
       },
@@ -146,17 +153,23 @@
     },
     "privacySafeFinalPlan": {
       "type": "object",
-      "required": ["task_kind", "level", "support_direction"],
+      "required": ["task_kind", "level", "category_focus", "support_direction"],
       "properties": {
         "task_kind": { "type": ["string", "null"] },
         "level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+        "category_focus": {
+          "oneOf": [
+            { "$ref": "#/$defs/privacySafeCategoryFocus" },
+            { "type": "null" }
+          ]
+        },
         "support_direction": { "type": ["string", "null"] }
       },
       "additionalProperties": false
     },
     "privacySafeRecommendationApplication": {
       "type": "object",
-      "required": ["applied", "application_schema_version", "recommendation_version", "review_decision", "planned_task_kind", "planned_level", "support_direction", "plan_matches_session_settings"],
+      "required": ["applied", "application_schema_version", "recommendation_version", "review_decision", "planned_task_kind", "planned_level", "category_focus", "support_direction", "plan_matches_session_settings"],
       "properties": {
         "applied": { "const": true },
         "application_schema_version": { "type": ["string", "null"] },
@@ -169,8 +182,23 @@
         },
         "planned_task_kind": { "type": ["string", "null"] },
         "planned_level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+        "category_focus": {
+          "oneOf": [
+            { "$ref": "#/$defs/privacySafeCategoryFocus" },
+            { "type": "null" }
+          ]
+        },
         "support_direction": { "type": ["string", "null"] },
         "plan_matches_session_settings": { "const": true }
+      },
+      "additionalProperties": false
+    },
+    "privacySafeCategoryFocus": {
+      "type": "object",
+      "required": ["category_code", "category_origin"],
+      "properties": {
+        "category_code": { "type": "string", "minLength": 1 },
+        "category_origin": { "enum": ["built-in", "teacher-created-or-legacy"] }
       },
       "additionalProperties": false
     }

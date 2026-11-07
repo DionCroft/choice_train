@@ -73,7 +73,7 @@ Teachers and TAs can use it to:
 - choose a task for the session
 - set answer count, prompt delay, question window, and inter-trial interval
 - choose two-stage, text, image, reward, selected-label speech, and auto-advance options
-- add an optional timed blank screen between questions
+- add an optional timed blank screen between the question and answer choices
 - add context notes
 - choose a theme
 - enable or disable speech
@@ -135,7 +135,7 @@ Use the sticky Research section links to jump between Summary, Data quality, Per
 
 `Task demand and response opportunity` shows the conditions actually delivered: mean options and distractors, trials containing distractors, moving-target exposure, median target size, adaptive hit radius, response window, and whether two-stage prompting was enabled. Use this alongside performance when reviewing change. For example, lower accuracy after adding more distractors is not the same observation as lower accuracy under unchanged demands. Pixel values vary with the device and layout.
 
-Use `Download scope summary` beside the Research filters when an authorised staff member needs the derived dashboard data in one JSON file. The file follows the current scope and archived-session choice. It contains learner aliases and day-level dates but leaves out raw trials/events, touch coordinates, images, photo labels, and free-text notes. Keep it within the school's approved storage and access controls; it is not automatically uploaded and is not anonymous simply because names are absent.
+Use `Download scope summary` beside the Research filters when an authorised staff member needs the derived dashboard data in one JSON file. The file follows the current scope and archived-session choice. It contains learner aliases, configured category labels, and day-level dates but leaves out raw trials/events, touch coordinates, images, photo labels, and free-text notes. Keep it within the school's approved storage and access controls; it is not automatically uploaded and is not anonymous simply because names are absent.
 
 The `Future AI dataset composition` section is a descriptive planning view. It shows how many learners and sessions are represented, how many learners have longitudinal records, which skills and research conditions occur, how outcomes and support labels are distributed, how many teacher recommendation reviews exist, and how many included profiles currently satisfy the local model-use declaration. Its participant, skill, and condition tables are the accessible equivalents of the charts. `Governance eligible` means only that the local declaration is present; ChoiceTrain does not inspect the separately held evidence. The section does not train a model, calculate readiness, or create a development/validation/test split. Any future approved study must keep every learner wholly within one split rather than randomly placing the same learner's trials into multiple groups.
 
@@ -175,7 +175,9 @@ Generator 1.6.0 uses `balanced-before-repeat` coverage for `Find object`, `Find 
 
 `Category-by-skill learner state` shows which configured categories have been practised with each versioned skill. The matrix gives a quick accuracy view, while the table retains sessions, opportunities, independent success, omissions, commissions, reaction time, status, observed direction, and the latest observed day. A single-learner status needs repeated observations; `All learners` becomes pooled coverage and deliberately hides recent-window trajectories. Use it to ask what to observe or practise next, not to label a category as mastered or to infer classroom transfer or brain change.
 
-`Teacher-reviewed next-session planning` proposes one local, rule-based next step for the selected pupil. Review the evidence, then approve it, approve it with a different task or level, decline it for now, or defer the decision while more information is gathered. Add a note explaining the decision. Only approval or approval with changes creates a final plan; declined and deferred reviews record `no final plan`. To use an approved plan, select `Use approved task and level for next session`. ChoiceTrain returns to Teacher setup and displays a staged-plan notice. Check the content setup, then press Start. The link is recorded only if the same pupil, task, and level are started; support direction remains advice for the teacher. The staging is one-use and can be cleared. ChoiceTrain stores each revision and explicit session link locally, but never starts or changes a session automatically.
+`Teacher-reviewed next-session planning` proposes one local, rule-based next step for the selected pupil. When the selected skill, task, and current content permit it, the proposal can include one category focus based on the category-by-skill observations. Review the evidence, then approve it, approve it with a different task, level, or category, remove the category focus, decline it for now, or defer the decision while more information is gathered. Add a note explaining the decision. Only approval or approval with changes creates a final plan; declined and deferred reviews record `no final plan`.
+
+To use an approved plan, select `Use approved plan for next session`. ChoiceTrain returns to Teacher setup and displays the staged task, level, and category focus. The category focus applies to one session only and does not change the pupil's saved category checkboxes. Check the content setup, then press Start. The link is recorded only if the same pupil, task, and level are started and the focused content can still form a valid lesson; support direction remains advice for the teacher. The staging is one-use and can be cleared. ChoiceTrain stores each revision and explicit session link locally, but never starts or changes a session automatically. Research shows the final category in the review table and counts linked category-focused sessions.
 
 ChoiceTrain freezes the session's selected pupil and context when `Start learner session` is pressed. Staff can select another pupil afterward to review their history without changing who completed the earlier session. An export alias does not need to be unique, but schools should still use a consistent alias policy.
 
@@ -185,7 +187,7 @@ The V1.8 preview adds per-session marker/protocol trends, a mean block-quality t
 
 Before research export, an authorised staff member can use `Admin & research` > `Learners` to record the selected pupil's local data-use declaration. Choose whether authority is recorded separately, add a non-identifying internal reference and review date if required, and mark the permitted purposes. ChoiceTrain does not store the consent or authority document itself. If authority is missing, classroom-only, or withdrawn, the model-development export remains blocked.
 
-The Export centre includes `Pseudonymised AI research data`. This creates a local, privacy-minimised file containing behavioural/skill features, relative marker times, and sanitised teacher decisions. It checks every pupil represented in the selected scope; all must have `recorded separately` status and model-development use approved. It excludes names, aliases, notes, images, photo and selected-response labels, exact dates/times, prompt wording, raw coordinates, governance references, and review dates. It is pseudonymised rather than anonymous, so use it only under the school's approved research and data-governance process.
+The Export centre includes `Pseudonymised AI research data`. This creates a local, privacy-minimised file containing behavioural/skill features, relative marker times, and sanitised teacher decisions. It checks every pupil represented in the selected scope; all must have `recorded separately` status and model-development use approved. Built-in category focus uses a controlled code, while teacher-created or legacy categories are reduced to generic `custom` metadata. It excludes names, aliases, notes, images, photo labels, teacher-created category labels, selected-response labels, exact dates/times, prompt wording, raw coordinates, governance references, and review dates. It is pseudonymised rather than anonymous, so use it only under the school's approved research and data-governance process.
 
 The V1.8 research view is descriptive. It does not diagnose a learner, establish durable transfer, prove neural plasticity, or call an external AI service.
 
@@ -382,7 +384,7 @@ After a response, `Auto advance` can move to the next task automatically. If aut
 
 ### Optional Blank Screen
 
-Turn on `Show blank screen` to add a calm pause after feedback and before the next question. Set `Blank duration` between 0.25 and 10 seconds. This is off by default and the selected timing is included in the session export.
+Turn on `Show blank screen` to add a calm pause after the question and before its answer choices. Set `Blank duration` between 0.25 and 10 seconds. Enabling this option automatically uses the question-first stage even when `Two-stage prompt` is off. `Prompt delay` controls how long the question is shown; `Blank duration` controls the empty pause that follows. The option is off by default, and its timing and position are included in the session export.
 
 ---
 

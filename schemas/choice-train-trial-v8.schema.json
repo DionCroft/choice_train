@@ -26,6 +26,7 @@
         { "type": "null" }
       ]
     },
+    "recommendation_category_focus_id": { "type": ["string", "null"] },
     "skill_ids": {
       "type": "array",
       "minItems": 1,

@@ -1102,6 +1102,10 @@ body.celebration-lively .stars span.on:nth-child(3) {
   overflow: hidden;
 }
 
+.wrap.learner .playArea {
+  min-height: 0;
+}
+
 body.panel-view-admin .wrap:not(.learner) {
   display: block;
   min-height: 100vh;
@@ -1559,7 +1563,7 @@ body.panel-view-admin th {
   }
 
   .wrap.learner .choice {
-    min-height: 180px;
+    min-height: 120px;
   }
 
   .wrap.learner .footerBar {
@@ -1615,5 +1619,41 @@ body.panel-view-admin th {
 
   .exportCentreGrid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 480px) {
+  .wrap.learner .screen {
+    gap: 10px;
+    padding: 8px;
+  }
+
+  .wrap.learner .promptBox {
+    padding: 8px 10px;
+  }
+
+  .wrap.learner .grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 8px;
+  }
+
+  .wrap.learner .choice {
+    min-height: 104px;
+    gap: 6px;
+    padding: 8px;
+    border-radius: 16px;
+  }
+
+  .wrap.learner .choiceMedia {
+    width: min(100%, 64px);
+    font-size: 36px;
+  }
+
+  .wrap.learner .choiceLabel {
+    font-size: 14px;
+  }
+
+  .wrap.learner .choiceSmall {
+    font-size: 10px;
   }
 }

@@ -693,7 +693,7 @@
           <div class="helperText">Two-stage prompts show the instruction before the answers. Auto advance moves on without requiring the pupil or teacher to press Next.</div>
         </div>
         <div class="controlGroup">
-          <div class="controlGroupTitle">Optional blank screen between questions</div>
+          <div class="controlGroupTitle">Optional blank screen between question and answers</div>
           <div class="row">
             <label class="toggle"><input id="useBlankInterval" type="checkbox" /> Show blank screen</label>
             <div style="flex:1 1 160px">
@@ -701,7 +701,7 @@
               <input id="blankIntervalSec" type="number" min="0.25" max="10" step="0.25" value="1" />
             </div>
           </div>
-          <div class="helperText">Adds a calm, empty pause after feedback and before the next question. Leave it off if the pupil benefits from a continuous flow.</div>
+          <div class="helperText">Shows the question first, then adds a calm, empty pause before the answer choices. Enabling it automatically uses the question-first stage.</div>
         </div>
         <section id="findObjectConfig" class="taskConfig" hidden>
           <div class="controlGroupTitle">Named object and preference content</div>
@@ -1509,6 +1509,14 @@
                   <label for="recommendationOverrideLevel">Level override (optional)</label>
                   <input id="recommendationOverrideLevel" type="number" min="1" max="10" step="1" placeholder="Use proposed level" />
                 </div>
+                <div>
+                  <label for="recommendationOverrideCategory">Category focus (optional)</label>
+                  <select id="recommendationOverrideCategory">
+                    <option value="">Use proposed category focus</option>
+                    <option value="__none__">No category focus</option>
+                  </select>
+                  <div class="helperText">A reviewed focus applies to one session only. It does not change the pupil's saved content preferences.</div>
+                </div>
                 <div class="span2">
                   <label for="recommendationReviewNote">Teacher rationale or adjustment note</label>
                   <textarea id="recommendationReviewNote" rows="3" placeholder="Why this plan is suitable, what should change, or why it is being declined"></textarea>
@@ -1519,23 +1527,24 @@
                 <span id="recommendationReviewStatus" class="tiny">No review saved for this proposal.</span>
               </div>
               <div class="row recommendationReviewActions">
-                <button id="applyRecommendationPlanBtn" type="button" disabled>Use approved task and level for next session</button>
+                <button id="applyRecommendationPlanBtn" type="button" disabled>Use approved plan for next session</button>
                 <span id="recommendationApplicationStatus" class="tiny">Approve or adjust the current proposal before using it.</span>
               </div>
               <div class="dashboard compactDashboard">
                 <div class="dashCard"><div class="k">Current approved plans</div><div class="v" id="researchRecommendationApprovedCount">0</div></div>
                 <div class="dashCard"><div class="k">Explicitly linked sessions</div><div class="v" id="researchRecommendationAppliedCount">0</div></div>
                 <div class="dashCard"><div class="k">Approved, not yet linked</div><div class="v" id="researchRecommendationPendingCount">0</div></div>
+                <div class="dashCard"><div class="k">Category-focused linked sessions</div><div class="v" id="researchRecommendationCategoryFocusCount">0</div></div>
               </div>
               <canvas id="researchRecommendationChart" class="researchCanvas" width="760" height="220" role="img" aria-label="Teacher recommendation decisions by status"></canvas>
               <canvas id="researchRecommendationUseChart" class="researchCanvas" width="760" height="190" role="img" aria-label="Approved recommendation plans and explicitly linked sessions"></canvas>
               <div class="tableWrap researchTableWrap">
                 <table>
-                  <thead><tr><th>Date</th><th>Learner</th><th>Proposed action</th><th>Skill</th><th>Decision</th><th>Final task</th><th>Final level</th><th>Linked sessions</th><th>Reviewer note</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Proposed action</th><th>Skill</th><th>Decision</th><th>Final task</th><th>Final level</th><th>Category focus</th><th>Linked sessions</th><th>Reviewer note</th></tr></thead>
                   <tbody id="researchRecommendationBody"></tbody>
                 </table>
               </div>
-              <div class="compactNote">ChoiceTrain never applies a proposal automatically. After approval, a teacher may explicitly stage its task and level for one next session; support direction remains advisory. Only sessions started from that unchanged staged setup are linked. Task and level overrides are used only for an approved adjustment; declined and deferred reviews have no final plan. Reviews remain local and are exported for audit; no external AI service is used.</div>
+              <div class="compactNote">ChoiceTrain never applies a proposal automatically. After approval, a teacher may explicitly stage its task, level, and optional category focus for one next session; support direction remains advisory. Category focus does not rewrite saved pupil preferences. Only sessions started from that unchanged staged setup are linked. Overrides are used only for an approved adjustment; declined and deferred reviews have no final plan. Reviews remain local and are exported for audit; no external AI service is used.</div>
             </div>
             <div id="researchAiDatasetSection" class="chartCard span2 researchAnchorTarget">
               <h4>Future AI dataset composition</h4>
@@ -2171,8 +2180,8 @@
           </div>
         </section>
 
-        <section class="screen blankScreen" id="screenBlank" aria-label="Pause between questions">
-          <span class="blankIndicator">Pause between questions</span>
+        <section class="screen blankScreen" id="screenBlank" aria-label="Pause between question and answer choices">
+          <span class="blankIndicator">Pause between question and answer choices</span>
         </section>
 
         <section class="screen" id="screenBreak">

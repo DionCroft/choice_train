@@ -35,9 +35,9 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
 });
 
 test('Research summary schema matches its runtime export version and category/AI composition sections', () => {
-  const contract = schema('choice-train-research-summary-v1.9.schema.json');
+  const contract = schema('choice-train-research-summary-v2.0.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('RESEARCH_WORKSPACE_EXPORT_VERSION'));
-  ['retention_planning', 'category_skill_states', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition']
+  ['retention_planning', 'category_skill_states', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition', 'recommendation_application_summary', 'teacher_decisions']
     .forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
   assert.equal(contract.properties.data_quality.$ref, 'choice-train-data-quality-v1.schema.json');
   const profile = contract.properties.model_dataset_composition;
@@ -133,10 +133,15 @@ test('model-development schema locks privacy and human-oversight invariants', ()
   assert.equal(decision.properties.final_plan.oneOf[1].type, 'null');
   assert.equal(decision.properties.applied_session_count.minimum, 0);
   assert.equal(contract.$defs.privacySafeFinalPlan.additionalProperties, false);
+  assert.equal(contract.$defs.privacySafeCategoryFocus.additionalProperties, false);
+  assert.deepEqual(new Set(contract.$defs.privacySafeCategoryFocus.properties.category_origin.enum), new Set(['built-in', 'teacher-created-or-legacy']));
+  assert.equal(contract.$defs.privacySafeRecommendationProposal.properties.recommended_category_focus.oneOf[0].$ref, '#/$defs/privacySafeCategoryFocus');
+  assert.equal(contract.$defs.privacySafeFinalPlan.properties.category_focus.oneOf[0].$ref, '#/$defs/privacySafeCategoryFocus');
   const application = contract.$defs.privacySafeRecommendationApplication;
   assert.equal(application.additionalProperties, false);
   assert.equal(application.properties.applied.const, true);
   assert.equal(application.properties.plan_matches_session_settings.const, true);
+  assert.equal(application.properties.category_focus.oneOf[0].$ref, '#/$defs/privacySafeCategoryFocus');
   assert.deepEqual(new Set(application.properties.review_decision.oneOf[0].enum), new Set(['approved', 'adjusted']));
   assert.equal(contract.properties.sessions.items.properties.recommendation_application.oneOf[0].$ref, '#/$defs/privacySafeRecommendationApplication');
 });

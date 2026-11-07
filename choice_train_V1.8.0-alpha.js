@@ -38,12 +38,12 @@
   const PRACTICE_STATUS_VERSION = '1.1.0';
   const CATEGORY_SKILL_STATE_VERSION = '1.0.0';
   const RETENTION_PLANNING_VERSION = '1.0.0';
-  const RECOMMENDATION_VERSION = '1.3.0';
+  const RECOMMENDATION_VERSION = '1.4.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.9.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.0.0';
   const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
-  const PRIVACY_EXPORT_VERSION = '1.1.0';
+  const PRIVACY_EXPORT_VERSION = '1.2.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 3;
   const MAX_IMPORT_FILES = 100;
@@ -58,6 +58,8 @@
     stimulus_onset: 12,
     target_present: 13,
     no_go: 14,
+    question_answer_blank_onset: 15,
+    question_answer_blank_offset: 16,
     response: 20,
     omission: 21,
     commission: 22,
@@ -71,7 +73,8 @@
     session_complete: 90
   });
   const EEG_PLANNED_MARKER_SET = Object.freeze([
-    'session_start', 'prompt_onset', 'cue_onset', 'stimulus_onset', 'target_present', 'no_go',
+    'session_start', 'prompt_onset', 'cue_onset', 'question_answer_blank_onset', 'question_answer_blank_offset',
+    'stimulus_onset', 'target_present', 'no_go',
     'response', 'omission', 'commission', 'feedback_onset', 'prompt_onset_support',
     'break_onset', 'break_offset', 'artifact', 'session_complete'
   ]);
@@ -660,6 +663,13 @@
     return ordered[(Math.max(1, occurrenceIndex) - 1) % ordered.length];
   }
 
+  function lessonCategoriesWithFocus(categories, snapshot){
+    const available = Array.isArray(categories) ? categories : [];
+    const focusId = snapshot && snapshot.categoryFocus && snapshot.categoryFocus.category_id;
+    if(!focusId) return available;
+    return available.includes(focusId) ? [focusId] : [];
+  }
+
   function safeNumber(value, fallback=0){
     const num = Number(value);
     return Number.isFinite(num) ? num : fallback;
@@ -697,9 +707,10 @@
 
   function fixedConditionSettingsSnapshot(){
     const filters = normalizeContentFilters(contentFiltersFromUi());
+    const staged = stagedRecommendationMatchesCurrentSetup() ? state.stagedRecommendation : null;
     const seedText = String(ui.lessonSeedOverride && ui.lessonSeedOverride.value || '').trim();
     const seedNumber = Number(seedText);
-    return {
+    const snapshot = {
       task_type: ui.sessionTaskType ? ui.sessionTaskType.value : 'auto',
       start_level: clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10),
       question_count: clamp(safeNumber(ui.sessionMax && ui.sessionMax.value, 8), 1, 20),
@@ -710,6 +721,7 @@
       inter_trial_interval_seconds: clamp(safeNumber(ui.itiSec && ui.itiSec.value, 0.75), 0, 10),
       blank_interval_enabled: !!(ui.useBlankInterval && ui.useBlankInterval.checked),
       blank_interval_seconds: clamp(safeNumber(ui.blankIntervalSec && ui.blankIntervalSec.value, 1), 0.1, 10),
+      blank_interval_position: 'between-question-and-answer',
       two_stage_prompt: !!(ui.useTwoStage && ui.useTwoStage.checked),
       reward_screen: !!(ui.useReward && ui.useReward.checked),
       text_prompts: !!(ui.useTextPrompt && ui.useTextPrompt.checked),
@@ -739,6 +751,13 @@
         find_category_source: filters.findCategorySource
       }
     };
+    if(staged && staged.category_focus){
+      snapshot.recommendation_category_focus = {
+        category_id: staged.category_focus.category_id,
+        task_kind: staged.task_kind
+      };
+    }
+    return snapshot;
   }
 
   function fixedConditionFingerprint(settings){
@@ -1288,6 +1307,9 @@
         recommendation_review_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
           ? state.sessionSnapshot.recommendation_application.review_id
           : null,
+        recommendation_category_focus: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+          ? clonePlain(state.sessionSnapshot.recommendation_application.category_focus)
+          : null,
         protocol_condition_id: state.sessionSnapshot && state.sessionSnapshot.study_protocol
           ? state.sessionSnapshot.study_protocol.protocol_condition_id
           : null,
@@ -1327,6 +1349,9 @@
           : null,
         recommendation_review_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
           ? state.sessionSnapshot.recommendation_application.review_id
+          : null,
+        recommendation_category_focus: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+          ? clonePlain(state.sessionSnapshot.recommendation_application.category_focus)
           : null,
         protocol_condition_id: state.sessionSnapshot && state.sessionSnapshot.study_protocol
           ? state.sessionSnapshot.study_protocol.protocol_condition_id
@@ -1721,9 +1746,40 @@
   function getAdaptiveTouchScale(){
     const manual = clamp(safeNumber(ui.targetScale && ui.targetScale.value, 100), 80, 220) / 100;
     if(!(ui.autoTouchScale && ui.autoTouchScale.checked)) return manual;
-    const width = Math.max(window.innerWidth || 0, 320);
-    const auto = width < 520 ? 1.35 : width < 820 ? 1.15 : 1;
-    return Number((manual * auto).toFixed(2));
+    const viewport = window.visualViewport;
+    const width = Math.max((viewport && viewport.width) || window.innerWidth || 0, 320);
+    const height = Math.max((viewport && viewport.height) || window.innerHeight || 0, 320);
+    const widthFit = clamp(width / 900, 0.8, 1);
+    const heightFit = clamp(height / 900, 0.8, 1);
+    return Number(clamp(manual * Math.min(widthFit, heightFit), 0.7, 2.2).toFixed(2));
+  }
+
+  function learnerViewportSize(){
+    const viewport = window.visualViewport;
+    return {
+      width: Math.max((viewport && viewport.width) || window.innerWidth || 0, 320),
+      height: Math.max((viewport && viewport.height) || window.innerHeight || 0, 320)
+    };
+  }
+
+  function responsiveActivityGridHeight(){
+    const viewport = learnerViewportSize();
+    const playHeight = ui.playArea && ui.playArea.clientHeight ? ui.playArea.clientHeight : viewport.height * 0.66;
+    const widthCap = viewport.width < 520 ? viewport.width * 0.95 : 420;
+    return Math.round(clamp(Math.min(playHeight * 0.68, viewport.height * 0.52, widthCap), 180, 420));
+  }
+
+  function responsiveChoiceMinHeight(baseHeight){
+    const viewport = learnerViewportSize();
+    const viewportCap = Math.max(104, Math.min(220, viewport.height * 0.24));
+    return Math.round(clamp(baseHeight * getAdaptiveTouchScale(), 104, viewportCap));
+  }
+
+  function responsiveTargetSize(requestedSize){
+    const viewport = learnerViewportSize();
+    const gridHeight = responsiveActivityGridHeight();
+    const fitted = Math.min(requestedSize, gridHeight * 0.62, viewport.width * 0.55);
+    return Math.round(clamp(fitted, 88, Math.max(88, requestedSize)));
   }
 
   function getAdaptiveHitRadius(){
@@ -2802,6 +2858,7 @@
       const builtInCount = Object.keys(PHOTO_CATEGORY_META).length;
       ui.categoryCatalogueSummary.textContent = `${builtInCount} built-in categories and ${state.customCategories.length} teacher-created categories are available.`;
     }
+    populateRecommendationCategoryOptions();
     refreshContentConfiguration();
   }
 
@@ -3351,8 +3408,9 @@
     };
   }
 
-  function buildContentConfigurationSnapshot(){
-    const filters = contentFiltersFromUi();
+  function buildContentConfigurationSnapshot(filterOverride=null, categoryFocus=null){
+    const filters = normalizeContentFilters(filterOverride || contentFiltersFromUi());
+    const focus = normalizedCategoryFocus(categoryFocus);
     const fullPool = objectPool();
     const findObjectItems = eligibleContentPool(filters.findObjectCategories, filters.findObjectSource, fullPool);
     const findCategoryItems = eligibleContentPool(filters.findCategoryCategories, filters.findCategorySource, fullPool);
@@ -3366,6 +3424,7 @@
       schemaVersion: DATA_SCHEMA_VERSION,
       capturedAtWallMs: wallMs(),
       pupil: currentPupilName(),
+      categoryFocus: focus ? { ...focus, task_kind: categoryFocus.task_kind || null } : null,
       findObject: {
         categories: categoryLabels(filters.findObjectCategories),
         sourceMode: filters.findObjectSource,
@@ -3392,6 +3451,7 @@
       schema_version: snapshot.schemaVersion,
       captured_at_wall_ms: snapshot.capturedAtWallMs,
       pupil: snapshot.pupil,
+      recommendation_category_focus: snapshot.categoryFocus ? clonePlain(snapshot.categoryFocus) : null,
       find_object: {
         selected_categories: snapshot.findObject.categories,
         source_mode: snapshot.findObject.sourceMode,
@@ -3527,8 +3587,8 @@
     ui.findCategoryConfigSummary.classList.toggle('invalid', !activeCategoryCheck.valid);
   }
 
-  function validateSessionContentSetup(){
-    const snapshot = buildContentConfigurationSnapshot();
+  function validateSessionContentSetup(snapshotOverride=null){
+    const snapshot = snapshotOverride || buildContentConfigurationSnapshot();
     const kinds = effectiveConfiguredTaskKinds(snapshot);
     const problems = [];
     if(kinds.some(kind => ['find-object', 'discriminate-object', 'choice-preference'].includes(kind))){
@@ -3554,6 +3614,13 @@
     if(kinds.includes('find-attribute')){
       const check = findAttributeConfiguration(snapshot);
       if(!check.valid) problems.push(check.message);
+    }
+    if(snapshot.categoryFocus){
+      const focusTask = snapshot.categoryFocus.task_kind;
+      const focusCheck = categoryFocusCheck(focusTask, snapshot.categoryFocus);
+      if(!focusCheck.valid){
+        problems.push(`${snapshot.categoryFocus.category_label} cannot currently produce a valid ${taskLabel(focusTask)} activity. Adjust the category, content source, or approved plan.`);
+      }
     }
     return { valid: problems.length === 0, problems, snapshot };
   }
@@ -3804,9 +3871,9 @@
       const eligible = uniqueOptions(sessionPoolFor('find-object'), true);
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
       const occurrence = taskOccurrenceIndex(currentKind, index);
-      const configuredCategories = snapshot.findObject.categories
+      const configuredCategories = lessonCategoriesWithFocus(snapshot.findObject.categories
         .map(item => item.id)
-        .filter(category => eligible.some(item => optionMatchesCategory(item, category)));
+        .filter(category => eligible.some(item => optionMatchesCategory(item, category))), snapshot);
       const targetCategory = balancedLessonChoice(configuredCategories, occurrence, 'find-object:categories', item => item);
       const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, configuredCategories.length)) + 1;
       const exactCategoryTargets = eligible.filter(item => canonicalCategoryId(item.category) === targetCategory);
@@ -3838,9 +3905,9 @@
       const eligible = uniqueOptions(sessionPoolFor('discriminate-object'), true);
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
       const occurrence = taskOccurrenceIndex(currentKind, index);
-      const configuredCategories = snapshot.findObject.categories
+      const configuredCategories = lessonCategoriesWithFocus(snapshot.findObject.categories
         .map(item => item.id)
-        .filter(category => eligible.some(item => optionMatchesCategory(item, category)));
+        .filter(category => eligible.some(item => optionMatchesCategory(item, category))), snapshot);
       const targetCategory = balancedLessonChoice(configuredCategories, occurrence, 'discriminate-object:categories', item => item);
       const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, configuredCategories.length)) + 1;
       const exactCategoryTargets = eligible.filter(item => canonicalCategoryId(item.category) === targetCategory);
@@ -3877,7 +3944,7 @@
     if(currentKind === 'find-category'){
       const eligible = sessionPoolFor('find-category');
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
-      const fairCategories = snapshot.findCategory.fairPromptCategories.map(item => item.id);
+      const fairCategories = lessonCategoriesWithFocus(snapshot.findCategory.fairPromptCategories.map(item => item.id), snapshot);
       const occurrence = taskOccurrenceIndex(currentKind, index);
       const category = balancedLessonChoice(fairCategories, occurrence, 'find-category:categories', item => item);
       const targetCandidates = uniqueOptions(eligible.filter(item => optionMatchesCategory(item, category)), true);
@@ -3908,7 +3975,7 @@
     if(currentKind === 'match-category'){
       const eligible = sessionPoolFor('match-category');
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
-      const fairCategories = snapshot.findCategory.fairMatchCategories.map(item => item.id);
+      const fairCategories = lessonCategoriesWithFocus(snapshot.findCategory.fairMatchCategories.map(item => item.id), snapshot);
       const occurrence = taskOccurrenceIndex(currentKind, index);
       const category = balancedLessonChoice(fairCategories, occurrence, 'match-category:categories', item => item);
       const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, fairCategories.length)) + 1;
@@ -3948,7 +4015,7 @@
     if(currentKind === 'category-exclusion'){
       const eligible = sessionPoolFor('category-exclusion');
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
-      const fairCategories = snapshot.findCategory.fairExclusionCategories.map(item => item.id);
+      const fairCategories = lessonCategoriesWithFocus(snapshot.findCategory.fairExclusionCategories.map(item => item.id), snapshot);
       const occurrence = taskOccurrenceIndex(currentKind, index);
       const referenceCategory = balancedLessonChoice(fairCategories, occurrence, 'category-exclusion:categories', item => item);
       const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, fairCategories.length)) + 1;
@@ -3985,7 +4052,7 @@
     if(currentKind === 'complete-category-group'){
       const eligible = sessionPoolFor('complete-category-group');
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
-      const fairCategories = snapshot.findCategory.fairGroupCompletionCategories.map(item => item.id);
+      const fairCategories = lessonCategoriesWithFocus(snapshot.findCategory.fairGroupCompletionCategories.map(item => item.id), snapshot);
       const occurrence = taskOccurrenceIndex(currentKind, index);
       const category = balancedLessonChoice(fairCategories, occurrence, 'complete-category-group:categories', item => item);
       const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, fairCategories.length)) + 1;
@@ -4028,7 +4095,10 @@
     if(currentKind === 'find-attribute'){
       const eligible = sessionPoolFor('find-attribute');
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
-      const fairPredicates = snapshot.findCategory.fairAttributePredicates || [];
+      const allFairPredicates = snapshot.findCategory.fairAttributePredicates || [];
+      const focusId = snapshot.categoryFocus && snapshot.categoryFocus.category_id;
+      const focusedPredicates = focusId ? allFairPredicates.filter(item => item.category === focusId) : [];
+      const fairPredicates = focusId ? focusedPredicates : allFairPredicates;
       const occurrence = taskOccurrenceIndex(currentKind, index);
       const predicate = balancedLessonChoice(fairPredicates, occurrence, 'find-attribute:predicates', item => item.id);
       const categoryMembers = uniqueOptions(eligible.filter(item => (
@@ -4075,9 +4145,9 @@
       const eligible = uniqueOptions(sessionPoolFor('choice-preference'), true);
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
       const occurrence = taskOccurrenceIndex(currentKind, index);
-      const configuredCategories = snapshot.findObject.categories
+      const configuredCategories = lessonCategoriesWithFocus(snapshot.findObject.categories
         .map(item => item.id)
-        .filter(category => eligible.some(item => optionMatchesCategory(item, category)));
+        .filter(category => eligible.some(item => optionMatchesCategory(item, category))), snapshot);
       const anchorCategory = balancedLessonChoice(configuredCategories, occurrence, 'choice-preference:categories', item => item);
       const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, configuredCategories.length)) + 1;
       const anchorCandidates = eligible.filter(item => optionMatchesCategory(item, anchorCategory));
@@ -4514,6 +4584,10 @@
       recommendation_application_status: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
         ? state.sessionSnapshot.recommendation_application.application_status
         : null,
+      recommendation_category_focus_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+        && state.sessionSnapshot.recommendation_application.category_focus
+        ? state.sessionSnapshot.recommendation_application.category_focus.category_id
+        : null,
       lesson_plan_id: currentLessonPlanId(),
       lesson_seed: question.lessonSeed == null ? null : question.lessonSeed,
       question_seed: question.questionSeed == null ? null : question.questionSeed,
@@ -4902,7 +4976,8 @@
     ui.choiceGrid.style.position = question.renderMode === 'single-target' || question.renderMode === 'touch-screen' || question.renderMode === 'cpat-sustained' ? 'relative' : '';
     ui.choiceGrid.style.width = (question.renderMode === 'single-target' || question.renderMode === 'touch-screen' || question.renderMode === 'cpat-sustained') ? '100%' : '';
     ui.choiceGrid.style.maxWidth = (question.renderMode === 'single-target' || question.renderMode === 'touch-screen' || question.renderMode === 'cpat-sustained') ? '100%' : '';
-    ui.choiceGrid.style.minHeight = (question.renderMode === 'single-target' || question.renderMode === 'touch-screen' || question.renderMode === 'cpat-sustained') ? '420px' : '';
+    const activityGridHeight = responsiveActivityGridHeight();
+    ui.choiceGrid.style.minHeight = (question.renderMode === 'single-target' || question.renderMode === 'touch-screen' || question.renderMode === 'cpat-sustained') ? `${activityGridHeight}px` : '';
     ui.choiceGrid.style.gridTemplateColumns = '';
 
     if(question.renderMode === 'touch-screen'){
@@ -4910,7 +4985,7 @@
       overlay.style.position = 'absolute';
       overlay.style.inset = '0';
       overlay.style.width = '100%';
-      overlay.style.minHeight = '420px';
+      overlay.style.minHeight = `${activityGridHeight}px`;
       overlay.style.background = 'transparent';
       overlay.style.borderColor = 'transparent';
       overlay.style.boxShadow = 'none';
@@ -4931,8 +5006,9 @@
       cue.style.position = 'absolute';
       cue.style.left = `${question.layout.left}%`;
       cue.style.top = `${question.layout.top}%`;
-      cue.style.width = `${Math.round(question.layout.size)}px`;
-      cue.style.minHeight = `${Math.round(question.layout.size)}px`;
+      const cueSize = responsiveTargetSize(question.layout.size);
+      cue.style.width = `${cueSize}px`;
+      cue.style.minHeight = `${cueSize}px`;
       cue.style.transform = 'translate(-50%, -50%)';
       cue.style.pointerEvents = 'none';
       const label = document.createElement('div');
@@ -4949,8 +5025,9 @@
       btn.style.position = 'absolute';
       btn.style.left = `${question.layout.left}%`;
       btn.style.top = `${question.layout.top}%`;
-      btn.style.width = `${Math.round(question.layout.size)}px`;
-      btn.style.minHeight = `${Math.round(question.layout.size)}px`;
+      const targetSize = responsiveTargetSize(question.layout.size);
+      btn.style.width = `${targetSize}px`;
+      btn.style.minHeight = `${targetSize}px`;
       btn.style.transform = 'translate(-50%, -50%)';
       const label = document.createElement('div');
       label.className = 'choiceLabel';
@@ -4969,8 +5046,9 @@
       btn.style.position = 'absolute';
       btn.style.left = '50%';
       btn.style.top = '56%';
-      btn.style.width = `${Math.round(levelSpec(state.currentLevel).size)}px`;
-      btn.style.minHeight = `${Math.round(levelSpec(state.currentLevel).size)}px`;
+      const stimulusSize = responsiveTargetSize(levelSpec(state.currentLevel).size);
+      btn.style.width = `${stimulusSize}px`;
+      btn.style.minHeight = `${stimulusSize}px`;
       btn.style.transform = 'translate(-50%, -50%)';
       const label = document.createElement('div');
       label.className = 'choiceLabel';
@@ -4988,7 +5066,7 @@
       ui.choiceGrid.style.gridTemplateColumns = '1fr 1fr';
       question.options.forEach(option => {
         const btn = createChoiceButton(option, question);
-        btn.style.minHeight = `${Math.round(180 * getAdaptiveTouchScale())}px`;
+        btn.style.minHeight = `${responsiveChoiceMinHeight(180)}px`;
         const label = document.createElement('div');
         label.className = 'choiceLabel';
         label.textContent = option.label;
@@ -5019,7 +5097,7 @@
       ui.choiceGrid.appendChild(display);
       question.options.forEach(option => {
         const btn = createChoiceButton(option, question);
-        btn.style.minHeight = `${Math.round(160 * getAdaptiveTouchScale())}px`;
+        btn.style.minHeight = `${responsiveChoiceMinHeight(160)}px`;
         const label = document.createElement('div');
         label.className = 'choiceLabel';
         label.textContent = option.label;
@@ -5067,7 +5145,7 @@
 
     question.options.forEach((option, idx) => {
       const btn = createChoiceButton(option, question);
-      btn.style.minHeight = `${Math.round(148 * getAdaptiveTouchScale())}px`;
+      btn.style.minHeight = `${responsiveChoiceMinHeight(148)}px`;
       const label = document.createElement('div');
       label.className = 'choiceLabel';
       label.textContent = option.label;
@@ -5449,9 +5527,45 @@
       updateStats();
     };
 
+    const revealChoiceAfterPrompt = () => {
+      if(!blankIntervalEnabled()){
+        revealChoice();
+        return;
+      }
+      const durationMs = blankIntervalMs();
+      state.phase = 'blank';
+      showScreen('screenBlank');
+      setFooter('Get ready for the answer choices.', 'Pause');
+      logEvent('question_answer_blank_onset', {
+        trial_id: state.currentTrial.trial_id,
+        question_index: question.questionIndex,
+        task_kind: question.kind,
+        duration_ms: durationMs
+      });
+      pushEegMarker('question_answer_blank_onset', {
+        trial_id: state.currentTrial.trial_id,
+        task_kind: question.kind,
+        task_variant: question.variantId || ''
+      });
+      state.timers.blank = window.setTimeout(() => {
+        logEvent('question_answer_blank_offset', {
+          trial_id: state.currentTrial.trial_id,
+          question_index: question.questionIndex,
+          task_kind: question.kind,
+          duration_ms: durationMs
+        });
+        pushEegMarker('question_answer_blank_offset', {
+          trial_id: state.currentTrial.trial_id,
+          task_kind: question.kind,
+          task_variant: question.variantId || ''
+        });
+        revealChoice();
+      }, durationMs);
+    };
+
     makePromptPreview(question);
     logCueShown(question);
-    if(ui.useTwoStage.checked || question.forcePromptStage){
+    if(ui.useTwoStage.checked || question.forcePromptStage || blankIntervalEnabled()){
       ui.promptTitle.textContent = (studentFriendlyModeEnabled() || ui.useTextPrompt.checked) ? question.prompt : taskLabel(question.kind);
       ui.promptSubtitle.textContent = studentFriendlyModeEnabled()
         ? (question.ruleText ? question.ruleText.split('. ')[0] : (question.cueSummary || question.subtitle))
@@ -5472,7 +5586,7 @@
         attention_domain: question.attentionDomain || ''
       });
       speak(question.prompt);
-      state.timers.preview = window.setTimeout(revealChoice, question.promptDelayMs || safeNumber(ui.delaySec.value, 1) * 1000);
+      state.timers.preview = window.setTimeout(revealChoiceAfterPrompt, question.promptDelayMs || safeNumber(ui.delaySec.value, 1) * 1000);
     } else {
       speak(question.prompt);
       revealChoice();
@@ -5681,25 +5795,6 @@
     flash('good', 'Preference logged');
   }
 
-  function beginInterTrialBlank(nextQuestionIndex){
-    const durationMs = blankIntervalMs();
-    state.questionIndex = nextQuestionIndex;
-    state.phase = 'blank';
-    showScreen('screenBlank');
-    setFooter('', 'Pause');
-    logEvent('inter_trial_blank_onset', {
-      next_question_index: nextQuestionIndex,
-      duration_ms: durationMs
-    });
-    state.timers.blank = window.setTimeout(() => {
-      logEvent('inter_trial_blank_offset', {
-        next_question_index: nextQuestionIndex,
-        duration_ms: durationMs
-      });
-      startQuestion();
-    }, durationMs);
-  }
-
   function advanceAfterFeedback(){
     clearTimeout(state.timers.reward);
     if(state.questionIndex >= state.totalQuestions || sessionTimedOut()){
@@ -5707,12 +5802,7 @@
       return;
     }
     if(maybePauseAfterCurrentQuestion()) return;
-    const nextQuestionIndex = state.questionIndex + 1;
-    if(blankIntervalEnabled()){
-      beginInterTrialBlank(nextQuestionIndex);
-      return;
-    }
-    state.questionIndex = nextQuestionIndex;
+    state.questionIndex += 1;
     startQuestion();
   }
 
@@ -6409,6 +6499,109 @@
     return preferredOrder.find(kind => (TASK_SKILL_IDS[kind] || []).includes(skillId)) || 'auto';
   }
 
+  function categoryFocusGroupForTask(taskKind){
+    if(['find-object', 'discriminate-object', 'choice-preference'].includes(taskKind)) return 'find-object';
+    if(['find-category', 'match-category', 'complete-category-group', 'category-exclusion', 'find-attribute'].includes(taskKind)) return 'find-category';
+    return null;
+  }
+
+  function normalizedCategoryFocus(value, source='proposal'){
+    if(!value) return null;
+    const rawId = typeof value === 'string' ? value : value.category_id;
+    if(!rawId) return null;
+    const categoryId = canonicalCategoryId(rawId);
+    const builtIn = Object.prototype.hasOwnProperty.call(PHOTO_CATEGORY_META, categoryId) && categoryId !== 'custom';
+    const teacherCategory = (state.customCategories || []).find(item => item.id === categoryId);
+    const storedLabel = typeof value === 'object' ? normalizeCategoryLabel(value.category_label) : '';
+    const categoryLabel = builtIn
+      ? PHOTO_CATEGORY_META[categoryId].label
+      : teacherCategory
+        ? teacherCategory.label
+        : storedLabel || (categoryId === 'custom' ? PHOTO_CATEGORY_META.custom.label : normalizeCategoryLabel(rawId));
+    return {
+      category_id: categoryId,
+      category_label: categoryLabel,
+      category_origin: builtIn ? 'built-in' : (teacherCategory ? 'teacher-created' : 'teacher-created-or-legacy'),
+      source: typeof value === 'object' && value.source ? value.source : source
+    };
+  }
+
+  function contentFiltersForCategoryFocus(baseFilters, taskKind, categoryFocus){
+    const filters = normalizeContentFilters(baseFilters || contentFiltersFromUi());
+    const focus = normalizedCategoryFocus(categoryFocus);
+    if(!focus) return filters;
+    const group = categoryFocusGroupForTask(taskKind);
+    if(group === 'find-object') filters.findObjectCategories = [focus.category_id];
+    if(group === 'find-category'){
+      filters.findCategoryCategories = Array.from(new Set([focus.category_id].concat(filters.findCategoryCategories)));
+    }
+    return filters;
+  }
+
+  function categoryFocusCheck(taskKind, categoryFocus, baseFilters=contentFiltersFromUi()){
+    const focus = normalizedCategoryFocus(categoryFocus);
+    if(!focus || !categoryFocusGroupForTask(taskKind)) return { valid: false, focus, snapshot: null };
+    const filters = contentFiltersForCategoryFocus(baseFilters, taskKind, focus);
+    const snapshot = buildContentConfigurationSnapshot(filters, { ...focus, task_kind: taskKind });
+    let check = { valid: false };
+    if(['find-object', 'discriminate-object', 'choice-preference'].includes(taskKind)) check = findObjectConfiguration(snapshot);
+    if(taskKind === 'find-category') check = findCategoryConfiguration(snapshot);
+    if(taskKind === 'match-category') check = matchCategoryConfiguration(snapshot);
+    if(taskKind === 'complete-category-group') check = categoryGroupCompletionConfiguration(snapshot);
+    if(taskKind === 'category-exclusion') check = categoryExclusionConfiguration(snapshot);
+    if(taskKind === 'find-attribute') check = findAttributeConfiguration(snapshot);
+    const focusIsFair = taskKind === 'find-category'
+      ? snapshot.findCategory.fairPromptCategories.some(item => item.id === focus.category_id)
+      : taskKind === 'match-category'
+        ? snapshot.findCategory.fairMatchCategories.some(item => item.id === focus.category_id)
+        : taskKind === 'complete-category-group'
+          ? snapshot.findCategory.fairGroupCompletionCategories.some(item => item.id === focus.category_id)
+          : taskKind === 'category-exclusion'
+            ? snapshot.findCategory.fairExclusionCategories.some(item => item.id === focus.category_id)
+            : taskKind === 'find-attribute'
+              ? snapshot.findCategory.fairAttributePredicates.some(item => item.category === focus.category_id)
+              : snapshot.findObject.items.some(item => optionMatchesCategory(item, focus.category_id));
+    return { valid: !!check.valid && focusIsFair, focus, snapshot, check };
+  }
+
+  function categoryFocusForRecommendation(selected, taskKind, sessions, generatedAtWallMs, action){
+    if(!selected || !categoryFocusGroupForTask(taskKind)) return null;
+    const rank = {
+      'needs-support': 0,
+      'insufficient-sample': 1,
+      developing: 2,
+      'consistent-current-sample': 3,
+      'not-scored': 4
+    };
+    const candidates = categorySkillStateProfile(sessions, generatedAtWallMs, true).rows
+      .filter(item => item.skill_id === selected.skill_id && item.scored_opportunities > 0)
+      .filter(item => categoryFocusCheck(taskKind, item.category_id).valid)
+      .sort((a, b) => {
+        if(action === 'run-spaced-check'){
+          const recencyDifference = (b.days_since_last_observation || 0) - (a.days_since_last_observation || 0);
+          if(recencyDifference) return recencyDifference;
+        }
+        const rankDifference = (rank[a.practice_status] ?? 99) - (rank[b.practice_status] ?? 99);
+        if(rankDifference) return rankDifference;
+        const accuracyDifference = (a.recent_accuracy_pct ?? 101) - (b.recent_accuracy_pct ?? 101);
+        if(accuracyDifference) return accuracyDifference;
+        return a.scored_opportunities - b.scored_opportunities || a.category_label.localeCompare(b.category_label);
+      });
+    const selectedCategory = candidates[0];
+    if(!selectedCategory) return null;
+    return {
+      ...normalizedCategoryFocus(selectedCategory.category_id, 'category-skill-state'),
+      evidence: {
+        practice_status: selectedCategory.practice_status,
+        sessions_observed: selectedCategory.sessions_observed,
+        scored_opportunities: selectedCategory.scored_opportunities,
+        recent_accuracy_pct: selectedCategory.recent_accuracy_pct,
+        recent_independent_success_pct: selectedCategory.recent_independent_success_pct,
+        days_since_last_observation: selectedCategory.days_since_last_observation
+      }
+    };
+  }
+
   function latestLevelFromSessions(sessions){
     const ordered = (Array.isArray(sessions) ? sessions : [])
       .slice()
@@ -6468,8 +6661,9 @@
     const matches = stagedRecommendationMatchesCurrentSetup(staged);
     ui.stagedRecommendationNotice.classList.toggle('invalid', !matches);
     const task = staged.task_kind === 'auto' ? 'Auto level path' : taskLabel(staged.task_kind);
+    const category = staged.category_focus ? `, category focus ${staged.category_focus.category_label}` : '';
     ui.stagedRecommendationText.textContent = matches
-      ? `Reviewed plan staged for the next session: ${task}, Level ${staged.level}. The recommendation link will be frozen when Start is pressed.`
+      ? `Reviewed plan staged for the next session: ${task}, Level ${staged.level}${category}. The recommendation link and any category focus will be frozen when Start is pressed.`
       : 'The staged reviewed plan no longer matches this pupil, task, or level. Use the approved plan again before Start if the session should be linked.';
   }
 
@@ -6483,7 +6677,7 @@
     const staged = state.stagedRecommendation;
     if(!stagedRecommendationMatchesCurrentSetup(staged)) return null;
     return {
-      application_schema_version: '1.0.0',
+      application_schema_version: '1.1.0',
       application_status: 'applied-as-reviewed',
       application_method: 'teacher-explicit',
       recommendation_id: staged.recommendation_id,
@@ -6496,6 +6690,7 @@
       task_kind: staged.task_kind,
       level: staged.level,
       support_direction: staged.support_direction,
+      category_focus: staged.category_focus ? clonePlain(staged.category_focus) : null,
       plan_matches_session_settings: true
     };
   }
@@ -6521,6 +6716,9 @@
         application_status: trial.recommendation_application_status || 'applied-as-reviewed',
         task_kind: trial.task_kind,
         level: trial.level,
+        category_focus: trial.recommendation_category_focus_id
+          ? normalizedCategoryFocus(trial.recommendation_category_focus_id, 'trial-provenance')
+          : null,
         session_id: session.session_id,
         learner_name: session.learner,
         learner_alias: session.learner_alias
@@ -6538,6 +6736,7 @@
       current_approved_plan_count: acceptedPlans.length,
       applied_session_count: applications.length,
       approved_not_yet_linked_count: acceptedPlans.filter(review => !appliedReviewIds.has(review.review_id)).length,
+      category_focused_session_count: applications.filter(application => !!application.category_focus).length,
       applications
     };
   }
@@ -6596,10 +6795,23 @@
 
     const recommendedLevel = clamp(latestLevelFromSessions(usableSessions), 1, 10);
     const recommendedTask = selected ? preferredTaskKindForSkill(selected.skill_id) : 'auto';
+    const recommendedCategoryFocus = categoryFocusForRecommendation(
+      selected,
+      recommendedTask,
+      usableSessions,
+      generatedAtWallMs,
+      action
+    );
+    if(recommendedCategoryFocus){
+      rationaleCodes.push('CATEGORY_SKILL_FOCUS');
+      const evidence = recommendedCategoryFocus.evidence;
+      rationale.push(`${recommendedCategoryFocus.category_label} is suggested as a one-session category focus from ${evidence.scored_opportunities} scored opportunity or opportunities across ${evidence.sessions_observed} observed session(s). This is a teacher-reviewed planning aid, not a mastery judgement.`);
+    }
     const sessionIds = usableSessions.map(session => session.session_id).filter(Boolean).sort();
     const idSeed = [
       RECOMMENDATION_VERSION, learnerAlias, sessionIds.join(','), action,
-      selected ? selected.skill_id : 'baseline', recommendedTask, recommendedLevel, configuredGapDays
+      selected ? selected.skill_id : 'baseline', recommendedTask, recommendedLevel,
+      recommendedCategoryFocus ? recommendedCategoryFocus.category_id : 'no-category-focus', configuredGapDays
     ].join('|');
     return {
       recommendation_id: `rec-${hashStringToSeed(idSeed).toString(16).padStart(8, '0')}`,
@@ -6614,6 +6826,7 @@
       recommended_task_kind: recommendedTask,
       recommended_task_label: recommendedTask === 'auto' ? 'Auto level path' : taskLabel(recommendedTask),
       recommended_level: recommendedLevel,
+      recommended_category_focus: recommendedCategoryFocus,
       support_direction: selected ? selected.support_direction : 'observe-before-changing',
       support_direction_label: selected ? selected.support_direction_label : supportDirectionLabel('observe-before-changing'),
       planning_parameters: retentionPlanningSnapshot(configuredGapDays),
@@ -8105,11 +8318,42 @@
     }
   }
 
+  function populateRecommendationCategoryOptions(){
+    if(!ui.recommendationOverrideCategory) return;
+    const current = ui.recommendationOverrideCategory.value;
+    clearNode(ui.recommendationOverrideCategory);
+    [
+      { value: '', label: 'Use proposed category focus' },
+      { value: '__none__', label: 'No category focus' }
+    ].forEach(item => {
+      const option = document.createElement('option');
+      option.value = item.value;
+      option.textContent = item.label;
+      ui.recommendationOverrideCategory.appendChild(option);
+    });
+    availableCategories()
+      .slice()
+      .sort((a, b) => a.label.localeCompare(b.label))
+      .forEach(category => {
+        const option = document.createElement('option');
+        option.value = category.id;
+        option.textContent = category.custom ? `${category.label} (teacher-created)` : category.label;
+        ui.recommendationOverrideCategory.appendChild(option);
+      });
+    if(Array.from(ui.recommendationOverrideCategory.options).some(option => option.value === current)){
+      ui.recommendationOverrideCategory.value = current;
+    }
+  }
+
   function renderRecommendationResearch(sessions, proposal){
     if(!ui.researchRecommendationSummary) return;
     state.activeRecommendation = proposal;
+    populateRecommendationCategoryOptions();
     const taskText = proposal.recommended_task_kind === 'auto' ? 'Auto level path' : proposal.recommended_task_label;
-    ui.researchRecommendationSummary.textContent = `${proposal.action_label}: ${proposal.skill_label}. Suggested task: ${taskText}, Level ${proposal.recommended_level}. Support direction: ${proposal.support_direction_label}. Teacher review is required.`;
+    const categoryText = proposal.recommended_category_focus
+      ? ` One-session category focus: ${proposal.recommended_category_focus.category_label}.`
+      : ' No category focus is proposed.';
+    ui.researchRecommendationSummary.textContent = `${proposal.action_label}: ${proposal.skill_label}. Suggested task: ${taskText}, Level ${proposal.recommended_level}.${categoryText} Support direction: ${proposal.support_direction_label}. Teacher review is required.`;
     clearNode(ui.researchRecommendationRationale);
     proposal.rationale.forEach(text => {
       const item = document.createElement('li');
@@ -8141,6 +8385,7 @@
     if(ui.researchRecommendationApprovedCount) ui.researchRecommendationApprovedCount.textContent = String(applicationSummary.current_approved_plan_count);
     if(ui.researchRecommendationAppliedCount) ui.researchRecommendationAppliedCount.textContent = String(applicationSummary.applied_session_count);
     if(ui.researchRecommendationPendingCount) ui.researchRecommendationPendingCount.textContent = String(applicationSummary.approved_not_yet_linked_count);
+    if(ui.researchRecommendationCategoryFocusCount) ui.researchRecommendationCategoryFocusCount.textContent = String(applicationSummary.category_focused_session_count);
 
     const decisionRows = ['approved', 'adjusted', 'declined', 'deferred'].map(decision => ({
       label: recommendationDecisionLabel(decision),
@@ -8157,7 +8402,8 @@
     drawResearchBars(ui.researchRecommendationUseChart, [
       { label: 'Current approved plans', value: applicationSummary.current_approved_plan_count, color: themeToken('success') },
       { label: 'Explicitly linked sessions', value: applicationSummary.applied_session_count, color: themeToken('primary') },
-      { label: 'Approved, not yet linked', value: applicationSummary.approved_not_yet_linked_count, color: themeToken('warning') }
+      { label: 'Approved, not yet linked', value: applicationSummary.approved_not_yet_linked_count, color: themeToken('warning') },
+      { label: 'Category-focused sessions', value: applicationSummary.category_focused_session_count, color: themeToken('secondary', themeToken('primary')) }
     ], { labelWidth: 170 });
     const applicationsByReview = new Map();
     applicationSummary.applications.forEach(application => {
@@ -8173,10 +8419,11 @@
         recommendationDecisionLabel(review.decision),
         review.final_plan && review.final_plan.task_label,
         review.final_plan && review.final_plan.level,
+        review.final_plan && review.final_plan.category_focus && review.final_plan.category_focus.category_label,
         applicationsByReview.get(review.review_id) || 0,
         review.note || 'No note'
       ]));
-    } else renderResearchEmptyRow(ui.researchRecommendationBody, 9, 'No teacher recommendation reviews in this scope yet.');
+    } else renderResearchEmptyRow(ui.researchRecommendationBody, 10, 'No teacher recommendation reviews in this scope yet.');
   }
 
   function stageApprovedRecommendationPlan(){
@@ -8192,6 +8439,11 @@
       flash('try', 'The approved task is not available in this build');
       return;
     }
+    const categoryFocus = normalizedCategoryFocus(review.final_plan.category_focus, 'teacher-reviewed-plan');
+    if(categoryFocus && !categoryFocusCheck(taskKind, categoryFocus).valid){
+      flash('try', `${categoryFocus.category_label} cannot currently produce this activity. Review the content or adjust the plan.`);
+      return;
+    }
     ui.sessionTaskType.value = taskKind;
     ui.startLevel.value = clamp(safeNumber(review.final_plan.level, proposal.recommended_level), 1, 10);
     state.stagedRecommendation = {
@@ -8205,7 +8457,8 @@
       staged_at_wall_ms: wallMs(),
       task_kind: taskKind,
       level: clamp(safeNumber(review.final_plan.level, proposal.recommended_level), 1, 10),
-      support_direction: review.final_plan.support_direction || null
+      support_direction: review.final_plan.support_direction || null,
+      category_focus: categoryFocus
     };
     saveSettingsSoon();
     saveCurrentLearnerProfile();
@@ -8214,7 +8467,7 @@
     updateSessionReadiness();
     openTeacherPanel();
     applyTeacherPage('today', { scroll: true, behavior: 'auto' });
-    flash('good', 'Approved task and level staged for the next session');
+    flash('good', categoryFocus ? 'Approved plan and category focus staged for the next session' : 'Approved plan staged for the next session');
   }
 
   function saveRecommendationReview(){
@@ -8236,8 +8489,9 @@
     const overrideTask = ui.recommendationOverrideTask.value;
     const overrideLevelText = String(ui.recommendationOverrideLevel.value || '').trim();
     const overrideLevel = overrideLevelText === '' ? null : clamp(safeNumber(overrideLevelText, proposal.recommended_level), 1, 10);
+    const overrideCategory = ui.recommendationOverrideCategory ? ui.recommendationOverrideCategory.value : '';
     const note = ui.recommendationReviewNote.value.trim();
-    if(decision === 'adjusted' && !overrideTask && overrideLevel == null && !note){
+    if(decision === 'adjusted' && !overrideTask && overrideLevel == null && !overrideCategory && !note){
       flash('try', 'Record the adjustment or add a note');
       return;
     }
@@ -8251,6 +8505,20 @@
     const finalLevel = accepted
       ? (decision === 'adjusted' && overrideLevel != null ? overrideLevel : proposal.recommended_level)
       : null;
+    let finalCategoryFocus = accepted ? normalizedCategoryFocus(proposal.recommended_category_focus) : null;
+    if(accepted && decision === 'adjusted' && overrideCategory){
+      finalCategoryFocus = overrideCategory === '__none__'
+        ? null
+        : normalizedCategoryFocus(overrideCategory, 'teacher-adjusted');
+    }
+    if(finalCategoryFocus && !categoryFocusGroupForTask(finalTask)){
+      flash('try', `${taskLabel(finalTask)} does not support a category focus`);
+      return;
+    }
+    if(finalCategoryFocus && !categoryFocusCheck(finalTask, finalCategoryFocus).valid){
+      flash('try', `${finalCategoryFocus.category_label} cannot currently produce a valid ${taskLabel(finalTask)} activity`);
+      return;
+    }
     const review = {
       review_id: uuid4(),
       recommendation_id: proposal.recommendation_id,
@@ -8268,6 +8536,7 @@
         skill_label: proposal.skill_label,
         recommended_task_kind: proposal.recommended_task_kind,
         recommended_level: proposal.recommended_level,
+        recommended_category_focus: proposal.recommended_category_focus ? clonePlain(proposal.recommended_category_focus) : null,
         support_direction: proposal.support_direction,
         rationale_codes: proposal.rationale_codes.slice(),
         source_session_ids: proposal.source_session_ids.slice()
@@ -8276,7 +8545,8 @@
         task_kind: finalTask,
         task_label: finalTask === 'auto' ? 'Auto level path' : taskLabel(finalTask),
         level: finalLevel,
-        support_direction: proposal.support_direction
+        support_direction: proposal.support_direction,
+        category_focus: finalCategoryFocus
       } : null
     };
     learner.reviews = learner.reviews.concat(review).slice(-100);
@@ -8295,12 +8565,14 @@
         review_id: review.review_id,
         decision,
         final_task_kind: finalTask,
-        final_level: finalLevel
+        final_level: finalLevel,
+        final_category_focus_id: finalCategoryFocus ? finalCategoryFocus.category_id : null
       });
     }
     ui.recommendationReviewNote.value = '';
     ui.recommendationOverrideTask.value = '';
     ui.recommendationOverrideLevel.value = '';
+    if(ui.recommendationOverrideCategory) ui.recommendationOverrideCategory.value = '';
     renderResearchWorkspace();
     flash('good', 'Teacher review saved locally');
   }
@@ -10875,6 +11147,18 @@
     if(ui.pupilSelect && ui.pupilSelect.value && ui.pupilSelect.value !== currentPupilName()){
       selectPupil(ui.pupilSelect.value, { speakGreeting: false });
     }
+    const stagedRecommendation = state.stagedRecommendation;
+    const recommendationApplication = recommendationApplicationForCurrentSetup();
+    const categoryFocus = recommendationApplication && recommendationApplication.category_focus;
+    const sessionFilters = contentFiltersForCategoryFocus(
+      contentFiltersFromUi(),
+      recommendationApplication ? recommendationApplication.task_kind : null,
+      categoryFocus
+    );
+    const sessionContentSnapshot = buildContentConfigurationSnapshot(
+      sessionFilters,
+      categoryFocus ? { ...categoryFocus, task_kind: recommendationApplication.task_kind } : null
+    );
     const fixedConditionValidation = updateFixedConditionStatus(validateFixedCondition());
     if(!fixedConditionValidation.valid){
       if(ui.sessionSetupStatus){
@@ -10887,7 +11171,7 @@
       flash('try', 'Fixed condition needs attention');
       return;
     }
-    const contentValidation = validateSessionContentSetup();
+    const contentValidation = validateSessionContentSetup(sessionContentSnapshot);
     if(!contentValidation.valid){
       if(ui.sessionSetupStatus){
         ui.sessionSetupStatus.hidden = false;
@@ -10930,8 +11214,6 @@
     state.currentLevel = clamp(safeNumber(ui.startLevel.value, 1), 1, 10);
     state.sessionTaskType = ui.sessionTaskType.value === 'auto' ? 'auto' : ui.sessionTaskType.value;
     state.singleTargetRepetitions = clamp(safeNumber(ui.singleTargetReps.value, 3), 1, 10);
-    const stagedRecommendation = state.stagedRecommendation;
-    const recommendationApplication = recommendationApplicationForCurrentSetup();
     saveCurrentLearnerProfile();
     state.sessionSnapshot = {
       learner: currentPupilName(),
@@ -10973,6 +11255,7 @@
       inter_trial_interval_ms: interTrialDelayMs(),
       blank_interval_enabled: blankIntervalEnabled(),
       blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
+      blank_interval_position: 'between-question-and-answer',
       learner_context: learnerContextSnapshot(),
       learner_baseline: learnerBaselineSnapshot(),
       fidelity: fidelitySnapshot(),
@@ -11062,6 +11345,7 @@
         student_friendly_mode: snapshot ? snapshot.student_friendly_mode : studentFriendlyModeEnabled(),
         blank_interval_enabled: blankIntervalEnabled(),
         blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
+        blank_interval_position: 'between-question-and-answer',
         support_level: state.promptState.highestLevel,
         build_version: APP_BUILD.version,
         skill_graph_version: SKILL_GRAPH_VERSION,
@@ -11087,6 +11371,7 @@
       content_configuration: exportableContentConfiguration(),
       blank_interval_enabled: blankIntervalEnabled(),
       blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
+      blank_interval_position: 'between-question-and-answer',
       photo_library_metadata: snapshot ? clonePlain(snapshot.photo_library_metadata) : photoLibraryMetadata(),
       local_recommendation_summary: buildLocalRecommendationSummary(summary),
       research_summary: researchSummaryForTrials(state.trials),
@@ -11294,12 +11579,24 @@
     const teacherDecisions = researchReviews.map(review => ({
       date: researchDateLabel(Number(review.reviewed_at_wall_ms)),
       learner_alias: review.learner_alias || 'Unknown',
-      recommendation_id: review.recommendation_id,
-      decision: review.decision,
-      proposed_action: review.proposal && review.proposal.action,
-      skill_id: review.proposal && review.proposal.skill_id,
-      final_task_kind: review.final_plan && review.final_plan.task_kind,
-      final_level: review.final_plan && review.final_plan.level,
+      recommendation_id: review.recommendation_id || 'not-recorded',
+      decision: ['approved', 'adjusted', 'declined', 'deferred'].includes(review.decision) ? review.decision : 'deferred',
+      proposed_action: review.proposal && review.proposal.action || null,
+      skill_id: review.proposal && review.proposal.skill_id || null,
+      proposed_category_focus_id: review.proposal && review.proposal.recommended_category_focus
+        ? review.proposal.recommended_category_focus.category_id
+        : null,
+      proposed_category_focus_label: review.proposal && review.proposal.recommended_category_focus
+        ? review.proposal.recommended_category_focus.category_label
+        : null,
+      final_task_kind: review.final_plan && review.final_plan.task_kind || null,
+      final_level: review.final_plan && Number.isFinite(review.final_plan.level) ? review.final_plan.level : null,
+      final_category_focus_id: review.final_plan && review.final_plan.category_focus
+        ? review.final_plan.category_focus.category_id
+        : null,
+      final_category_focus_label: review.final_plan && review.final_plan.category_focus
+        ? review.final_plan.category_focus.category_label
+        : null,
       applied_session_count: applicationsByReview.get(review.review_id) || 0
     }));
 
@@ -11321,6 +11618,7 @@
         raw_touch_coordinates_included: false,
         image_data_included: false,
         photo_labels_included: false,
+        configured_category_labels_included: true,
         free_text_notes_included: false,
         day_level_session_dates_included: true
       },
@@ -11394,7 +11692,8 @@
       recommendation_application_summary: {
         current_approved_plan_count: recommendationUse.current_approved_plan_count,
         applied_session_count: recommendationUse.applied_session_count,
-        approved_not_yet_linked_count: recommendationUse.approved_not_yet_linked_count
+        approved_not_yet_linked_count: recommendationUse.approved_not_yet_linked_count,
+        category_focused_session_count: recommendationUse.category_focused_session_count
       },
       teacher_decisions: teacherDecisions,
       interpretation_boundary: 'Descriptive teaching and research-support summary only. It is not diagnostic, does not establish causation or transfer, and does not demonstrate neural change or validated EEG synchronisation.'
@@ -11576,6 +11875,17 @@
     };
   }
 
+  function privacySafeCategoryFocus(value){
+    const focus = normalizedCategoryFocus(value);
+    if(!focus) return null;
+    const isBuiltIn = Object.prototype.hasOwnProperty.call(PHOTO_CATEGORY_META, focus.category_id)
+      && focus.category_id !== 'custom';
+    return {
+      category_code: isBuiltIn ? focus.category_id : 'custom',
+      category_origin: isBuiltIn ? 'built-in' : 'teacher-created-or-legacy'
+    };
+  }
+
   function privacySafeReviews(participantByLearner, sessions=[]){
     const rows = [];
     const allowedDecisions = ['approved', 'adjusted', 'declined', 'deferred'];
@@ -11601,12 +11911,14 @@
             skill_id: review.proposal.skill_id || null,
             recommended_task_kind: review.proposal.recommended_task_kind || null,
             recommended_level: review.proposal.recommended_level || null,
+            recommended_category_focus: privacySafeCategoryFocus(review.proposal.recommended_category_focus),
             support_direction: review.proposal.support_direction || null,
             rationale_codes: Array.isArray(review.proposal.rationale_codes) ? review.proposal.rationale_codes.slice() : []
           } : null,
           final_plan: accepted && review.final_plan ? {
             task_kind: review.final_plan.task_kind || null,
             level: review.final_plan.level || null,
+            category_focus: privacySafeCategoryFocus(review.final_plan.category_focus),
             support_direction: review.final_plan.support_direction || null
           } : null
         });
@@ -11628,6 +11940,7 @@
       review_decision: decision,
       planned_task_kind: application.task_kind || null,
       planned_level: Number.isFinite(application.level) ? application.level : null,
+      category_focus: privacySafeCategoryFocus(application.category_focus),
       support_direction: application.support_direction || null,
       plan_matches_session_settings: application.plan_matches_session_settings === true
     };
@@ -11775,6 +12088,7 @@
         free_text_included: false,
         image_data_included: false,
         photo_labels_included: false,
+        teacher_created_category_labels_included: false,
         exact_timestamps_included: false,
         raw_touch_coordinates_included: false,
         prompt_wording_included: false,
@@ -12237,6 +12551,7 @@
     applyBuildInfo();
     populateRecommendationTaskOptions();
     loadSettings();
+    populateRecommendationCategoryOptions();
     applyTheme();
     applySensoryPreferences();
     applyStudentFriendlyMode();

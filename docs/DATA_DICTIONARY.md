@@ -18,8 +18,8 @@ The alpha retains raw trial records and adds recomputable, versioned planning fi
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `practice_status_version` | string | Version of the transparent skill-state rules |
-| `recommendation_version` | string | Version of the deterministic proposal, review, and explicit application rules; current alpha value `1.3.0` |
-| `privacy_export_version` | string | Version of the governance-gated model-development export; current alpha value `1.1.0` |
+| `recommendation_version` | string | Version of the deterministic proposal, review, and explicit application rules; current alpha value `1.4.0` |
+| `privacy_export_version` | string | Version of the governance-gated model-development export; current alpha value `1.2.0` |
 | `retention_planning` | object | Versioned planning interval, comparison minimum, due/comparison rules, and interpretation boundary frozen into new sessions |
 | `local_recommendation_summary.practice_states` | array | Per-skill opportunity, recency, accuracy, independence, trend, retention, and support summaries |
 | `practice_status` | enum | `not-scored`, `insufficient-sample`, `needs-support`, `developing`, or `consistent-current-sample` |
@@ -29,14 +29,14 @@ The alpha retains raw trial records and adds recomputable, versioned planning fi
 | `retention_threshold_days` | number | Configured 1-365-day interval used for due status and observed comparisons |
 | `retention_due_status` | enum | `due` or `not-yet-due`, calculated from the latest observed practice date under the selected interval |
 | `next_retention_check_date` | string or null | Day-level planned check date in a Research scope summary; exact timestamps are not included there |
-| `suggested_next_session` | object | Local proposal, rationale codes, source sessions, task, level, support direction, and interpretation boundary |
+| `suggested_next_session` | object | Local proposal, rationale codes, source sessions, task, level, optional category focus, support direction, and interpretation boundary |
 | `teacher_review_history` | array | Local approve/adjust/decline/defer audit records for proposals |
 
 Current alpha rules label samples below five scored opportunities or two sessions as needing more observations. `consistent-current-sample` requires at least eight recent scored opportunities, 80% recent accuracy, and 70% independent success. A retention comparison requires a gap of at least the configured 1-365-day interval and at least three scored opportunities on both sides; otherwise the sample is labelled too small. Seven days remains the backward-compatible default, not a validated universal interval.
 
-Teacher review records preserve the proposal, decision, optional override, approved final task and level where applicable, note, reviewer label, timestamp, and any superseded review ID. `approved` accepts the proposal, `adjusted` approves a recorded alternative, `declined` rejects it for now, and `deferred` records that more information or time is needed. Declined and deferred reviews have `final_plan: null`. A proposal never changes session settings automatically.
+Teacher review records preserve the proposal, decision, optional overrides, approved final task, level, and category focus where applicable, note, reviewer label, timestamp, and any superseded review ID. `approved` accepts the proposal, `adjusted` approves a recorded alternative, `declined` rejects it for now, and `deferred` records that more information or time is needed. Declined and deferred reviews have `final_plan: null`. A proposal never changes session settings automatically.
 
-An accepted review can be explicitly staged for one next session. `recommendation_application` freezes `recommendation_id`, `review_id`, recommendation version, review decision, final task/level, support direction, and application timestamps when Start is pressed with the same pupil, task, and level. Compatible trials repeat the recommendation/review IDs and `recommendation_application_status: applied-as-reviewed` for auditable linkage. Changing the staged pupil, task, or level prevents the link; support direction remains advisory and does not silently change prompt controls.
+An accepted review can be explicitly staged for one next session. `recommendation_application` version 1.1.0 freezes `recommendation_id`, `review_id`, recommendation version, review decision, final task/level, optional `category_focus`, support direction, and application timestamps when Start is pressed with the same pupil, task, and level. Compatible trials repeat the recommendation/review IDs, `recommendation_category_focus_id`, and `recommendation_application_status: applied-as-reviewed` for auditable linkage. Object activities use an ephemeral single-category content snapshot; category-reasoning activities retain the comparison categories required for a valid item while fixing the reviewed target/reference category. The pupil's saved content filters are not changed. Changing the staged pupil, task, or level prevents the link; support direction remains advisory and does not silently change prompt controls.
 
 V1.8 freezes the selected local pupil name, export alias, profile snapshot, context, presentation settings, and photo metadata when a session starts. Later profile selection cannot relabel that session. The export alias is a display/pseudonym field rather than the local identity key, so two profiles may share an alias without their longitudinal records being merged.
 
@@ -86,7 +86,7 @@ The Research demand view derives per-session mean displayed option count, mean d
 
 ### Research workspace summary export
 
-`Download scope summary` creates local JSON with `export_schema_version: 1.9.0` for the current Research scope. It contains derived `coverage_by_session`, `data_quality`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `retention_planning`, `category_skill_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `model_dataset_composition`, `session_context`, `eeg_readiness`, and `teacher_decisions`. Retention and category-skill rows use day-level dates and omit exact wall-clock timestamps. Missing values remain missing rather than being converted to zero.
+`Download scope summary` creates local JSON with `export_schema_version: 2.0.0` for the current Research scope. It contains derived `coverage_by_session`, `data_quality`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `retention_planning`, `category_skill_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `model_dataset_composition`, `session_context`, `eeg_readiness`, `recommendation_application_summary`, and `teacher_decisions`. Version 2.0 adds proposed/final category-focus fields and the number of linked sessions that used a reviewed focus. Retention and category-skill rows use day-level dates and omit exact wall-clock timestamps. Missing values remain missing rather than being converted to zero.
 
 `model_dataset_composition` version 1.0.0 is an aggregate descriptive profile for future governed model-development planning. It records participant/session depth bands, longitudinal representation, skill and research-condition exposure, outcome and support-label counts, teacher-review counts, and current local governance eligibility. It excludes learner aliases and states that development, validation, and held-out evaluation must use participant-separated groups. `automatic_split_performed` and `random_trial_split_allowed` are both `false`. This profile does not determine dataset sufficiency, fairness, lawful use, model validity, teaching effectiveness, transfer, or neural change.
 
@@ -220,6 +220,8 @@ Field availability depends on the task and enabled logging mode. Missing data mu
 | 12 | `stimulus_onset` | Stimulus presented |
 | 13 | `target_present` | Target-present trial state |
 | 14 | `no_go` | No-go trial state |
+| 15 | `question_answer_blank_onset` | Optional blank pause began after the question and before answer choices |
+| 16 | `question_answer_blank_offset` | Optional question-to-answer blank pause ended |
 | 20 | `response` | Learner response received |
 | 21 | `omission` | Required response not received in time |
 | 22 | `commission` | Response made when it should have been withheld |
@@ -233,6 +235,8 @@ Field availability depends on the task and enabled logging mode. Missing data mu
 | 90 | `session_complete` | Session ended |
 
 These are browser event times. Real EEG synchronisation still requires a hardware/LSL integration and measured clock, display, audio, and transport latency.
+
+Full session exports record `blank_interval_enabled`, `blank_interval_ms`, and `blank_interval_position: between-question-and-answer`. When enabled, `prompt_onset`, `question_answer_blank_onset`, `question_answer_blank_offset`, and `stimulus_onset` describe the intended question-to-answer sequence. These remain browser timestamps rather than measured EEG trigger timing.
 
 ## V1.8 EEG Protocol and Diagnostics
 
@@ -268,7 +272,7 @@ The fixed-condition Research rows report date, condition ID, research condition,
 
 ## V1.8 Pseudonymised Research / Model-Development Export
 
-This separate JSON uses `export_schema_version: 1.1.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
+This separate JSON uses `export_schema_version: 1.2.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
 
 - random participant codes and relative session order/spacing
 - build, schema, skill-graph, and generator versions
@@ -277,10 +281,10 @@ This separate JSON uses `export_schema_version: 1.1.0` and `privacy_status: pseu
 - privacy-safe per-skill summaries
 - relative EEG marker times and browser diagnostics
 - fixed-condition enabled/adherence/fingerprint state without the condition ID or manifest settings
-- sanitised teacher decisions and rationale codes, plus an approved final task/level and aggregate applied-session count only for approved or adjusted reviews, without reviewer identity or free text
-- a privacy-safe per-session application summary containing the reviewed decision, planned task/level, support direction, and settings-match flag without recommendation/review IDs or exact application times
+- sanitised teacher decisions and rationale codes, plus an approved final task/level/category focus and aggregate applied-session count only for approved or adjusted reviews, without reviewer identity or free text
+- a privacy-safe per-session application summary containing the reviewed decision, planned task/level/category focus, support direction, and settings-match flag without recommendation/review IDs or exact application times
 
-It excludes direct names and aliases, free text, images, photo labels, exact wall-clock/performance timestamps, source session/trial/recommendation/review IDs, prompt wording, selected labels, raw touch coordinates, fixed-condition IDs, and fixed manifest settings. `external_transmission` is `false`; clicking the button downloads a local file only.
+Built-in category focus is represented by its controlled category code. Teacher-created and legacy category focus is represented only as `category_code: custom` with `category_origin: teacher-created-or-legacy`; the original ID and label are removed. The export excludes direct names and aliases, free text, images, photo labels, teacher-created category labels, exact wall-clock/performance timestamps, source session/trial/recommendation/review IDs, prompt wording, selected labels, raw touch coordinates, fixed-condition IDs, and fixed manifest settings. `external_transmission` is `false`; clicking the button downloads a local file only.
 
 Model-development EEG diagnostics are recalculated from the selected raw trials, privacy-safe marker data, and protocol fields at export time. The model-dataset schema permits only aggregate ordering, timing-comparison, protocol-completeness, synchronisation-declaration, and interpretation-boundary fields. Stored diagnostic extensions such as operator notes, exact times, or source identifiers are not copied into this export.
 
