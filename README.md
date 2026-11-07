@@ -3,7 +3,7 @@
 [![Browser tests](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml)
 
-**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.8 research plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md)** | **[V1.7 design decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
+**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.8 research plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md)** | **[V1.8 release readiness](docs/V1.8.0_RELEASE_READINESS.md)** | **[V1.7 design decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
@@ -535,9 +535,13 @@ Useful commands:
 ```bash
 npm install
 npm run test:release
+npm run test:schema
+npm run check:candidate:v180
 npm run test:browser
 npm run audit:visual:v170
 ```
+
+`npm run check:candidate:v180` is a fail-fast engineering gate for the isolated V1.8 candidate. It protects the live V1.7 entry point, checks paired assets and versioned data contracts, rejects implemented browser network transports, and confirms that CI retains the full release/schema/candidate/browser sequence. A pass prepares a candidate for review; it does not authorise promotion or replace school, governance, physical-device, or EEG hardware validation. See the [V1.8 release-readiness checklist](docs/V1.8.0_RELEASE_READINESS.md).
 
 The `V1.7.0` release is validated with:
 
@@ -548,7 +552,7 @@ The V1.7-specific suite contains 21 checks for workspace separation and focused 
 
 The isolated V1.8 suite adds 26 checks for its schema and skill graph, deterministic lesson replay, multi-seed category/target, single-cue match, two-cue group-completion, and category-difference invariants, four-task Level 6 category-family rotation, longitudinal scope isolation, accessible Research navigation and domain-coverage audit, prompt/agency event visualisation, session-completion/timing persistence including zero-response learner stops, separate Attention Training family and response-quality visualisations, teacher-reviewed planning, retention observations, EEG protocol/timing diagnostics, fixed-condition persistence/drift blocking/replay/export visualisation, deny-by-default governance, withdrawal handling, and pseudonymised-export exclusions. The complete stable, archive, and alpha matrix currently passes 103 Playwright tests.
 
-The release stamper has three dependency-free Node unit tests covering safe replacement, missing/duplicate-block rejection, explicit file parsing, and dry-run options. Branch and Pages CI run these before the browser matrix.
+The release stamper has three dependency-free Node unit tests covering safe replacement, missing/duplicate-block rejection, explicit file parsing, and dry-run options. Branch and Pages CI run these, the machine-readable schema checks, and the V1.8 candidate gate before the browser matrix.
 
 `npm run audit:visual:v170` creates a repeatable local visual-review set with 17 synthetic-data captures covering teacher and Admin workspaces, active learner tasks, reward and reward-disabled feedback, break mode, tablet, mobile, and every theme. The generated screenshots are ignored by Git because they are review evidence rather than product assets.
 

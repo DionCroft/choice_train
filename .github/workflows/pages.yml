@@ -37,6 +37,9 @@ jobs:
       - name: Validate research data contracts
         run: npm run test:schema
 
+      - name: Check V1.8 candidate readiness
+        run: npm run check:candidate:v180
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 

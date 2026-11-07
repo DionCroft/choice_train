@@ -5,6 +5,7 @@
   "scripts": {
     "test:release": "node --test scripts/stamp-build.test.js",
     "test:schema": "node --test scripts/schema-contract.test.js",
+    "check:candidate:v180": "node scripts/check-v180-candidate.js",
     "test:browser": "node scripts/run-browser-tests.js",
     "test:browser:headed": "node scripts/run-browser-tests.js --headed",
     "test:browser:ui": "node scripts/run-browser-tests.js --ui",
