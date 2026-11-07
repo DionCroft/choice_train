@@ -72,7 +72,7 @@ test('V1.8 export declares the versioned research contract and preserves missing
   expect(payload.build.version).toBe('1.8.0-alpha');
   expect(payload.schema_version).toBe(5);
   expect(payload.skill_graph_version).toBe('1.0.0');
-  expect(payload.generator_version).toBe('1.1.0');
+  expect(payload.generator_version).toBe('1.2.0');
   expect(payload.research_summary_version).toBe('1.0.0');
   expect(payload.skill_graph).toEqual(expect.arrayContaining([
     expect.objectContaining({ skill_id: 'access.touch_screen' }),
@@ -190,7 +190,7 @@ test('Find object balances configured categories before repeating and preserves 
     await setValue(page, 'lessonSeedOverride', seed);
     await setValue(page, 'startLevel', 4);
     const payload = await completeSessionAndExport(page, 6);
-    expect(payload.generator_version).toBe('1.1.0');
+    expect(payload.generator_version).toBe('1.2.0');
     expect(payload.lesson_plan.constraints.coverage_strategy).toBe('balanced-before-repeat');
     expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(6);
     expect(new Set(payload.trials.map(trial => trial.target_id)).size).toBe(6);
@@ -256,6 +256,85 @@ test('Find category rotates fair categories and keeps exactly one correct option
     await page.locator('#teacherExitHold').focus();
     await page.locator('#teacherExitHold').press('Enter');
   }
+});
+
+test('Discriminate object uses configured categories and a reproducible two-option contrast', async ({ page }) => {
+  test.slow();
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'itiSec', 0);
+  await setValue(page, 'sessionTaskType', 'discriminate-object');
+  await setValue(page, 'findObjectSourceMode', 'stock');
+  await setValue(page, 'startLevel', 5);
+  await setValue(page, 'sessionMax', 6);
+  await setValue(page, 'maxObjects', 2);
+  await setValue(page, 'lessonSeedOverride', 86420);
+
+  const payload = await completeSessionAndExport(page, 6);
+  expect(payload.generator_version).toBe('1.2.0');
+  expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(6);
+  expect(new Set(payload.trials.map(trial => trial.target_id)).size).toBe(6);
+  payload.trials.forEach(trial => {
+    const optionIds = trial.option_metadata.map(option => option.id);
+    const optionLabels = trial.option_metadata.map(option => option.label.toLowerCase());
+    expect(trial.procedural_variant).toBe('category-balanced-discrimination');
+    expect(['within-category', 'cross-category']).toContain(trial.discrimination_contrast);
+    expect(trial.open_ended_choice).toBe(false);
+    expect(trial.scored_response).toBe(true);
+    expect(trial.option_metadata).toHaveLength(2);
+    expect(optionIds.filter(id => id === trial.target_id)).toHaveLength(1);
+    expect(new Set(optionIds).size).toBe(2);
+    expect(new Set(optionLabels).size).toBe(2);
+    expect(trial.target_source).toBe('stock');
+    expect(trial.generator_constraints.procedural_variant).toBe('category-balanced-discrimination');
+  });
+});
+
+test('Choice preference accepts every configured option and exports an unscored preference response', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'itiSec', 0);
+  await setValue(page, 'sessionTaskType', 'choice-preference');
+  await setValue(page, 'findObjectSourceMode', 'stock');
+  await setValue(page, 'startLevel', 6);
+  await setValue(page, 'sessionMax', 4);
+  await setValue(page, 'maxObjects', 4);
+  await setValue(page, 'lessonSeedOverride', 13579);
+
+  await page.locator('#quickStartSessionBtn').click();
+  for(let index = 0; index < 4; index += 1) {
+    const nonAnchor = page.locator('#choiceGrid .choice:not([data-role="correct-target"])').first();
+    await expect(nonAnchor).toBeVisible();
+    await nonAnchor.click();
+    if(index < 3) await expect(page.locator('#qIndex')).toHaveText(`${index + 2} / 4`);
+  }
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+
+  expect(payload.generator_version).toBe('1.2.0');
+  expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(4);
+  payload.trials.forEach(trial => {
+    expect(trial.procedural_variant).toBe('category-balanced-preference');
+    expect(trial.open_ended_choice).toBe(true);
+    expect(trial.scored_response).toBe(false);
+    expect(trial.response_type).toBe('preference-selection');
+    expect(trial.correct).toBe(true);
+    expect(trial.commission).toBe(false);
+    expect(trial.distance_to_target_px).toBeNull();
+    expect(trial.selected_to_target_distance_px).toBeNull();
+    expect(trial.option_metadata.length).toBeGreaterThanOrEqual(2);
+    expect(trial.option_metadata.length).toBeLessThanOrEqual(4);
+    expect(trial.generator_constraints.open_ended_choice).toBe(true);
+    expect(trial.generator_constraints.procedural_variant).toBe('category-balanced-preference');
+  });
 });
 
 test('Research is a separate admin destination with accessible visual equivalents', async ({ page }) => {

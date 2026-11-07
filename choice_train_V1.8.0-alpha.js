@@ -30,7 +30,7 @@
   const SESSION_ARCHIVE_LIMIT = 60;
   const DATA_SCHEMA_VERSION = 5;
   const SKILL_GRAPH_VERSION = '1.0.0';
-  const GENERATOR_VERSION = '1.1.0';
+  const GENERATOR_VERSION = '1.2.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
@@ -970,6 +970,9 @@
       auto_level_path: !!(ui.autoLevelPath && ui.autoLevelPath.checked),
       response_window_ms: question.responseWindowMs == null ? null : question.responseWindowMs,
       target_category: question.targetCategory || null,
+      procedural_variant: question.proceduralVariant || null,
+      discrimination_contrast: question.discriminationContrast || null,
+      open_ended_choice: !!question.openEndedChoice,
       content_configuration: question.contentConfiguration || null
     };
   }
@@ -2881,8 +2884,8 @@
     const valid = config.categories.length > 0 && uniqueLabels.length >= 2;
     const categoryNames = config.categories.map(category => category.label).join(', ') || 'None';
     let message = `Categories: ${categoryNames}. Source: ${sourceModeLabel(config.sourceMode)}. ${uniqueLabels.length} distinct usable items.`;
-    if(!config.categories.length) message = 'Select at least one category for Find object.';
-    else if(uniqueLabels.length < 2) message = 'Find object needs at least two differently labelled usable items. Add content, enable photos for questions, or change the source/category selection.';
+    if(!config.categories.length) message = 'Select at least one category for the object-based activities.';
+    else if(uniqueLabels.length < 2) message = 'Object-based activities need at least two differently labelled usable items. Add content, enable photos for questions, or change the source/category selection.';
     return { valid, message, config, uniqueLabels };
   }
 
@@ -2912,7 +2915,8 @@
     const snapshot = buildContentConfigurationSnapshot();
     const objectCheck = findObjectConfiguration(snapshot);
     const categoryCheck = findCategoryConfiguration(snapshot);
-    ui.findObjectConfig.hidden = !kinds.includes('find-object');
+    const usesObjectContent = kinds.some(kind => ['find-object', 'discriminate-object', 'choice-preference'].includes(kind));
+    ui.findObjectConfig.hidden = !usesObjectContent;
     ui.findCategoryConfig.hidden = !kinds.includes('find-category');
     ui.findObjectConfigSummary.textContent = objectCheck.message;
     ui.findObjectConfigSummary.classList.toggle('invalid', !objectCheck.valid);
@@ -2924,7 +2928,7 @@
     const kinds = effectiveConfiguredTaskKinds();
     const snapshot = buildContentConfigurationSnapshot();
     const problems = [];
-    if(kinds.includes('find-object')){
+    if(kinds.some(kind => ['find-object', 'discriminate-object', 'choice-preference'].includes(kind))){
       const check = findObjectConfiguration(snapshot);
       if(!check.valid) problems.push(check.message);
     }
@@ -3206,18 +3210,41 @@
     }
 
     if(currentKind === 'discriminate-object'){
-      const grouped = shuffle(pool.filter(item => item.category === 'fruit' || item.category === 'animals'));
-      const target = grouped[0] || pool[0];
-      const distractor = grouped.find(item => item.id !== target.id) || pickDistinct(pool, 1, [target.id])[0];
+      const eligible = uniqueOptions(sessionPoolFor('discriminate-object'), true);
+      const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
+      const occurrence = taskOccurrenceIndex(currentKind, index);
+      const configuredCategories = snapshot.findObject.categories
+        .map(item => item.id)
+        .filter(category => eligible.some(item => optionMatchesCategory(item, category)));
+      const targetCategory = balancedLessonChoice(configuredCategories, occurrence, 'discriminate-object:categories', item => item);
+      const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, configuredCategories.length)) + 1;
+      const exactCategoryTargets = eligible.filter(item => canonicalCategoryId(item.category) === targetCategory);
+      const targetCandidates = exactCategoryTargets.length
+        ? exactCategoryTargets
+        : eligible.filter(item => optionMatchesCategory(item, targetCategory));
+      const target = balancedLessonChoice(targetCandidates, categoryOccurrence, `discriminate-object:${targetCategory}:targets`)
+        || balancedLessonChoice(eligible, occurrence, 'discriminate-object:all-targets');
+      const otherOptions = eligible.filter(item => item.id !== target.id && normalizedConceptLabel(item.label) !== normalizedConceptLabel(target.label));
+      const withinCategory = otherOptions.filter(item => optionMatchesCategory(item, targetCategory));
+      const distractorPool = withinCategory.length ? withinCategory : otherOptions;
+      const distractor = balancedLessonChoice(distractorPool, occurrence, `discriminate-object:${targetCategory}:distractors:${target.id}`);
+      const discriminationContrast = withinCategory.length ? 'within-category' : 'cross-category';
       return {
         ...baseQuestion,
         prompt: buildFindPrompt(target.label, index),
-        cueSummary: 'Choose the named item from two options. Visual similarity is not guaranteed in this version.',
+        cueSummary: discriminationContrast === 'within-category'
+          ? 'Choose the named item from two options in the same category.'
+          : 'Choose the named item from two category-balanced options.',
         target,
         options: shuffle([target, distractor]),
         correctId: target.id,
         renderMode: 'grid',
         distractorCount: 1,
+        targetCategory,
+        targetCategoryLabel: targetCategory ? categoryMeta(targetCategory).label : '',
+        contentConfiguration: exportableContentConfiguration(snapshot).find_object,
+        proceduralVariant: 'category-balanced-discrimination',
+        discriminationContrast,
         expectedResponseType: 'hit'
       };
     }
@@ -3254,23 +3281,38 @@
     }
 
     if(currentKind === 'choice-preference'){
-      const choices = shuffle([
-        { id: 'choice-music', label: 'Music', emoji: '🎵', category: 'choice' },
-        { id: 'choice-bubbles', label: 'Bubbles', emoji: '🫧', category: 'choice' },
-        { id: 'choice-train', label: 'Train', emoji: '🚂', category: 'choice' },
-        { id: 'choice-stars', label: 'Stars', emoji: '✨', category: 'choice' }
-      ]);
-      const target = choices[0];
+      const eligible = uniqueOptions(sessionPoolFor('choice-preference'), true);
+      const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
+      const occurrence = taskOccurrenceIndex(currentKind, index);
+      const configuredCategories = snapshot.findObject.categories
+        .map(item => item.id)
+        .filter(category => eligible.some(item => optionMatchesCategory(item, category)));
+      const anchorCategory = balancedLessonChoice(configuredCategories, occurrence, 'choice-preference:categories', item => item);
+      const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, configuredCategories.length)) + 1;
+      const anchorCandidates = eligible.filter(item => optionMatchesCategory(item, anchorCategory));
+      const target = balancedLessonChoice(anchorCandidates, categoryOccurrence, `choice-preference:${anchorCategory}:anchors`)
+        || balancedLessonChoice(eligible, occurrence, 'choice-preference:all-anchors');
+      const otherOptions = eligible.filter(item => item.id !== target.id);
+      const crossCategory = otherOptions.filter(item => !optionMatchesCategory(item, anchorCategory));
+      const sameCategory = otherOptions.filter(item => optionMatchesCategory(item, anchorCategory));
+      const orderedOthers = balancedLessonOrder(crossCategory, `choice-preference:q${index}:cross:${target.id}`)
+        .concat(balancedLessonOrder(sameCategory, `choice-preference:q${index}:same:${target.id}`));
+      const choices = shuffle([target].concat(orderedOthers.slice(0, Math.min(clamp(optionCount, 2, 4) - 1, orderedOthers.length))));
       return {
         ...baseQuestion,
         prompt: choosePromptVariant('preference', {}, index),
-        cueSummary: 'Open-ended choice style selection.',
+        cueSummary: 'Open-ended choice using the configured categories. Every option is accepted.',
         target,
-        options: choices.slice(0, clamp(optionCount, 2, 4)),
+        options: choices,
         correctId: target.id,
         renderMode: 'grid',
-        distractorCount: Math.max(0, clamp(optionCount, 2, 4) - 1),
-        expectedResponseType: 'hit'
+        distractorCount: Math.max(0, choices.length - 1),
+        targetCategory: anchorCategory,
+        targetCategoryLabel: anchorCategory ? categoryMeta(anchorCategory).label : '',
+        contentConfiguration: exportableContentConfiguration(snapshot).find_object,
+        proceduralVariant: 'category-balanced-preference',
+        openEndedChoice: true,
+        expectedResponseType: 'preference-selection'
       };
     }
 
@@ -3712,6 +3754,10 @@
       option_metadata: Array.isArray(question.options) ? question.options.map(contentOptionMetadata) : [],
       photo_labels_used: Array.isArray(question.options) ? question.options.filter(option => option && option.src).map(option => option.label || '').filter(Boolean) : [],
       content_configuration: question.contentConfiguration || null,
+      procedural_variant: question.proceduralVariant || '',
+      discrimination_contrast: question.discriminationContrast || '',
+      open_ended_choice: !!question.openEndedChoice,
+      scored_response: !question.openEndedChoice,
       student_friendly_mode: studentFriendlyModeEnabled(),
       selected_id: '',
       selected_label: '',
@@ -3896,8 +3942,8 @@
 
   function applyPromptEffect(level){
     if(!state.currentQuestion) return;
-    const targetNode = getCurrentTargetButton();
     const question = state.currentQuestion;
+    const targetNode = question.openEndedChoice ? null : getCurrentTargetButton();
     if(level === 1 || level === 2){
       speak(question.prompt);
       flash('try', 'Prompt');
@@ -4352,7 +4398,7 @@
     const question = state.currentQuestion;
     const trial = state.currentTrial;
     const rtMs = wallMs() - (trial.stimulus_onset_wall_ms || wallMs());
-    const targetNode = getCurrentTargetButton();
+    const targetNode = question.openEndedChoice ? null : getCurrentTargetButton();
     const hitRadius = getAdaptiveHitRadius();
     const rawDistance = targetNode ? computeDistanceToNode(event.clientX, event.clientY, targetNode) : null;
     const distance = rawDistance == null ? null : Math.max(0, rawDistance - hitRadius);
@@ -4373,6 +4419,11 @@
       correct = true;
       commission = false;
       responseType = 'panel-touch';
+    }
+    if(question.openEndedChoice){
+      correct = true;
+      commission = false;
+      responseType = 'preference-selection';
     }
     if(noResponseIsCorrect(question)){
       correct = false;
@@ -7381,6 +7432,10 @@
       generator_version: trial.generator_version || null,
       generator_mode: trial.generator_mode || null,
       coverage_strategy: trial.generator_constraints && trial.generator_constraints.coverage_strategy || null,
+      procedural_variant: trial.procedural_variant || null,
+      discrimination_contrast: trial.discrimination_contrast || null,
+      open_ended_choice: !!trial.open_ended_choice,
+      scored_response: trial.scored_response !== false,
       research_condition: trial.research_condition || null,
       category_id: categoryId,
       personalised_content: personalisedContent,

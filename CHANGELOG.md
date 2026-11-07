@@ -24,8 +24,10 @@ All notable changes to ChoiceTrain are listed here.
 - Research cards, an accessible aggregate chart, and an expanded session table for marker completeness, ordered trials, timing differences, protocol coverage, and declared synchronisation method
 - a separate pseudonymised AI/research export with behavioural features, relative marker times, skill summaries, and sanitised teacher decisions; it excludes names, aliases, free text, images, photo labels, exact timestamps, source session IDs, prompt wording, and raw touch coordinates
 - persistent random research participant codes, with explicit wording that pseudonymised data is not anonymous and remains subject to school governance
-- generator version 1.1.0 with deterministic `balanced-before-repeat` category and target schedules for Find object and Find category
+- generator version 1.2.0 with deterministic `balanced-before-repeat` category and target schedules for Find object, Find category, Discriminate object, and Choice preference
 - fair category rotation and target rotation across stock, personalised, and teacher-created content while preserving source/category filters and exactly one valid answer
+- two-option discrimination that prefers a within-category contrast and exports the actual contrast type without claiming visual or attribute equivalence
+- open-ended preference lessons that accept every configured option, retain the selected content, suppress arbitrary target-distance measures, and mark the response as valid but unscored
 - a Research target-exposure chart, distinct-target/repeat/personalised counts, and an accessible object-level table with category, source, accuracy, reaction time, and support context
 - multi-seed learner-flow invariant coverage for target presence, unique options, category fairness, source constraints, prompt grammar, and no premature repeats
 - per-pupil local data-use declarations for research analysis, EEG linkage, and model-development purposes, with a separately held authority reference and review date
@@ -38,7 +40,7 @@ All notable changes to ChoiceTrain are listed here.
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary
-- 17 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 94 tests
+- 19 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 96 tests
 
 ### Planned
 

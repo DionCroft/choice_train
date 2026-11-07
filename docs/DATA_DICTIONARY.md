@@ -46,18 +46,22 @@ Current-learner points may be connected in chronological order. All-learner poin
 
 ## V1.8 Procedural Lesson Provenance
 
-Generator version `1.1.0` adds a `balanced-before-repeat` coverage strategy for `Find object` and `Find category`.
+Generator version `1.2.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Discriminate object`, and `Choice preference`.
 
 | Field | Meaning |
 | --- | --- |
 | `lesson_plan.lesson_seed` | Session-level seed used to reproduce the lesson schedule |
-| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.1.0 |
+| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.2.0 |
 | `trial.question_seed` | Per-question seed used for reproducible option ordering and other question variation |
 | `trial.generator_version` | Algorithm version required to interpret/replay the generated question |
 | `trial.generator_constraints.coverage_strategy` | Coverage rule active for the question |
 | `trial.target_category` | Configured category selected for the question |
+| `trial.procedural_variant` | Named generator path, including category-balanced discrimination or preference |
+| `trial.discrimination_contrast` | `within-category` or `cross-category` for generated discrimination trials |
+| `trial.open_ended_choice` | `true` when every presented option is an acceptable preference selection |
+| `trial.scored_response` | `false` when the response must not contribute to accuracy or target scoring |
 
-For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. Distractors remain outside the prompted category, option IDs are unique, and the correct target appears exactly once.
+For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. Distractors remain outside the prompted category, option IDs are unique, and the correct target appears exactly once. `Discriminate object` prefers a same-category distractor but records a cross-category fallback when needed. `Choice preference` rotates category/content anchors only to balance exposure; the anchor is not a correct answer. Every preference option is accepted, target-distance fields remain missing, and `scored_response` is `false`.
 
 ## Core Export Fields
 

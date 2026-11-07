@@ -121,7 +121,7 @@ Research scope can be set to the current session, current learner history, or al
 
 Procedural questions in V1.8 use a stored lesson seed. The session export records the frozen lesson constraints and a separate seed for each question, allowing an authorised researcher to audit or replay the same generated content. `Lesson replay seed` in Admin and research is optional and intended for controlled comparison or debugging; leave it blank for normal sessions so ChoiceTrain creates a seed automatically.
 
-Generator 1.1.0 uses `balanced-before-repeat` coverage for `Find object` and `Find category`. It rotates through the configured usable categories before repeating a category, then rotates targets within each category. This reduces accidental over-practice of one familiar picture while keeping the lesson reproducible from its seed. The Research `Target exposure and repetition` area shows distinct targets, repeat exposures, personalised trials, source, accuracy, median response time, and assisted responses so teachers can judge whether progress is broad or content-specific.
+Generator 1.2.0 uses `balanced-before-repeat` coverage for `Find object`, `Find category`, `Discriminate object`, and `Choice preference`. It rotates through configured usable categories before repeating a category, then rotates eligible content within each category. Discrimination uses two options and prefers a same-category contrast where possible. Preference uses two to four options, accepts every selection, and is recorded as an unscored preference rather than a right-or-wrong answer. This reduces accidental over-practice of one familiar picture while keeping the lesson reproducible from its seed. The Research `Target exposure and repetition` area shows distinct targets, repeat exposures, personalised trials, source, accuracy, median response time, and assisted responses so teachers can judge whether progress is broad or content-specific.
 
 `Practice status and spaced retention observations` groups raw skill opportunities into transparent planning descriptions. The table shows its sample size, recent accuracy, independent success, last practice, trend, retention observation, and support direction. `Consistent in current sample` does not mean mastered. A retention comparison only appears after an observed follow-up at least seven days later, and small follow-up samples are labelled as such.
 
@@ -416,9 +416,9 @@ The learner completes structured sustained, selective-spatial, orienting, or exe
 
 The AT structure is informed by peer-reviewed CPAT literature. The application does not claim to be the published CPAT programme or a diagnostic tool.
 
-### Find Object and Find Category Filters
+### Object and Category Filters
 
-When `Find object` is selected, choose one or more session categories and one source mode: Personalised only, Stock only, or Both. ChoiceTrain requires at least two differently labelled eligible items and shows a usable-item summary before the session starts.
+When `Find object`, `Discriminate object`, or `Choice preference` is selected, choose one or more session categories and one source mode: Personalised only, Stock only, or Both. ChoiceTrain requires at least two differently labelled eligible items and shows a usable-item summary before the session starts.
 
 When `Find category` is selected, use the equivalent controls. At least two selected categories must still contain eligible items after the source and pupil filters are applied, and they must support fair single-answer questions.
 
@@ -426,7 +426,9 @@ Personalised content always belongs to the selected pupil and must be enabled fo
 
 Family items also count as People, and Fruit items also count as Food. The generator avoids using an overlapping distractor when it would also be a correct answer.
 
-`Discriminate object` currently asks the learner to choose one named item from two options. It does not yet guarantee visually similar choices. Its numeric level remains Level 5 even though it appears after `Find category` in the manual menu.
+`Discriminate object` asks the learner to choose one named item from two options. It prefers another eligible item in the same category, but does not yet guarantee visual similarity or an attribute-matched contrast. The export records whether the actual contrast was within-category or cross-category.
+
+`Choice preference` presents two to four eligible configured items. Any selection is accepted. The selected option is retained, but the trial is marked as open-ended and unscored, and target-distance measures are left missing because there is no correct target.
 
 ---
 
