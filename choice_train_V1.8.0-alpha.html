@@ -1410,6 +1410,32 @@
               <div id="researchSupportTrendNote" class="compactNote">Support and dosage are descriptive implementation observations, not evidence of transfer or neural change.</div>
             </div>
             <div class="chartCard span2">
+              <h4>Training cadence and cumulative exposure</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Observed cumulative dose</div><div class="v" id="researchCumulativeDose">&mdash;</div></div>
+                <div class="dashCard"><div class="k">Active days</div><div class="v" id="researchActiveDays">0</div></div>
+                <div class="dashCard"><div class="k">Median session gap</div><div class="v" id="researchMedianSessionGap">&mdash;</div></div>
+                <div class="dashCard"><div class="k">Dose values observed</div><div class="v" id="researchDoseCoverage">0/0</div></div>
+              </div>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Cumulative observed session minutes</div>
+                  <canvas id="researchCumulativeDoseChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Cumulative observed training minutes across sessions"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Days between observed sessions</div>
+                  <canvas id="researchSessionGapChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Days between consecutive sessions for the current learner"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Condition</th><th>Trials</th><th>Observed dose</th><th>Target dose</th><th>Cumulative dose</th><th>Gap from prior session</th></tr></thead>
+                  <tbody id="researchCadenceBody"></tbody>
+                </table>
+              </div>
+              <div id="researchCadenceNote" class="compactNote">Exposure and spacing describe delivery. They do not establish a dose-response relationship, transfer, or neural change.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Prompt ladder and learner-agency events</h4>
               <div class="researchMetricPair">
                 <div>

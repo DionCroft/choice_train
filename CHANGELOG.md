@@ -40,6 +40,7 @@ All notable changes to ChoiceTrain are listed here.
 - target-relative touch visualisations using adaptive hit-radius distance bands and outside-radius left/right/above/below counts, with open-ended and touch-anywhere tasks excluded
 - pooled all-learner response-quality points are left unconnected so they cannot be mistaken for one learner's longitudinal trajectory
 - longitudinal support-fading and dosage visualisations for independent responding, prompt/assistance counts, unknown support status, mean prompt level, actual/target minutes, and fidelity
+- training-cadence visualisations for observed cumulative minutes, active days, dose-field coverage, and current-learner inter-session gaps, with sequencing suppressed for pooled learners
 - prompt-ladder and learner-agency visualisations for highest prompt level, help requests, prompt events, repeats, learner breaks, automatic pauses, early stops, reward onsets, and reward choice
 - an end-to-end learner-flow test proving help, break, repeat, and reward events reach the Research view, with explicit non-deficit interpretation wording
 - teacher-rating and transfer-observation visualisations for 1-5 attention/independence ratings and recorded maintenance/generalisation status counts, with all-learner points left unconnected

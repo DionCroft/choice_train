@@ -7140,6 +7140,72 @@
       ? 'Pooled learners are shown as unconnected points. Independent percentage uses responses with an observed support status; missing statuses remain unknown. These implementation observations do not establish transfer or neural change.'
       : 'Connected points follow sessions in date order. Independent percentage uses responses with an observed support status; missing statuses remain unknown. These implementation observations do not establish transfer or neural change.';
 
+    const sequenceCadence = scope !== 'all-learners';
+    let cumulativeDose = 0;
+    let previousSessionTime = null;
+    const cadenceRows = sessions.map(session => {
+      const timestamp = Number(session.updated_at_wall_ms);
+      const fidelity = session.fidelity || {};
+      const actualDose = Number.isFinite(fidelity.dosage_minutes_actual) ? fidelity.dosage_minutes_actual : null;
+      const targetDose = Number.isFinite(fidelity.dosage_minutes_target) ? fidelity.dosage_minutes_target : null;
+      const gapDays = sequenceCadence && Number.isFinite(timestamp) && Number.isFinite(previousSessionTime)
+        ? Number(((timestamp - previousSessionTime) / 86400000).toFixed(1))
+        : null;
+      if(sequenceCadence && Number.isFinite(actualDose)) cumulativeDose += actualDose;
+      if(sequenceCadence && Number.isFinite(timestamp)) previousSessionTime = timestamp;
+      return {
+        date: researchDateLabel(timestamp),
+        learner: session.learner_alias || session.learner || 'Unknown',
+        condition: RESEARCH_CONDITION_LABELS[session.research_condition] || session.research_condition || 'Not recorded',
+        trials: latestTrialsByQuestion(session.trials || []).length,
+        actual_dose_minutes: actualDose,
+        target_dose_minutes: targetDose,
+        cumulative_dose_minutes: sequenceCadence && Number.isFinite(actualDose) ? Number(cumulativeDose.toFixed(2)) : null,
+        gap_days: gapDays
+      };
+    });
+    const observedDoseValues = cadenceRows.map(row => row.actual_dose_minutes).filter(Number.isFinite);
+    const gapValues = cadenceRows.map(row => row.gap_days).filter(Number.isFinite);
+    const activeDays = new Set(cadenceRows.map(row => row.date).filter(date => date !== 'Unknown')).size;
+    ui.researchCumulativeDose.textContent = observedDoseValues.length
+      ? `${Number(observedDoseValues.reduce((sum, value) => sum + value, 0).toFixed(2))} min`
+      : '--';
+    ui.researchActiveDays.textContent = String(activeDays);
+    ui.researchMedianSessionGap.textContent = sequenceCadence && gapValues.length
+      ? `${Number(median(gapValues).toFixed(1))} days`
+      : '--';
+    ui.researchDoseCoverage.textContent = `${observedDoseValues.length}/${sessions.length}`;
+    drawResearchMetricTrend(ui.researchCumulativeDoseChart, cadenceRows, [
+      { key: 'cumulative_dose_minutes', label: 'Cumulative dose', color: themeToken('primary') }
+    ], {
+      suffix: 'm',
+      connectPoints: sequenceCadence,
+      emptyText: sequenceCadence ? 'No observed dose values in this scope' : 'Select one learner to sequence cumulative exposure'
+    });
+    drawResearchMetricTrend(ui.researchSessionGapChart, cadenceRows, [
+      { key: 'gap_days', label: 'Session gap', color: themeToken('secondary', themeToken('success')) }
+    ], {
+      suffix: 'd',
+      connectPoints: sequenceCadence,
+      emptyText: sequenceCadence ? 'At least two dated sessions are required' : 'Select one learner to calculate session gaps'
+    });
+    if(cadenceRows.length){
+      clearNode(ui.researchCadenceBody);
+      cadenceRows.forEach(item => appendResearchRow(ui.researchCadenceBody, [
+        item.date,
+        item.learner,
+        item.condition,
+        item.trials,
+        item.actual_dose_minutes == null ? null : `${item.actual_dose_minutes} min`,
+        item.target_dose_minutes == null ? null : `${item.target_dose_minutes} min`,
+        item.cumulative_dose_minutes == null ? null : `${item.cumulative_dose_minutes} min`,
+        item.gap_days == null ? null : `${item.gap_days} days`
+      ]));
+    } else renderResearchEmptyRow(ui.researchCadenceBody, 8, 'No sessions in this scope yet.');
+    ui.researchCadenceNote.textContent = scope === 'all-learners'
+      ? 'Total observed minutes and active days are pooled. Cumulative order and session gaps are suppressed because sessions from different learners are not one trajectory.'
+      : 'Cumulative minutes and gaps follow dated sessions in order. Exposure and spacing describe delivery; they do not establish a dose-response relationship, transfer, or neural change.';
+
     const promptLevelRows = PROMPT_LADDER.map(prompt => {
       const matching = finalTrials.filter(trial => Number.isFinite(trial.highest_prompt_level) && trial.highest_prompt_level === prompt.level);
       return {

@@ -520,6 +520,12 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
 
   await expect(page.locator('#researchSupportTrendChart')).toBeVisible();
   await expect(page.locator('#researchDosageChart')).toBeVisible();
+  await expect(page.locator('#researchCumulativeDoseChart')).toBeVisible();
+  await expect(page.locator('#researchSessionGapChart')).toBeVisible();
+  await expect(page.locator('#researchCadenceBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchActiveDays')).toHaveText('1');
+  await expect(page.locator('#researchDoseCoverage')).toHaveText('1/1');
+  await expect(page.locator('#researchCumulativeDose')).toContainText('min');
   await expect(page.locator('#researchTeacherRatingChart')).toBeVisible();
   await expect(page.locator('#researchTransferStatusChart')).toBeVisible();
   await expect(page.locator('#researchSupportTrendBody tr')).toHaveCount(1);
@@ -773,6 +779,9 @@ test('Research labels a spaced follow-up as an observed retention comparison', a
   await expect(page.locator('#researchPracticeBody')).toContainText('Similar at spaced observation');
   await expect(page.locator('#researchPracticeBody')).toContainText('8d gap');
   await expect(page.locator('#researchPracticeBody')).not.toContainText('mastery');
+  await expect(page.locator('#researchCadenceBody tr')).toHaveCount(2);
+  await expect(page.locator('#researchMedianSessionGap')).toHaveText('8 days');
+  await expect(page.locator('#researchCadenceBody')).toContainText('8 days');
 });
 
 test('Research view keeps same-numbered questions from separate sessions distinct', async ({ page }) => {
