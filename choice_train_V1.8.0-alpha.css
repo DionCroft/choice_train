@@ -1228,6 +1228,23 @@ body.panel-view-admin .tableWrap {
   margin-bottom: 10px;
 }
 
+.governanceUseGroup {
+  display: grid;
+  gap: 7px;
+  align-content: start;
+}
+
+.fieldLabel {
+  color: var(--text-muted);
+  font-size: 0.86rem;
+  font-weight: 700;
+}
+
+.compactNote.invalid {
+  border-left: 4px solid var(--danger);
+  color: var(--danger);
+}
+
 @media (max-width: 720px) {
   .compactDashboard {
     grid-template-columns: 1fr;

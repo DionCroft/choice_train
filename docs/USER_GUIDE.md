@@ -127,7 +127,9 @@ ChoiceTrain freezes the session's selected pupil and context when `Start learner
 
 The EEG quality area also shows marker-set completeness, event-order validity, response-timing differences, protocol-field coverage, and the declared synchronisation method. These are browser-log checks, not confirmation that an EEG amplifier is synchronised or that the physiological signal is usable.
 
-The Export centre includes `Pseudonymised AI research data`. This creates a local, privacy-minimised file containing behavioural/skill features, relative marker times, and sanitised teacher decisions. It excludes names, aliases, notes, images, photo and selected-response labels, exact dates/times, prompt wording, and raw coordinates. It is pseudonymised rather than anonymous, so use it only under the school's approved research and data-governance process.
+Before research export, an authorised staff member can use `Admin & research` > `Learners` to record the selected pupil's local data-use declaration. Choose whether authority is recorded separately, add a non-identifying internal reference and review date if required, and mark the permitted purposes. ChoiceTrain does not store the consent or authority document itself. If authority is missing, classroom-only, or withdrawn, the model-development export remains blocked.
+
+The Export centre includes `Pseudonymised AI research data`. This creates a local, privacy-minimised file containing behavioural/skill features, relative marker times, and sanitised teacher decisions. It checks every pupil represented in the selected scope; all must have `recorded separately` status and model-development use approved. It excludes names, aliases, notes, images, photo and selected-response labels, exact dates/times, prompt wording, raw coordinates, governance references, and review dates. It is pseudonymised rather than anonymous, so use it only under the school's approved research and data-governance process.
 
 The V1.8 research view is descriptive. It does not diagnose a learner, establish durable transfer, prove neural plasticity, or call an external AI service.
 

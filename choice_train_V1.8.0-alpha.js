@@ -36,6 +36,7 @@
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.0.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
+  const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
   const MAX_IMPORT_FILES = 100;
   const MAX_IMAGE_FILE_BYTES = 12 * 1024 * 1024;
@@ -353,6 +354,12 @@
     teacherAttentionRating: 3,
     teacherIndependenceRating: 3,
     eegParticipation: 'not-enrolled',
+    dataUseStatus: 'not-recorded',
+    researchAnalysisApproved: false,
+    eegLinkageApproved: false,
+    modelDevelopmentApproved: false,
+    governanceReference: '',
+    governanceReviewDate: '',
     aacPreference: 'not-applicable',
     staffMember: '',
     fatigueLevel: 'ready',
@@ -741,6 +748,60 @@
 
   function currentContextNotes(){
     return ui.contextNotes ? ui.contextNotes.value.trim() : '';
+  }
+
+  function normalizeDataGovernance(record={}){
+    const allowedStatuses = ['not-recorded', 'recorded-separately', 'classroom-only', 'withdrawn'];
+    const status = allowedStatuses.includes(record.status || record.dataUseStatus)
+      ? (record.status || record.dataUseStatus)
+      : 'not-recorded';
+    const approvedUses = record.approved_uses || {};
+    return {
+      governance_schema_version: GOVERNANCE_SCHEMA_VERSION,
+      status,
+      authority_evidence_stored_in_choice_train: false,
+      governance_reference: String(record.governance_reference || record.governanceReference || '').trim(),
+      review_date: String(record.review_date || record.governanceReviewDate || '').trim(),
+      approved_uses: {
+        research_analysis: approvedUses.research_analysis === true || record.researchAnalysisApproved === true,
+        eeg_linkage: approvedUses.eeg_linkage === true || record.eegLinkageApproved === true,
+        model_development: approvedUses.model_development === true || record.modelDevelopmentApproved === true
+      },
+      interpretation_boundary: 'Local declaration only. Consent or other lawful-authority evidence must be held and governed separately by the school or research team.'
+    };
+  }
+
+  function dataGovernanceSnapshot(){
+    return normalizeDataGovernance({
+      status: ui.dataUseStatus ? ui.dataUseStatus.value : 'not-recorded',
+      governance_reference: ui.governanceReference ? ui.governanceReference.value : '',
+      review_date: ui.governanceReviewDate ? ui.governanceReviewDate.value : '',
+      approved_uses: {
+        research_analysis: !!(ui.researchAnalysisApproved && ui.researchAnalysisApproved.checked),
+        eeg_linkage: !!(ui.eegLinkageApproved && ui.eegLinkageApproved.checked),
+        model_development: !!(ui.modelDevelopmentApproved && ui.modelDevelopmentApproved.checked)
+      }
+    });
+  }
+
+  function dataGovernanceForLearner(name){
+    const learner = name && state.learners[name];
+    return learner ? normalizeDataGovernance(learner.baseline || {}) : normalizeDataGovernance();
+  }
+
+  function updateAiExportGovernanceStatus(scopeCheck=null){
+    if(!ui.aiExportGovernanceStatus) return;
+    if(scopeCheck && !scopeCheck.allowed){
+      ui.aiExportGovernanceStatus.textContent = `Model-development export blocked for ${scopeCheck.blocked_count} of ${scopeCheck.participant_count} pupil profile(s) in this scope. Record current authority and approved model-development use for every included pupil.`;
+      ui.aiExportGovernanceStatus.classList.add('invalid');
+      return;
+    }
+    const governance = dataGovernanceSnapshot();
+    const ready = governance.status === 'recorded-separately' && governance.approved_uses.model_development;
+    ui.aiExportGovernanceStatus.textContent = ready
+      ? 'Selected pupil is marked ready for pseudonymised model-development export. The separately held authority must still be current and applicable.'
+      : 'Model-development export blocked for the selected pupil until authority is recorded separately and model-development use is approved.';
+    ui.aiExportGovernanceStatus.classList.toggle('invalid', !ready);
   }
 
   function choosePromptVariant(type, replacements={}, index=1){
@@ -3678,6 +3739,7 @@
       teacher_attention_rating: safeNumber(ui.teacherAttentionRating.value, 3),
       teacher_independence_rating: safeNumber(ui.teacherIndependenceRating.value, 3),
       eeg_participation: ui.eegParticipation.value,
+      data_governance: dataGovernanceSnapshot(),
       aac_preference: ui.aacPreference.value,
       sleep_quality: ui.sleepQuality.value,
       cap_tolerance: ui.capTolerance.value,
@@ -5425,6 +5487,9 @@
       theme_used: snapshot ? snapshot.theme_used : currentThemeChoice(),
       sensory_preferences: snapshot ? clonePlain(snapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
       student_friendly_mode: snapshot ? snapshot.student_friendly_mode : studentFriendlyModeEnabled(),
+      data_governance: snapshot && snapshot.data_governance
+        ? clonePlain(snapshot.data_governance)
+        : dataGovernanceSnapshot(),
       content_configuration: exportableContentConfiguration(),
       local_recommendation_summary: buildLocalRecommendationSummary(summary),
       photo_library_metadata: snapshot ? clonePlain(snapshot.photo_library_metadata) : photoLibraryMetadata(),
@@ -5513,6 +5578,12 @@
     learner.baseline = {
       ...learner.baseline,
       ...learnerBaselineSnapshot(),
+      dataUseStatus: ui.dataUseStatus ? ui.dataUseStatus.value : 'not-recorded',
+      researchAnalysisApproved: !!(ui.researchAnalysisApproved && ui.researchAnalysisApproved.checked),
+      eegLinkageApproved: !!(ui.eegLinkageApproved && ui.eegLinkageApproved.checked),
+      modelDevelopmentApproved: !!(ui.modelDevelopmentApproved && ui.modelDevelopmentApproved.checked),
+      governanceReference: ui.governanceReference ? ui.governanceReference.value.trim() : '',
+      governanceReviewDate: ui.governanceReviewDate ? ui.governanceReviewDate.value : '',
       staffMember: ui.staffMember.value.trim(),
       fatigueLevel: ui.fatigueLevel.value,
       sensoryState: ui.sensoryState.value,
@@ -5605,6 +5676,12 @@
     ui.teacherAttentionRating.value = baseline.teacherAttentionRating || SESSION_CONTEXT_DEFAULTS.teacherAttentionRating;
     ui.teacherIndependenceRating.value = baseline.teacherIndependenceRating || SESSION_CONTEXT_DEFAULTS.teacherIndependenceRating;
     ui.eegParticipation.value = baseline.eegParticipation || SESSION_CONTEXT_DEFAULTS.eegParticipation;
+    if(ui.dataUseStatus) ui.dataUseStatus.value = baseline.dataUseStatus || SESSION_CONTEXT_DEFAULTS.dataUseStatus;
+    if(ui.researchAnalysisApproved) ui.researchAnalysisApproved.checked = baseline.researchAnalysisApproved === true;
+    if(ui.eegLinkageApproved) ui.eegLinkageApproved.checked = baseline.eegLinkageApproved === true;
+    if(ui.modelDevelopmentApproved) ui.modelDevelopmentApproved.checked = baseline.modelDevelopmentApproved === true;
+    if(ui.governanceReference) ui.governanceReference.value = baseline.governanceReference || '';
+    if(ui.governanceReviewDate) ui.governanceReviewDate.value = baseline.governanceReviewDate || '';
     ui.aacPreference.value = baseline.aacPreference || SESSION_CONTEXT_DEFAULTS.aacPreference;
     ui.staffMember.value = baseline.staffMember || '';
     ui.fatigueLevel.value = baseline.fatigueLevel || SESSION_CONTEXT_DEFAULTS.fatigueLevel;
@@ -5629,6 +5706,7 @@
     renderCategoryControls(learner.contentFilters || normalizeContentFilters());
     applyTheme();
     applySensoryPreferences();
+    updateAiExportGovernanceStatus();
   }
 
   function selectPupil(name, options={}){
@@ -6793,6 +6871,7 @@
       sensory_preferences: clonePlain(sensoryPreferenceSnapshot()),
       student_friendly_mode: studentFriendlyModeEnabled(),
       photo_library_metadata: clonePlain(photoLibraryMetadata()),
+      data_governance: clonePlain(dataGovernanceSnapshot()),
       study_protocol: clonePlain(studyProtocolSnapshot(currentResearchParticipantId()))
     };
     initializeLessonPlan();
@@ -6819,6 +6898,7 @@
       learner_context: learnerContextSnapshot(),
       learner_baseline: learnerBaselineSnapshot(),
       fidelity: fidelitySnapshot(),
+      data_governance: clonePlain(state.sessionSnapshot.data_governance),
       research_condition: state.sessionSnapshot.study_protocol.research_condition,
       eeg_mode: eegModeEnabled(),
       study_protocol: clonePlain(state.sessionSnapshot.study_protocol),
@@ -6903,6 +6983,9 @@
       theme_used: snapshot ? snapshot.theme_used : currentThemeChoice(),
       sensory_preferences: snapshot ? clonePlain(snapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
       student_friendly_mode: snapshot ? snapshot.student_friendly_mode : studentFriendlyModeEnabled(),
+      data_governance: snapshot && snapshot.data_governance
+        ? clonePlain(snapshot.data_governance)
+        : dataGovernanceSnapshot(),
       content_configuration: exportableContentConfiguration(),
       blank_interval_enabled: blankIntervalEnabled(),
       blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
@@ -6947,6 +7030,9 @@
         ? clonePlain(state.sessionSnapshot.study_protocol)
         : studyProtocolSnapshot(currentResearchParticipantId()),
       sensory_preferences: state.sessionSnapshot ? clonePlain(state.sessionSnapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
+      data_governance: state.sessionSnapshot && state.sessionSnapshot.data_governance
+        ? clonePlain(state.sessionSnapshot.data_governance)
+        : dataGovernanceSnapshot(),
       fidelity: fidelitySnapshot(),
       eeg_marker_code_map: EEG_EVENT_CODES,
       markers,
@@ -7114,7 +7200,23 @@
     return rows;
   }
 
-  function buildPrivacyMinimisedDataset(sessions){
+  function modelExportGovernanceCheck(sessions){
+    const participantNames = Array.from(new Set((sessions || [])
+      .map(session => String(session && session.learner || '').trim())
+      .filter(Boolean)));
+    const blocked = participantNames.filter(name => {
+      if(!state.learners[name]) return true;
+      const governance = dataGovernanceForLearner(name);
+      return governance.status !== 'recorded-separately' || !governance.approved_uses.model_development;
+    });
+    return {
+      allowed: participantNames.length > 0 && blocked.length === 0,
+      participant_count: participantNames.length,
+      blocked_count: blocked.length
+    };
+  }
+
+  function buildPrivacyMinimisedDataset(sessions, governanceCheck){
     const fallbackCodes = new Map();
     const participantByLearner = new Map();
     const grouped = new Map();
@@ -7202,7 +7304,10 @@
       privacy_notice: 'Participant codes remain linkable on the source device. Apply school consent, access, retention, and data-governance controls before research or model use.',
       governance: {
         dataset_purpose: 'research-and-model-development-review',
-        consent_or_other_authority_status: 'not-recorded-in-this-export',
+        consent_or_other_authority_status: 'recorded-separately-local-declaration',
+        participant_profiles_checked: governanceCheck.participant_count,
+        all_participants_model_development_use_approved: governanceCheck.allowed,
+        authority_evidence_included: false,
         human_review_required: true,
         automated_decision_making_enabled: false,
         model_training_performed_by_application: false
@@ -7235,7 +7340,14 @@
       flash('try', 'No research sessions in this scope');
       return;
     }
-    const payload = buildPrivacyMinimisedDataset(sessions);
+    const governanceCheck = modelExportGovernanceCheck(sessions);
+    if(!governanceCheck.allowed){
+      updateAiExportGovernanceStatus(governanceCheck);
+      flash('try', 'Model-development export blocked by data-use settings');
+      return;
+    }
+    updateAiExportGovernanceStatus(governanceCheck);
+    const payload = buildPrivacyMinimisedDataset(sessions, governanceCheck);
     const stamp = schoolTimestampParts();
     const filename = `ChoiceTrain_Pseudonymised_${stamp.date}_${stamp.time}_research-dataset.json`;
     triggerBlobDownload(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), filename);
@@ -7515,7 +7627,9 @@
       'themeChoice', 'fontChoice', 'textScale', 'motionPreference', 'feedbackSoundMode', 'celebrationIntensity',
       'communicationSupportChoice', 'preSessionPreference',
       'communicationMode', 'motorAccessMode', 'adaptiveFunctioningBand', 'teacherAttentionRating',
-      'teacherIndependenceRating', 'eegParticipation', 'aacPreference', 'staffMember', 'fatigueLevel', 'sensoryState',
+      'teacherIndependenceRating', 'eegParticipation', 'dataUseStatus', 'researchAnalysisApproved',
+      'eegLinkageApproved', 'modelDevelopmentApproved', 'governanceReference', 'governanceReviewDate',
+      'aacPreference', 'staffMember', 'fatigueLevel', 'sensoryState',
       'sleepQuality', 'capTolerance', 'breakCount', 'maintenanceStatus', 'generalisationStatus',
       'classroomTransferNotes', 'dosageMinutesTarget', 'dosageSessionsPerWeek', 'fidelityEnvironmentReady',
       'fidelityRuleShown', 'fidelityPromptPlan', 'fidelityBreaksOffered', 'fidelityRewardDelivered',
@@ -7533,6 +7647,7 @@
         if(['fontChoice', 'textScale', 'motionPreference', 'feedbackSoundMode', 'celebrationIntensity'].includes(id)) applySensoryPreferences();
         if(id === 'studentFriendlyMode') applyStudentFriendlyMode();
         if(id === 'allowLearnerHelp' || id === 'allowLearnerBreak' || id === 'allowLearnerStop') updateLearnerControls();
+        if(['dataUseStatus', 'researchAnalysisApproved', 'eegLinkageApproved', 'modelDevelopmentApproved', 'governanceReference', 'governanceReviewDate'].includes(id)) updateAiExportGovernanceStatus();
         if(['sessionTaskType', 'startLevel', 'autoLevelPath', 'maxObjects', 'findObjectSourceMode', 'findCategorySourceMode'].includes(id)) refreshContentConfiguration();
         updateStats();
         updateSessionReadiness();

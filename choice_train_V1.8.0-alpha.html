@@ -983,6 +983,33 @@
               </select>
             </div>
             <div>
+              <label for="dataUseStatus">Data-use authority status</label>
+              <select id="dataUseStatus">
+                <option value="not-recorded">Not recorded in ChoiceTrain</option>
+                <option value="recorded-separately">Authority recorded separately</option>
+                <option value="classroom-only">Classroom use only</option>
+                <option value="withdrawn">Withdrawn / do not export for research</option>
+              </select>
+              <div class="helperText">A declaration only. Keep consent or other lawful-authority evidence in the school's approved record system.</div>
+            </div>
+            <div>
+              <label for="governanceReference">Governance reference</label>
+              <input id="governanceReference" type="text" maxlength="80" placeholder="Internal approval / DPIA reference" />
+              <div class="helperText">Optional internal reference. Do not enter a pupil name or consent narrative.</div>
+            </div>
+            <div>
+              <label for="governanceReviewDate">Governance review date</label>
+              <input id="governanceReviewDate" type="date" />
+              <div class="helperText">The next date on which the recorded data use should be reviewed.</div>
+            </div>
+            <div class="governanceUseGroup">
+              <span class="fieldLabel">Approved data uses</span>
+              <label class="toggle"><input id="researchAnalysisApproved" type="checkbox" /> Research analysis</label>
+              <label class="toggle"><input id="eegLinkageApproved" type="checkbox" /> EEG linkage</label>
+              <label class="toggle"><input id="modelDevelopmentApproved" type="checkbox" /> Pseudonymised model development</label>
+              <div class="helperText">Select only uses covered by the separately held school/research authority. These choices do not grant authority by themselves.</div>
+            </div>
+            <div>
               <label for="staffMember">Staff member</label>
               <input id="staffMember" type="text" placeholder="Teacher / TA / therapist" />
             </div>
@@ -1156,6 +1183,7 @@
               <span>Privacy-minimised behavioural features and teacher decisions without names, notes, images, exact dates, or raw coordinates.</span>
             </button>
           </div>
+          <div id="aiExportGovernanceStatus" class="compactNote" role="status">Model-development export blocked until data-use authority is recorded for the selected pupil.</div>
           <div class="compactNote">Exports are created locally. ChoiceTrain does not upload pupil, image, touch, or research data to an external service.</div>
         </div>
 

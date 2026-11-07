@@ -158,6 +158,22 @@ This separate JSON uses `export_schema_version: 1.0.0` and `privacy_status: pseu
 
 It excludes direct names and aliases, free text, images, photo labels, exact wall-clock/performance timestamps, source session/trial/recommendation IDs, prompt wording, selected labels, and raw touch coordinates. `external_transmission` is `false`; clicking the button downloads a local file only.
 
+### V1.8 Data-use governance declaration
+
+Full pupil/session records use governance schema `1.0.0`:
+
+| Field | Meaning |
+|---|---|
+| `data_governance.status` | `not-recorded`, `recorded-separately`, `classroom-only`, or `withdrawn` |
+| `data_governance.approved_uses.research_analysis` | Local declaration for research-analysis use |
+| `data_governance.approved_uses.eeg_linkage` | Local declaration for linking session and EEG records |
+| `data_governance.approved_uses.model_development` | Local declaration for model-development use |
+| `data_governance.governance_reference` | Internal reference to evidence held outside ChoiceTrain; must not contain a pupil name |
+| `data_governance.review_date` | Local review/expiry date supplied by the governing team |
+| `data_governance.authority_evidence_stored_in_choice_train` | Always `false` in V1.8 alpha |
+
+The pseudonymised model-development export checks the current profile for every pupil in scope. It requires `recorded-separately` plus `model_development: true`; all other statuses block the export. The pseudonymised payload records aggregate gate results but excludes governance references, review dates, and authority evidence.
+
 ## Local Storage
 
 - `localStorage` holds settings, profiles, lightweight summaries, and compatibility data.

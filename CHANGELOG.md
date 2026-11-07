@@ -28,7 +28,10 @@ All notable changes to ChoiceTrain are listed here.
 - fair category rotation and target rotation across stock, personalised, and teacher-created content while preserving source/category filters and exactly one valid answer
 - a Research target-exposure chart, distinct-target/repeat/personalised counts, and an accessible object-level table with category, source, accuracy, reaction time, and support context
 - multi-seed learner-flow invariant coverage for target presence, unique options, category fairness, source constraints, prompt grammar, and no premature repeats
-- 14 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 91 tests
+- per-pupil local data-use declarations for research analysis, EEG linkage, and model-development purposes, with a separately held authority reference and review date
+- deny-by-default pseudonymised model-development export that checks every pupil profile in scope and remains blocked for missing, classroom-only, or withdrawn declarations
+- full exports retain the local governance declaration for audit, while the privacy-minimised dataset excludes authority references and review dates
+- 15 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 92 tests
 
 ### Planned
 

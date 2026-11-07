@@ -321,6 +321,8 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
 
   await page.reload();
   await expect(page.locator('#beginFlow')).toBeVisible();
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
   await page.locator('#adminPanelTab').click();
   await page.locator('#adminNavResearch').click();
   await page.locator('#refreshResearchBtn').click();
@@ -533,6 +535,37 @@ test('EEG protocol metadata and browser timing diagnostics are exported and visu
   await expect(page.locator('#researchQualityBody')).toContainText('lsl-bridge');
 });
 
+test('model-development export is denied by default without a recorded authority declaration', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+
+  await completeSessionAndExport(page, 1);
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+
+  let downloadCount = 0;
+  page.on('download', () => { downloadCount += 1; });
+  await page.locator('#adminExportAiDatasetBtn').evaluate(node => node.click());
+  await page.waitForTimeout(250);
+  expect(downloadCount).toBe(0);
+  await expect(page.locator('#aiExportGovernanceStatus')).toContainText('blocked');
+  await expect(page.locator('#aiExportGovernanceStatus')).toContainText('1 of 1');
+
+  await setValue(page, 'dataUseStatus', 'withdrawn');
+  await setCheckbox(page, 'modelDevelopmentApproved', true);
+  await page.locator('#adminExportAiDatasetBtn').evaluate(node => node.click());
+  await page.waitForTimeout(250);
+  expect(downloadCount).toBe(0);
+  await expect(page.locator('#aiExportGovernanceStatus')).toContainText('blocked');
+});
+
 test('pseudonymised AI research export excludes direct identifiers and free text', async ({ page }) => {
   await gotoAlpha(page);
   await setCheckbox(page, 'ttsToggle', false);
@@ -545,17 +578,40 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   await setValue(page, 'studyProtocolId', 'CT-PRIVATE-PILOT');
   await setValue(page, 'studyVisitId', 'private-visit-label');
   await setValue(page, 'eegAcquisitionSystem', 'Private device serial');
+  await setValue(page, 'dataUseStatus', 'recorded-separately');
+  await setCheckbox(page, 'researchAnalysisApproved', true);
+  await setCheckbox(page, 'modelDevelopmentApproved', true);
+  await setValue(page, 'governanceReference', 'SECRET-GOVERNANCE-REFERENCE');
+  await setValue(page, 'governanceReviewDate', '2027-06-01');
   await setValue(page, 'startLevel', 4);
   await setValue(page, 'sessionMax', 1);
 
   await page.locator('#quickStartSessionBtn').click();
   await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
   await expect(page.locator('#screenSummary.active')).toBeVisible();
-  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  const sessionPayload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  expect(sessionPayload.data_governance).toEqual(expect.objectContaining({
+    governance_schema_version: '1.0.0',
+    status: 'recorded-separately',
+    governance_reference: 'SECRET-GOVERNANCE-REFERENCE',
+    review_date: '2027-06-01',
+    approved_uses: expect.objectContaining({
+      research_analysis: true,
+      model_development: true
+    }),
+    authority_evidence_stored_in_choice_train: false
+  }));
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.reload();
+  await expect(page.locator('#beginFlow')).toBeVisible();
   await page.locator('#teacherExitHold').focus();
   await page.locator('#teacherExitHold').press('Enter');
   await page.locator('#adminPanelTab').click();
   await page.locator('#adminNavResearch').click();
+  await expect(page.locator('#dataUseStatus')).toHaveValue('recorded-separately');
+  await expect(page.locator('#modelDevelopmentApproved')).toBeChecked();
+  await expect(page.locator('#aiExportGovernanceStatus')).toContainText('marked ready');
 
   const downloadPromise = page.waitForEvent('download');
   await page.locator('#adminExportAiDatasetBtn').evaluate(node => node.click());
@@ -575,7 +631,10 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_Pseudonymised_\d{4}-\d{2}-\d{2}_\d{4}_research-dataset\.json$/);
   expect(payload.privacy_status).toBe('pseudonymised-not-anonymous');
   expect(payload.governance).toEqual(expect.objectContaining({
-    consent_or_other_authority_status: 'not-recorded-in-this-export',
+    consent_or_other_authority_status: 'recorded-separately-local-declaration',
+    participant_profiles_checked: 1,
+    all_participants_model_development_use_approved: true,
+    authority_evidence_included: false,
     human_review_required: true,
     automated_decision_making_enabled: false,
     model_training_performed_by_application: false
@@ -608,6 +667,8 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(exportedText).not.toContain('CT-PRIVATE-PILOT');
   expect(exportedText).not.toContain('private-visit-label');
   expect(exportedText).not.toContain('Private device serial');
+  expect(exportedText).not.toContain('SECRET-GOVERNANCE-REFERENCE');
+  expect(exportedText).not.toContain('2027-06-01');
   expect(exportedKeys).not.toContain('prompt_wording');
   expect(exportedKeys).not.toContain('photo_labels_used');
   expect(exportedKeys).not.toContain('pointer_play_x');
