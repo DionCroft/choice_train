@@ -60,9 +60,13 @@ New V1.8 session records and full session exports include `session_timing.starte
 
 The Research timing view derives median response-window use from `response_time_ms / timeout_after_ms` only when both values were observed, and counts `timed_out` final trials. Historical records without the new object use existing session events, trial timestamps, and frozen settings where available; unavailable values remain missing. Completion, duration, and window use describe delivery and response opportunity. They are not targets for speed, ability scores, or evidence of learning or neural change.
 
+### Task demand and response opportunity
+
+The Research demand view derives per-session mean displayed option count, mean distractor count, trials containing distractors, moving-target trials, median target side length (`sqrt(width * height)`), median adaptive hit radius, median configured response window, and frozen two-stage-prompt state. `session_demands` in the Research summary export contains the same rows. Missing geometry remains missing. Pixel measures depend on viewport, device, touch scaling, and layout; they are delivery covariates, not device-independent difficulty scores or measures of learner ability.
+
 ### Research workspace summary export
 
-`Download scope summary` creates local JSON with `export_schema_version: 1.0.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
+`Download scope summary` creates local JSON with `export_schema_version: 1.0.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `session_demands`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
 
 The summary includes configured learner aliases and day-level session dates. Its privacy manifest confirms that raw trials, raw events, raw coordinates, images, photo labels, and free-text notes are excluded. It is a local staff/research report, not an anonymous dataset and not the separately governed pseudonymised model-development export. ChoiceTrain does not transmit it externally.
 

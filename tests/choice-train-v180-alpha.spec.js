@@ -488,6 +488,15 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await expect(page.locator('#researchSessionTimingBody')).toContainText('3/3');
   await expect(page.locator('#researchSessionTimingBody')).toContainText('100%');
   await expect(page.locator('#researchSessionTimingNote')).toContainText('not a speed target');
+  await expect(page.locator('#researchChoiceDemandChart')).toBeVisible();
+  await expect(page.locator('#researchTargetDemandChart')).toBeVisible();
+  await expect(page.locator('#researchDistractorExposure')).toHaveText('3');
+  await expect(page.locator('#researchMovingExposure')).toHaveText('0');
+  await expect(page.locator('#researchDemandCoverage')).toHaveText('1/1');
+  await expect(page.locator('#researchDemandBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchDemandBody')).toContainText('px');
+  await expect(page.locator('#researchDemandBody')).toContainText('6s');
+  await expect(page.locator('#researchDemandNote')).toContainText('device and layout');
   await expect(page.locator('#researchTouchBandChart')).toBeVisible();
   await expect(page.locator('#researchTouchDirectionChart')).toBeVisible();
   await expect(page.locator('#researchTouchSpatialBody tr')).toHaveCount(1);
@@ -507,6 +516,13 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);
   expect(researchPayload.session_timing).toHaveLength(1);
+  expect(researchPayload.session_demands).toHaveLength(1);
+  expect(researchPayload.session_demands[0]).toEqual(expect.objectContaining({
+    trials: 3,
+    distractor_trials: 3,
+    moving_target_trials: 0,
+    demand_observed: true
+  }));
   expect(researchPayload.skill_summaries.length).toBeGreaterThan(0);
   expect(researchPayload.privacy_manifest).toEqual(expect.objectContaining({
     local_download_only: true,
@@ -523,6 +539,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchBehaviourNote')).toContainText('not connected');
   await expect(page.locator('#researchSessionTimingNote')).toContainText('not connected');
+  await expect(page.locator('#researchDemandNote')).toContainText('not connected');
 
   await page.reload();
   await expect(page.locator('#beginFlow')).toBeVisible();

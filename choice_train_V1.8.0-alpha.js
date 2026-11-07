@@ -6117,6 +6117,39 @@
     };
   }
 
+  function sessionDemandResearchRow(session){
+    const finalTrials = latestTrialsByQuestion(session.trials || []);
+    const optionCounts = finalTrials.map(trial => {
+      if(Array.isArray(trial.option_metadata) && trial.option_metadata.length) return trial.option_metadata.length;
+      if(Array.isArray(trial.option_labels) && trial.option_labels.length) return trial.option_labels.length;
+      return null;
+    }).filter(Number.isFinite);
+    const distractorCounts = finalTrials.map(trial => trial.distractor_count).filter(Number.isFinite);
+    const targetSides = finalTrials.map(trial => {
+      if(!Number.isFinite(trial.target_width_px) || !Number.isFinite(trial.target_height_px)) return null;
+      return Math.sqrt(Math.max(0, trial.target_width_px * trial.target_height_px));
+    }).filter(Number.isFinite);
+    const hitRadii = finiteTrialValues(finalTrials, 'adaptive_hit_radius_px');
+    const responseWindows = finiteTrialValues(finalTrials, 'timeout_after_ms').filter(value => value > 0);
+    const distractorTrials = finalTrials.filter(trial => Number(trial.distractor_count) > 0).length;
+    return {
+      date: researchDateLabel(Number(session.updated_at_wall_ms)),
+      learner: session.learner_alias || session.learner || 'Unknown',
+      trials: finalTrials.length,
+      mean_options: optionCounts.length ? Number(mean(optionCounts).toFixed(1)) : null,
+      mean_distractors: distractorCounts.length ? Number(mean(distractorCounts).toFixed(1)) : null,
+      distractor_trials: distractorTrials,
+      moving_target_trials: finalTrials.filter(trial => trial.task_kind === 'moving-target').length,
+      median_target_side_px: targetSides.length ? Math.round(median(targetSides)) : null,
+      median_hit_radius_px: hitRadii.length ? Math.round(median(hitRadii)) : null,
+      median_response_window_sec: responseWindows.length ? Number((median(responseWindows) / 1000).toFixed(1)) : null,
+      two_stage_prompt: session.settings && typeof session.settings.useTwoStage === 'boolean'
+        ? session.settings.useTwoStage
+        : null,
+      demand_observed: optionCounts.length > 0 || distractorCounts.length > 0 || targetSides.length > 0 || hitRadii.length > 0 || responseWindows.length > 0
+    };
+  }
+
   function coreMarkerCompleteness(session){
     const trials = latestTrialsByQuestion(session.trials || []);
     const markers = Array.isArray(session.eeg_markers) ? session.eeg_markers : [];
@@ -7008,6 +7041,47 @@
     ui.researchSessionTimingNote.textContent = scope === 'all-learners'
       ? 'Each point is one session and points are not connected across learners. Timing describes delivery and opportunity; slower responses are not automatically worse.'
       : 'Response-window use is reaction time as a percentage of the configured trial window. It is descriptive context, not a speed target or judgement of ability.';
+
+    const demandRows = sessions.map(sessionDemandResearchRow);
+    const connectDemandPoints = scope !== 'all-learners';
+    ui.researchDistractorExposure.textContent = String(demandRows.reduce((sum, row) => sum + row.distractor_trials, 0));
+    ui.researchMovingExposure.textContent = String(demandRows.reduce((sum, row) => sum + row.moving_target_trials, 0));
+    ui.researchTwoStageSessions.textContent = String(demandRows.filter(row => row.two_stage_prompt === true).length);
+    ui.researchDemandCoverage.textContent = `${demandRows.filter(row => row.demand_observed).length}/${demandRows.length}`;
+    drawResearchMetricTrend(ui.researchChoiceDemandChart, demandRows, [
+      { key: 'mean_options', label: 'Displayed options', color: themeToken('primary') },
+      { key: 'mean_distractors', label: 'Distractors', color: themeToken('warning') }
+    ], {
+      connectPoints: connectDemandPoints,
+      emptyText: 'No option or distractor counts in this scope'
+    });
+    drawResearchMetricTrend(ui.researchTargetDemandChart, demandRows, [
+      { key: 'median_target_side_px', label: 'Target side', color: themeToken('success') },
+      { key: 'median_hit_radius_px', label: 'Hit radius', color: themeToken('primary') }
+    ], {
+      suffix: ' px',
+      connectPoints: connectDemandPoints,
+      emptyText: 'No target-size or hit-radius values in this scope'
+    });
+    if(demandRows.length){
+      clearNode(ui.researchDemandBody);
+      demandRows.forEach(row => appendResearchRow(ui.researchDemandBody, [
+        row.date,
+        row.learner,
+        row.trials,
+        row.mean_options,
+        row.mean_distractors,
+        row.distractor_trials,
+        row.moving_target_trials,
+        row.median_target_side_px == null ? null : `${row.median_target_side_px} px`,
+        row.median_hit_radius_px == null ? null : `${row.median_hit_radius_px} px`,
+        row.median_response_window_sec == null ? null : `${row.median_response_window_sec}s`,
+        row.two_stage_prompt == null ? null : row.two_stage_prompt ? 'On' : 'Off'
+      ]));
+    } else renderResearchEmptyRow(ui.researchDemandBody, 11, 'No sessions in this scope yet.');
+    ui.researchDemandNote.textContent = scope === 'all-learners'
+      ? 'Points are not connected across learners. These are delivered task and interface demands, not measures of learner ability.'
+      : 'Interpret performance alongside changes in options, distractors, target size, hit radius, response window, and prompt staging. Pixel values depend on device and layout.';
 
     const spatialRows = sessions.map(session => {
       const sessionTrials = latestTrialsByQuestion(session.trials || []);
@@ -8554,6 +8628,7 @@
       coverage_by_session: sessions.map(researchCoverageForSession),
       session_performance: sessionPerformance,
       session_timing: sessions.map(sessionTimingResearchRow),
+      session_demands: sessions.map(sessionDemandResearchRow),
       skill_summaries: summary.skill_summaries.map(item => ({
         skill_id: item.skill_id,
         label: item.label,

@@ -1314,6 +1314,32 @@
               <div id="researchSessionTimingNote" class="compactNote">Timing describes task delivery and response opportunity. Slower responses and longer sessions are not automatically worse.</div>
             </div>
             <div class="chartCard span2">
+              <h4>Task demand and response opportunity</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Trials with distractors</div><div class="v" id="researchDistractorExposure">0</div></div>
+                <div class="dashCard"><div class="k">Moving-target trials</div><div class="v" id="researchMovingExposure">0</div></div>
+                <div class="dashCard"><div class="k">Two-stage sessions</div><div class="v" id="researchTwoStageSessions">0</div></div>
+                <div class="dashCard"><div class="k">Demand rows observed</div><div class="v" id="researchDemandCoverage">0/0</div></div>
+              </div>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Mean displayed options and distractors</div>
+                  <canvas id="researchChoiceDemandChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Mean displayed option and distractor counts across sessions"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Median target size and adaptive hit radius</div>
+                  <canvas id="researchTargetDemandChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Median target side length and adaptive hit radius in pixels across sessions"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Trials</th><th>Mean options</th><th>Mean distractors</th><th>Distractor trials</th><th>Moving trials</th><th>Median target side</th><th>Median hit radius</th><th>Median response window</th><th>Two-stage</th></tr></thead>
+                  <tbody id="researchDemandBody"></tbody>
+                </table>
+              </div>
+              <div id="researchDemandNote" class="compactNote">These are delivered task and interface demands. Pixel values depend on device and layout and are not measures of learner ability.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Target-relative touch profile</h4>
               <div class="researchMetricPair">
                 <div>
