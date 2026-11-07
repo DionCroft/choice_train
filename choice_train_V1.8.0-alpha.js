@@ -6999,14 +6999,26 @@
       const events = Array.isArray(session.events) ? session.events : [];
       const markers = Array.isArray(session.eeg_markers) ? session.eeg_markers : [];
       const blocks = Array.isArray(session.block_summaries) ? session.block_summaries : buildBlockSummaries(session.trials || [], events);
+      const artifactEvents = events.filter(event => event.type === 'artifact_noted');
+      const artifactCounts = artifactEvents.reduce((counts, event) => {
+        const type = ARTIFACT_TYPES[event.artifact_type] ? event.artifact_type : 'unknown';
+        counts[type] = (counts[type] || 0) + 1;
+        return counts;
+      }, {});
+      const blockQualityValues = blocks.map(block => block.quality_score).filter(Number.isFinite);
       return {
         date: researchDateLabel(Number(session.updated_at_wall_ms)),
         condition: session.research_condition || 'not recorded',
         fidelity: session.fidelity && Number.isFinite(session.fidelity.score_pct) ? session.fidelity.score_pct : null,
         blocks: blocks.length,
-        artifacts: events.filter(event => event.type === 'artifact_noted').length,
+        mean_block_quality_pct: blockQualityValues.length ? Math.round(mean(blockQualityValues)) : null,
+        artifacts: artifactEvents.length,
+        artifact_counts: artifactCounts,
         markers: markers.length,
         markerSet,
+        marker_completeness_pct: markerSet.expected ? Math.round((markerSet.complete / markerSet.expected) * 100) : null,
+        ordering_pct: Number.isFinite(diagnostics.ordering_pct) ? diagnostics.ordering_pct : null,
+        protocol_completeness_pct: Number.isFinite(diagnostics.protocol_completeness_pct) ? diagnostics.protocol_completeness_pct : null,
         diagnostics
       };
     });
@@ -7027,14 +7039,50 @@
     ui.researchMarkerOrdering.textContent = orderingPct == null ? '--' : `${orderingPct}%`;
     ui.researchProtocolCompleteness.textContent = protocolCompletenessPct == null ? '--' : `${protocolCompletenessPct}%`;
     drawResearchBars(ui.researchEegQualityChart, [
-      { label: 'Core marker sets', value: markerCompletenessPct || 0, color: themeToken('primary') },
-      { label: 'Ordered trials', value: orderingPct || 0, color: themeToken('success') },
-      { label: 'Protocol fields', value: protocolCompletenessPct || 0, color: themeToken('warning') }
-    ], { maxValue: 100, suffix: '%', labelWidth: 150 });
+      { label: 'Core marker sets', value: markerCompletenessPct, color: themeToken('primary') },
+      { label: 'Ordered trials', value: orderingPct, color: themeToken('success') },
+      { label: 'Protocol fields', value: protocolCompletenessPct, color: themeToken('warning') }
+    ].filter(item => Number.isFinite(item.value)), { maxValue: 100, suffix: '%', labelWidth: 150 });
+    drawResearchMetricTrend(ui.researchEegQualityTrendChart, qualityRows, [
+      { key: 'marker_completeness_pct', label: 'Markers', color: themeToken('primary') },
+      { key: 'ordering_pct', label: 'Ordering', color: themeToken('success') },
+      { key: 'protocol_completeness_pct', label: 'Protocol', color: themeToken('warning') }
+    ], { maxValue: 100, suffix: '%', connectPoints: connectLongitudinalPoints });
+    drawResearchMetricTrend(ui.researchBlockQualityTrendChart, qualityRows, [
+      { key: 'mean_block_quality_pct', label: 'Block quality', color: themeToken('secondary', themeToken('primary')) }
+    ], { maxValue: 100, suffix: '%', connectPoints: connectLongitudinalPoints });
+    const artifactRows = Object.keys(ARTIFACT_TYPES).map(type => {
+      const events = qualityRows.reduce((sum, item) => sum + (item.artifact_counts[type] || 0), 0);
+      const affectedSessions = qualityRows.filter(item => (item.artifact_counts[type] || 0) > 0).length;
+      return {
+        type,
+        label: ARTIFACT_TYPES[type].label,
+        events,
+        affected_sessions: affectedSessions,
+        heuristic_weight: ARTIFACT_TYPES[type].penalty
+      };
+    }).filter(item => item.events);
+    drawResearchBars(ui.researchArtifactTypeChart, artifactRows.map(item => ({
+      label: item.label,
+      value: item.events,
+      color: themeToken('warning')
+    })), { labelWidth: 125 });
+    if(artifactRows.length){
+      clearNode(ui.researchArtifactTypeBody);
+      artifactRows.forEach(item => appendResearchRow(ui.researchArtifactTypeBody, [
+        item.label, item.events, item.affected_sessions, item.heuristic_weight
+      ]));
+    } else renderResearchEmptyRow(ui.researchArtifactTypeBody, 4, 'No practitioner-logged artifacts in this scope.');
     if(qualityRows.length){
       clearNode(ui.researchQualityBody);
       qualityRows.forEach(item => appendResearchRow(ui.researchQualityBody, [
-        item.date, item.condition, item.fidelity == null ? null : `${item.fidelity}%`, item.blocks, item.artifacts, item.markers,
+        item.date,
+        item.condition,
+        item.fidelity == null ? null : `${item.fidelity}%`,
+        item.blocks,
+        item.mean_block_quality_pct == null ? null : `${item.mean_block_quality_pct}%`,
+        item.artifacts,
+        item.markers,
         item.markerSet.expected ? `${item.markerSet.complete}/${item.markerSet.expected}` : null,
         item.diagnostics.expected_order_trials ? `${item.diagnostics.ordered_trials}/${item.diagnostics.expected_order_trials}` : null,
         item.diagnostics.response_timing_comparisons
@@ -7043,7 +7091,10 @@
         `${item.diagnostics.protocol_fields_complete}/${item.diagnostics.protocol_fields_expected}`,
         item.diagnostics.declared_sync_method
       ]));
-    } else renderResearchEmptyRow(ui.researchQualityBody, 11);
+    } else renderResearchEmptyRow(ui.researchQualityBody, 12);
+    ui.researchEegQualityNote.textContent = scope === 'all-learners'
+      ? 'Pooled session checks are shown as unconnected points. Marker checks use browser logs only; the block-quality score is a logging heuristic, not EEG signal quality, and no value verifies hardware synchronisation.'
+      : 'Connected points follow sessions in date order. Marker checks use browser logs only; the block-quality score is a logging heuristic, not EEG signal quality, and no value verifies hardware synchronisation.';
 
     const transferRows = sessions.map(session => {
       const baseline = session.learner_snapshot && session.learner_snapshot.baseline ? session.learner_snapshot.baseline : {};

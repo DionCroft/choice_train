@@ -1418,13 +1418,31 @@
                 <div class="dashCard"><div class="k">Protocol metadata</div><div class="v" id="researchProtocolCompleteness">&mdash;</div></div>
               </div>
               <canvas id="researchEegQualityChart" class="researchCanvas" width="760" height="240" role="img" aria-label="Aggregate EEG marker completeness, ordering validity, and protocol metadata completeness"></canvas>
+              <div class="tiny">Browser marker and protocol checks across sessions (%)</div>
+              <canvas id="researchEegQualityTrendChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Browser marker completeness, ordering validity, and protocol coverage across sessions"></canvas>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Mean heuristic block-quality score (%)</div>
+                  <canvas id="researchBlockQualityTrendChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Mean heuristic block-quality score across sessions"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Practitioner-logged artifact types</div>
+                  <canvas id="researchArtifactTypeChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Counts of practitioner-logged artifact types"></canvas>
+                </div>
+              </div>
               <div class="tableWrap researchTableWrap">
                 <table>
-                  <thead><tr><th>Date</th><th>Condition</th><th>Fidelity</th><th>Blocks</th><th>Artifacts</th><th>Markers</th><th>Core marker sets</th><th>Ordered trials</th><th>Timing differences</th><th>Protocol fields</th><th>Sync method</th></tr></thead>
+                  <thead><tr><th>Artifact type</th><th>Events</th><th>Sessions affected</th><th>Heuristic weight</th></tr></thead>
+                  <tbody id="researchArtifactTypeBody"></tbody>
+                </table>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Condition</th><th>Fidelity</th><th>Blocks</th><th>Mean block quality</th><th>Artifacts</th><th>Markers</th><th>Core marker sets</th><th>Ordered trials</th><th>Timing differences</th><th>Protocol fields</th><th>Sync method</th></tr></thead>
                   <tbody id="researchQualityBody"></tbody>
                 </table>
               </div>
-              <div class="compactNote">Marker completeness checks exported event sets only. Browser markers are not hardware-synchronised EEG triggers.</div>
+              <div id="researchEegQualityNote" class="compactNote">Marker checks use browser event logs only. The block-quality score is a transparent logging heuristic, not EEG signal quality, and browser markers are not hardware-synchronised triggers.</div>
             </div>
             <div class="chartCard span2">
               <h4>Maintenance, generalisation, and classroom transfer observations</h4>

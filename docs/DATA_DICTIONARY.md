@@ -173,6 +173,8 @@ The session-start protocol snapshot is immutable for that session. It records de
 | `eeg_marker_diagnostics.non_monotonic_marker_count` | Adjacent marker times that run backwards in the exported sequence |
 | `eeg_marker_diagnostics.duplicate_marker_id_count` | Repeated browser marker IDs |
 
+The Research workspace also derives per-session marker-completeness, ordering, protocol-coverage, and mean block-quality values. Block quality is the existing transparent browser-log heuristic: it starts at 100 and subtracts configured weights for practitioner-logged artifacts plus omission/commission penalties. The artifact view reports event counts and the number of affected sessions for Movement, Blink, Speech, Cap adjust, and Interruption. These values are not EEG signal-quality metrics, and even 100% marker completeness does not establish hardware synchronisation.
+
 ## V1.8 Pseudonymised Research / Model-Development Export
 
 This separate JSON uses `export_schema_version: 1.0.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:

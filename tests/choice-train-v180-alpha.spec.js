@@ -705,6 +705,8 @@ test('EEG protocol metadata and browser timing diagnostics are exported and visu
   await setValue(page, 'sessionMax', 1);
 
   await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#artifactMovementBtn').evaluate(node => node.click());
+  await page.locator('#artifactSpeechBtn').evaluate(node => node.click());
   await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
   await expect(page.locator('#screenSummary.active')).toBeVisible();
   const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
@@ -730,6 +732,11 @@ test('EEG protocol metadata and browser timing diagnostics are exported and visu
     protocol_completeness_pct: 100,
     hardware_synchronization_verified: false
   }));
+  expect(payload.block_summaries[0]).toEqual(expect.objectContaining({
+    artifact_count: 2,
+    artifact_counts: expect.objectContaining({ movement: 1, speech: 1 }),
+    quality_score: 83
+  }));
 
   await page.locator('#teacherExitHold').focus();
   await page.locator('#teacherExitHold').press('Enter');
@@ -742,6 +749,17 @@ test('EEG protocol metadata and browser timing diagnostics are exported and visu
   await expect(page.locator('#researchQualityBody')).toContainText('0/1');
   await expect(page.locator('#researchQualityBody')).toContainText('5/5');
   await expect(page.locator('#researchQualityBody')).toContainText('lsl-bridge');
+  await expect(page.locator('#researchQualityBody')).toContainText('83%');
+  await expect(page.locator('#researchEegQualityTrendChart')).toBeVisible();
+  await expect(page.locator('#researchBlockQualityTrendChart')).toBeVisible();
+  await expect(page.locator('#researchArtifactTypeChart')).toBeVisible();
+  await expect(page.locator('#researchArtifactTypeBody tr')).toHaveCount(2);
+  await expect(page.locator('#researchArtifactTypeBody')).toContainText('Movement');
+  await expect(page.locator('#researchArtifactTypeBody')).toContainText('Speech');
+  await expect(page.locator('#researchEegQualityNote')).toContainText('logging heuristic');
+
+  await setValue(page, 'researchScopeSelect', 'all-learners');
+  await expect(page.locator('#researchEegQualityNote')).toContainText('unconnected points');
 });
 
 test('model-development export is denied by default without a recorded authority declaration', async ({ page }) => {
