@@ -34,6 +34,7 @@
   const SKILL_GRAPH_VERSION = '1.4.0';
   const GENERATOR_VERSION = '1.6.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
+  const DATA_QUALITY_SCHEMA_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
@@ -5823,6 +5824,40 @@
     })).sort((a, b) => a.skill_id.localeCompare(b.skill_id));
 
     const responseExpected = finalTrials.filter(trial => !trial.omission && !trial.correct_rejection);
+    const touchDistanceExpected = finalTrials.filter(trial => (
+      !trial.omission
+      && !trial.correct_rejection
+      && trial.open_ended_choice !== true
+      && trial.touch_anywhere_accepted !== true
+      && !!(trial.selected_id || trial.response_type)
+    ));
+    const supportObserved = finalTrials.filter(trial => ['independent', 'prompted', 'assisted'].includes(trial.independence_status));
+    const promptObserved = finalTrials.filter(trial => Number.isFinite(trial.highest_prompt_level));
+    const provenanceObserved = finalTrials.filter(trial => (
+      String(trial.generator_version || '').trim()
+      && String(trial.lesson_plan_id || '').trim()
+      && Number.isFinite(trial.lesson_seed)
+      && Number.isFinite(trial.question_seed)
+    ));
+    const optionMetadataObserved = finalTrials.filter(trial => Array.isArray(trial.option_metadata) && trial.option_metadata.length > 0);
+    const outcomeObserved = finalTrials.filter(trial => (
+      typeof trial.correct === 'boolean'
+      && typeof trial.omission === 'boolean'
+      && typeof trial.commission === 'boolean'
+      && typeof trial.correct_rejection === 'boolean'
+    ));
+    const sessionIdentityObserved = finalTrials.filter(trial => String(trial.session_id || '').trim());
+    const recordingFlags = [];
+    if(!finalTrials.length) recordingFlags.push('NO_FINAL_TRIALS');
+    if(missingSkillAssignments) recordingFlags.push('MISSING_SKILL_ASSIGNMENT');
+    if(responseExpected.some(trial => !Number.isFinite(trial.response_time_ms))) recordingFlags.push('MISSING_EXPECTED_RESPONSE_TIMING');
+    if(touchDistanceExpected.some(trial => !Number.isFinite(trial.distance_to_target_px))) recordingFlags.push('MISSING_ELIGIBLE_TOUCH_DISTANCE');
+    if(supportObserved.length < finalTrials.length) recordingFlags.push('UNKNOWN_SUPPORT_STATUS');
+    if(promptObserved.length < finalTrials.length) recordingFlags.push('MISSING_PROMPT_LEVEL');
+    if(provenanceObserved.length < finalTrials.length) recordingFlags.push('MISSING_GENERATOR_PROVENANCE');
+    if(optionMetadataObserved.length < finalTrials.length) recordingFlags.push('MISSING_OPTION_METADATA');
+    if(outcomeObserved.length < finalTrials.length) recordingFlags.push('MISSING_OUTCOME_FIELDS');
+    if(sessionIdentityObserved.length < finalTrials.length) recordingFlags.push('MISSING_SESSION_IDENTITY');
     return {
       version: RESEARCH_SUMMARY_VERSION,
       generated_at_wall_ms: generatedAtWallMs,
@@ -5832,11 +5867,28 @@
       final_trial_count: finalTrials.length,
       skill_summaries: skillSummaries,
       data_quality: {
+        schema_version: DATA_QUALITY_SCHEMA_VERSION,
+        source_trial_count: Array.isArray(trials) ? trials.length : 0,
+        final_trial_count: finalTrials.length,
+        repeated_attempt_count: Math.max(0, (Array.isArray(trials) ? trials.length : 0) - finalTrials.length),
         missing_skill_assignment_count: missingSkillAssignments,
+        skill_assignment_observed_count: finalTrials.length - missingSkillAssignments,
+        response_time_expected_count: responseExpected.length,
         response_time_observed_count: finiteTrialValues(finalTrials, 'response_time_ms').length,
+        response_time_observed_when_expected_count: responseExpected.filter(trial => Number.isFinite(trial.response_time_ms)).length,
         response_time_missing_when_expected_count: responseExpected.filter(trial => !Number.isFinite(trial.response_time_ms)).length,
+        touch_distance_expected_count: touchDistanceExpected.length,
         touch_distance_observed_count: finiteTrialValues(finalTrials, 'distance_to_target_px').length,
-        context_note_trial_count: finalTrials.filter(trial => String(trial.context_notes || '').trim()).length
+        touch_distance_observed_when_expected_count: touchDistanceExpected.filter(trial => Number.isFinite(trial.distance_to_target_px)).length,
+        support_status_observed_count: supportObserved.length,
+        prompt_level_observed_count: promptObserved.length,
+        generator_provenance_observed_count: provenanceObserved.length,
+        option_metadata_observed_count: optionMetadataObserved.length,
+        outcome_fields_observed_count: outcomeObserved.length,
+        session_identity_observed_count: sessionIdentityObserved.length,
+        context_note_trial_count: finalTrials.filter(trial => String(trial.context_notes || '').trim()).length,
+        recording_flags: recordingFlags,
+        interpretation_boundary: 'Recording completeness only. Complete fields do not establish correctness, validity, reliability, consent, representativeness, or research quality.'
       },
       interpretation_boundary: 'Descriptive practice data only; not a diagnostic, mastery, transfer, or neural-plasticity measure.'
     };
@@ -8340,6 +8392,37 @@
     };
   }
 
+  function dataQualityCoverageRows(dataQuality){
+    const quality = dataQuality && typeof dataQuality === 'object' ? dataQuality : {};
+    const finalTrials = Math.max(0, safeNumber(quality.final_trial_count, 0));
+    const definitions = [
+      ['Skill assignment', quality.skill_assignment_observed_count, finalTrials],
+      ['Expected response timing', quality.response_time_observed_when_expected_count, quality.response_time_expected_count],
+      ['Eligible touch distance', quality.touch_distance_observed_when_expected_count, quality.touch_distance_expected_count],
+      ['Support status', quality.support_status_observed_count, finalTrials],
+      ['Prompt level', quality.prompt_level_observed_count, finalTrials],
+      ['Generator provenance', quality.generator_provenance_observed_count, finalTrials],
+      ['Option metadata', quality.option_metadata_observed_count, finalTrials],
+      ['Outcome fields', quality.outcome_fields_observed_count, finalTrials],
+      ['Session identity', quality.session_identity_observed_count, finalTrials]
+    ];
+    return definitions.map(([label, observedValue, expectedValue]) => {
+      const expected = Math.max(0, safeNumber(expectedValue, 0));
+      const observed = Math.min(expected, Math.max(0, safeNumber(observedValue, 0)));
+      return {
+        label,
+        observed,
+        expected,
+        missing: Math.max(0, expected - observed),
+        coverage_pct: expected ? percentage(observed, expected) : null
+      };
+    });
+  }
+
+  function dataQualityCoverageLabel(row){
+    return row && Number.isFinite(row.coverage_pct) ? `${row.coverage_pct}%` : 'Not applicable';
+  }
+
   function renderResearchWorkspace(){
     if(!ui.researchScopeSelect) return;
     const sessions = researchSessionsInScope();
@@ -8398,6 +8481,37 @@
     } else renderResearchEmptyRow(ui.researchCoverageBody, 8, 'No sessions in this scope yet.');
     const eegCoverage = coverageDomains.find(domain => domain.key === 'eeg');
     ui.researchCoverageNote.textContent = `Coverage shows recorded fields, not learner performance or data validity. Optional context and transfer fields may remain missing. ${eegCoverage && eegCoverage.applicable_sessions ? `EEG/protocol coverage applies to ${eegCoverage.applicable_sessions} session(s).` : 'EEG/protocol is not expected for the sessions in this scope.'}`;
+
+    const trialQuality = researchSummary.data_quality || {};
+    const trialQualityRows = dataQualityCoverageRows(trialQuality);
+    const qualityRow = label => trialQualityRows.find(row => row.label === label);
+    ui.researchDataQualityFinalTrials.textContent = String(trialQuality.final_trial_count || 0);
+    ui.researchDataQualityRepeatedAttempts.textContent = String(trialQuality.repeated_attempt_count || 0);
+    ui.researchDataQualityTiming.textContent = dataQualityCoverageLabel(qualityRow('Expected response timing'));
+    ui.researchDataQualitySupport.textContent = dataQualityCoverageLabel(qualityRow('Support status'));
+    ui.researchDataQualityProvenance.textContent = dataQualityCoverageLabel(qualityRow('Generator provenance'));
+    drawResearchBars(ui.researchTrialQualityChart, trialQualityRows
+      .filter(row => Number.isFinite(row.coverage_pct))
+      .map(row => ({
+        label: row.label,
+        value: row.coverage_pct,
+        color: row.coverage_pct === 100 ? themeToken('success') : themeToken('warning')
+      })), { maxValue: 100, suffix: '%', labelWidth: 175 });
+    if(trialQualityRows.length){
+      clearNode(ui.researchTrialQualityBody);
+      trialQualityRows.forEach(row => appendResearchRow(ui.researchTrialQualityBody, [
+        row.label,
+        row.observed,
+        row.expected,
+        row.missing,
+        dataQualityCoverageLabel(row)
+      ]));
+    } else renderResearchEmptyRow(ui.researchTrialQualityBody, 5, 'No trial recording fields are available in this scope.');
+    const recordingFlags = Array.isArray(trialQuality.recording_flags) ? trialQuality.recording_flags : [];
+    const flagText = recordingFlags.length
+      ? `Recording flags: ${recordingFlags.map(flag => String(flag).toLowerCase().replace(/_/g, ' ')).join('; ')}.`
+      : 'No recording-completeness flags in this scope.';
+    ui.researchTrialQualityNote.textContent = `${flagText} Repeated attempts are retained for audit and are not automatically treated as errors. Completeness does not establish correctness, validity, reliability, consent, representativeness, or suitability for analysis.`;
 
     drawResearchTrend(ui.researchAccuracyChart, sessionRows);
     drawResearchScatter(ui.researchSpeedAccuracyChart, sessionRows);
@@ -11210,6 +11324,31 @@
     refreshContentConfiguration();
   }
 
+  function wireResearchChartAlternatives(){
+    document.querySelectorAll('#adminAnalyticsSection .researchCanvas').forEach((canvas, chartIndex) => {
+      const card = canvas.closest('.chartCard');
+      if(!card){
+        canvas.dataset.accessibleAlternative = 'missing-card';
+        return;
+      }
+      const alternatives = Array.from(card.querySelectorAll('.researchTableWrap, .compactNote'));
+      alternatives.forEach((alternative, alternativeIndex) => {
+        if(!alternative.id){
+          alternative.id = `${canvas.id || `researchChart${chartIndex + 1}`}Alternative${alternativeIndex + 1}`;
+        }
+      });
+      const alternativeIds = Array.from(new Set(alternatives.map(alternative => alternative.id).filter(Boolean)));
+      if(alternativeIds.length){
+        canvas.setAttribute('aria-describedby', alternativeIds.join(' '));
+        canvas.dataset.accessibleAlternative = 'linked';
+        canvas.dataset.accessibleAlternativeCount = String(alternativeIds.length);
+      } else {
+        canvas.dataset.accessibleAlternative = 'missing';
+        canvas.dataset.accessibleAlternativeCount = '0';
+      }
+    });
+  }
+
   function initialSetup(){
     const persistedSettings = readJson(SETTINGS_KEY) || LEGACY_SETTINGS_KEYS.map(readJson).find(Boolean) || {};
     applyBuildInfo();
@@ -11220,6 +11359,7 @@
     applyStudentFriendlyMode();
     applyPanelView('teacher');
     applyTeacherPage('today');
+    wireResearchChartAlternatives();
     loadPupilList(persistedSettings.selectedPupil || '');
     applyViewMode(state.viewMode || 'desktop', false);
     updateLearnerControls();

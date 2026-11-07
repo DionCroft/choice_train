@@ -1,0 +1,73 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-data-quality-v1.schema.json",
+  "title": "ChoiceTrain trial recording completeness contract v1",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "source_trial_count",
+    "final_trial_count",
+    "repeated_attempt_count",
+    "missing_skill_assignment_count",
+    "skill_assignment_observed_count",
+    "response_time_expected_count",
+    "response_time_observed_count",
+    "response_time_observed_when_expected_count",
+    "response_time_missing_when_expected_count",
+    "touch_distance_expected_count",
+    "touch_distance_observed_count",
+    "touch_distance_observed_when_expected_count",
+    "support_status_observed_count",
+    "prompt_level_observed_count",
+    "generator_provenance_observed_count",
+    "option_metadata_observed_count",
+    "outcome_fields_observed_count",
+    "session_identity_observed_count",
+    "context_note_trial_count",
+    "recording_flags",
+    "interpretation_boundary"
+  ],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "source_trial_count": { "type": "integer", "minimum": 0 },
+    "final_trial_count": { "type": "integer", "minimum": 0 },
+    "repeated_attempt_count": { "type": "integer", "minimum": 0 },
+    "missing_skill_assignment_count": { "type": "integer", "minimum": 0 },
+    "skill_assignment_observed_count": { "type": "integer", "minimum": 0 },
+    "response_time_expected_count": { "type": "integer", "minimum": 0 },
+    "response_time_observed_count": { "type": "integer", "minimum": 0 },
+    "response_time_observed_when_expected_count": { "type": "integer", "minimum": 0 },
+    "response_time_missing_when_expected_count": { "type": "integer", "minimum": 0 },
+    "touch_distance_expected_count": { "type": "integer", "minimum": 0 },
+    "touch_distance_observed_count": { "type": "integer", "minimum": 0 },
+    "touch_distance_observed_when_expected_count": { "type": "integer", "minimum": 0 },
+    "support_status_observed_count": { "type": "integer", "minimum": 0 },
+    "prompt_level_observed_count": { "type": "integer", "minimum": 0 },
+    "generator_provenance_observed_count": { "type": "integer", "minimum": 0 },
+    "option_metadata_observed_count": { "type": "integer", "minimum": 0 },
+    "outcome_fields_observed_count": { "type": "integer", "minimum": 0 },
+    "session_identity_observed_count": { "type": "integer", "minimum": 0 },
+    "context_note_trial_count": { "type": "integer", "minimum": 0 },
+    "recording_flags": {
+      "type": "array",
+      "uniqueItems": true,
+      "items": {
+        "type": "string",
+        "enum": [
+          "NO_FINAL_TRIALS",
+          "MISSING_SKILL_ASSIGNMENT",
+          "MISSING_EXPECTED_RESPONSE_TIMING",
+          "MISSING_ELIGIBLE_TOUCH_DISTANCE",
+          "UNKNOWN_SUPPORT_STATUS",
+          "MISSING_PROMPT_LEVEL",
+          "MISSING_GENERATOR_PROVENANCE",
+          "MISSING_OPTION_METADATA",
+          "MISSING_OUTCOME_FIELDS",
+          "MISSING_SESSION_IDENTITY"
+        ]
+      }
+    },
+    "interpretation_boundary": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": false
+}

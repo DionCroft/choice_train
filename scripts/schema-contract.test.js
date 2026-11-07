@@ -35,13 +35,44 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
 test('Research summary schema matches its runtime export version and category/AI composition sections', () => {
   const contract = schema('choice-train-research-summary-v1.7.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('RESEARCH_WORKSPACE_EXPORT_VERSION'));
-  ['category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'model_dataset_composition']
+  ['category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition']
     .forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
+  assert.equal(contract.properties.data_quality.$ref, 'choice-train-data-quality-v1.schema.json');
   const profile = contract.properties.model_dataset_composition;
   assert.equal(profile.properties.profile_version.const, runtimeConstant('MODEL_DATASET_PROFILE_VERSION'));
   assert.equal(profile.properties.split_policy.properties.participant_separated_split_required.const, true);
   assert.equal(profile.properties.split_policy.properties.automatic_split_performed.const, false);
   assert.equal(profile.properties.split_policy.properties.random_trial_split_allowed.const, false);
+});
+
+test('data-quality schema locks recording-completeness fields and flags', () => {
+  const contract = schema('choice-train-data-quality-v1.schema.json');
+  assert.equal(contract.properties.schema_version.const, runtimeConstant('DATA_QUALITY_SCHEMA_VERSION'));
+  [
+    'source_trial_count',
+    'final_trial_count',
+    'repeated_attempt_count',
+    'response_time_expected_count',
+    'response_time_observed_when_expected_count',
+    'touch_distance_expected_count',
+    'touch_distance_observed_when_expected_count',
+    'support_status_observed_count',
+    'generator_provenance_observed_count',
+    'recording_flags',
+    'interpretation_boundary'
+  ].forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
+  assert.deepEqual(new Set(contract.properties.recording_flags.items.enum), new Set([
+    'NO_FINAL_TRIALS',
+    'MISSING_SKILL_ASSIGNMENT',
+    'MISSING_EXPECTED_RESPONSE_TIMING',
+    'MISSING_ELIGIBLE_TOUCH_DISTANCE',
+    'UNKNOWN_SUPPORT_STATUS',
+    'MISSING_PROMPT_LEVEL',
+    'MISSING_GENERATOR_PROVENANCE',
+    'MISSING_OPTION_METADATA',
+    'MISSING_OUTCOME_FIELDS',
+    'MISSING_SESSION_IDENTITY'
+  ]));
 });
 
 test('model-development schema locks privacy and human-oversight invariants', () => {

@@ -3,7 +3,7 @@
   "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-research-summary-v1.7.schema.json",
   "title": "ChoiceTrain Research workspace summary core contract v1.7",
   "type": "object",
-  "required": ["export_schema_version", "scope", "session_count", "final_trial_count", "privacy_manifest", "skill_summaries", "attention_families", "category_matching", "category_group_completion", "category_exclusion", "attribute_selection", "category_lesson_coverage", "model_dataset_composition", "interpretation_boundary"],
+  "required": ["export_schema_version", "scope", "session_count", "final_trial_count", "privacy_manifest", "skill_summaries", "attention_families", "category_matching", "category_group_completion", "category_exclusion", "attribute_selection", "category_lesson_coverage", "data_quality", "model_dataset_composition", "interpretation_boundary"],
   "properties": {
     "export_schema_version": { "const": "1.7.0" },
     "scope": { "enum": ["current-session", "current-learner", "all-learners"] },
@@ -17,6 +17,7 @@
     "category_exclusion": { "type": "array", "items": { "type": "object" } },
     "attribute_selection": { "type": "array", "items": { "type": "object" } },
     "category_lesson_coverage": { "type": "array", "items": { "type": "object" } },
+    "data_quality": { "$ref": "choice-train-data-quality-v1.schema.json" },
     "model_dataset_composition": {
       "type": "object",
       "required": ["profile_version", "participant_count", "session_count", "final_trial_count", "participants_with_two_or_more_sessions", "participants_with_three_or_more_sessions", "participants_with_seven_day_span", "skill_count", "condition_count", "teacher_review_count", "governance_eligible_participant_count", "governance_blocked_participant_count", "participant_session_depth", "skill_rows", "condition_rows", "outcome_counts", "support_counts", "split_policy", "interpretation_boundary"],

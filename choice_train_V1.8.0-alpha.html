@@ -1273,6 +1273,24 @@
               </div>
               <div id="researchCoverageNote" class="compactNote">Coverage reports whether planned fields were recorded. It does not score the learner or assess data validity.</div>
             </div>
+            <div class="chartCard span2">
+              <h4>Trial recording completeness</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Final trials</div><div class="v" id="researchDataQualityFinalTrials">0</div></div>
+                <div class="dashCard"><div class="k">Repeated attempts retained</div><div class="v" id="researchDataQualityRepeatedAttempts">0</div></div>
+                <div class="dashCard"><div class="k">Expected timing observed</div><div class="v" id="researchDataQualityTiming">&mdash;</div></div>
+                <div class="dashCard"><div class="k">Support status observed</div><div class="v" id="researchDataQualitySupport">&mdash;</div></div>
+                <div class="dashCard"><div class="k">Generator provenance observed</div><div class="v" id="researchDataQualityProvenance">&mdash;</div></div>
+              </div>
+              <canvas id="researchTrialQualityChart" class="researchCanvas" width="760" height="280" role="img" aria-label="Recorded versus expected core trial fields by data-quality domain"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Recording domain</th><th>Observed</th><th>Expected</th><th>Missing</th><th>Coverage</th></tr></thead>
+                  <tbody id="researchTrialQualityBody"></tbody>
+                </table>
+              </div>
+              <div id="researchTrialQualityNote" class="compactNote">Completeness reports whether expected fields were recorded. It does not establish that values are correct, valid, reliable, consented, representative, or suitable for analysis.</div>
+            </div>
             <div id="researchPerformanceSection" class="chartCard span2 researchAnchorTarget">
               <h4>Accuracy and independent responding over time</h4>
               <canvas id="researchAccuracyChart" class="researchCanvas" width="760" height="240" role="img" aria-label="Accuracy and independent response percentages across sessions"></canvas>

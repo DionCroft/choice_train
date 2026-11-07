@@ -4,6 +4,7 @@ const { test, expect } = require('@playwright/test');
 const APP_PATH = '/choice_train_V1.8.0-alpha.html';
 const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.schema.json', 'utf8'));
 const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v1.7.schema.json', 'utf8'));
+const DATA_QUALITY_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-data-quality-v1.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
 
 function expectCoreSchema(value, schema, path='payload') {
@@ -107,7 +108,15 @@ test('V1.8 export declares the versioned research contract and preserves missing
   ]));
   expect(payload.research_summary.final_trial_count).toBe(0);
   expect(payload.research_summary.skill_summaries).toEqual([]);
-  expect(payload.research_summary.data_quality.response_time_observed_count).toBe(0);
+  expectCoreSchema(payload.research_summary.data_quality, DATA_QUALITY_SCHEMA, 'research_summary.data_quality');
+  expect(payload.research_summary.data_quality).toEqual(expect.objectContaining({
+    schema_version: '1.0.0',
+    source_trial_count: 0,
+    final_trial_count: 0,
+    repeated_attempt_count: 0,
+    response_time_observed_count: 0
+  }));
+  expect(payload.research_summary.data_quality.recording_flags).toContain('NO_FINAL_TRIALS');
 });
 
 test('a learner trial exports skill, generator, and descriptive research metadata', async ({ page }) => {
@@ -790,12 +799,81 @@ test('Research is a separate admin destination with accessible visual equivalent
   await expect(page.locator('#researchSectionNav a')).toHaveCount(9);
   await expect(page.locator('#researchCoverageChart')).toHaveAttribute('role', 'img');
   await expect(page.locator('#researchCoverageBody')).toContainText('No sessions');
+  await expect(page.locator('#researchTrialQualityChart')).toHaveAttribute('role', 'img');
+  await expect(page.locator('#researchDataQualityFinalTrials')).toHaveText('0');
+  await expect(page.locator('#researchTrialQualityBody tr')).toHaveCount(9);
+  await expect(page.locator('#researchTrialQualityNote')).toContainText('no final trials');
   await expect(page.locator('#researchAccuracyChart')).toHaveAttribute('role', 'img');
   await expect(page.locator('#researchSessionTrendBody')).toContainText('No data');
   await expect(page.locator('#researchSourceNote')).toContainText('Missing values stay missing');
+  const chartAudit = await page.locator('#adminAnalyticsSection .researchCanvas').evaluateAll(canvases => canvases.map(canvas => {
+    const alternativeIds = String(canvas.getAttribute('aria-describedby') || '').split(/\s+/).filter(Boolean);
+    return {
+      id: canvas.id,
+      role: canvas.getAttribute('role'),
+      label: canvas.getAttribute('aria-label'),
+      alternativeState: canvas.dataset.accessibleAlternative,
+      alternativeIds,
+      unresolvedIds: alternativeIds.filter(id => !document.getElementById(id)),
+      hasReadableAlternative: alternativeIds.some(id => String(document.getElementById(id)?.textContent || '').trim().length > 0)
+    };
+  }));
+  expect(chartAudit.length).toBeGreaterThan(50);
+  chartAudit.forEach(chart => {
+    expect(chart.role, `${chart.id} must expose an image role`).toBe('img');
+    expect(chart.label, `${chart.id} must have an accessible label`).toBeTruthy();
+    expect(chart.alternativeState, `${chart.id} must link a non-canvas alternative`).toBe('linked');
+    expect(chart.alternativeIds.length, `${chart.id} must describe its alternative`).toBeGreaterThan(0);
+    expect(chart.unresolvedIds, `${chart.id} has unresolved alternative IDs`).toEqual([]);
+    expect(chart.hasReadableAlternative, `${chart.id} alternative must contain readable text`).toBe(true);
+  });
   await page.locator('#researchSectionNav a[href="#researchDataQualitySection"]').click();
   await expect(page.locator('#researchDataQualitySection')).toBeVisible();
   expect(await page.evaluate(() => location.hash)).toBe('#researchDataQualitySection');
+});
+
+test('Research visualises versioned trial recording completeness without treating repeats as errors', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'sessionTaskType', 'touch-object');
+  await setValue(page, 'sessionMax', 1);
+
+  const payload = await completeSessionAndExport(page, 1);
+  const quality = payload.research_summary.data_quality;
+  expectCoreSchema(quality, DATA_QUALITY_SCHEMA, 'research_summary.data_quality');
+  expect(quality).toEqual(expect.objectContaining({
+    schema_version: '1.0.0',
+    source_trial_count: 1,
+    final_trial_count: 1,
+    repeated_attempt_count: 0,
+    response_time_expected_count: 1,
+    response_time_observed_when_expected_count: 1,
+    support_status_observed_count: 1,
+    generator_provenance_observed_count: 1
+  }));
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-session');
+  await expect(page.locator('#researchDataQualityFinalTrials')).toHaveText('1');
+  await expect(page.locator('#researchDataQualityRepeatedAttempts')).toHaveText('0');
+  await expect(page.locator('#researchDataQualityTiming')).toHaveText('100%');
+  await expect(page.locator('#researchDataQualitySupport')).toHaveText('100%');
+  await expect(page.locator('#researchDataQualityProvenance')).toHaveText('100%');
+  await expect(page.locator('#researchTrialQualityBody tr')).toHaveCount(9);
+  await expect(page.locator('#researchTrialQualityBody')).toContainText('Generator provenance');
+  await expect(page.locator('#researchTrialQualityNote')).toContainText('not automatically treated as errors');
+
+  const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
+  expectCoreSchema(researchPayload.data_quality, DATA_QUALITY_SCHEMA, 'research_summary.data_quality');
+  expect(researchPayload.data_quality.final_trial_count).toBe(1);
 });
 
 test('Research workspace contains wide data tables on a tablet viewport', async ({ page }) => {

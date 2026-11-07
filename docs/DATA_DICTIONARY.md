@@ -45,6 +45,14 @@ The response-quality card derives session-level `omission_pct`, `commission_pct`
 
 Current-learner points may be connected in chronological order. All-learner points are deliberately unconnected because records from different learners are not one longitudinal series.
 
+### Trial recording completeness
+
+`research_summary.data_quality` follows `choice-train-data-quality-v1.schema.json` with `schema_version: 1.0.0`. It derives one final record per session/question while retaining `source_trial_count` and `repeated_attempt_count` so later attempts are auditable rather than silently discarded or automatically labelled as errors.
+
+The object records observed and expected counts for skill assignment, response timing, eligible touch distance, support status, prompt level, deterministic generator provenance, option metadata, outcome fields, and session identity. `recording_flags` uses stable machine-readable codes such as `MISSING_EXPECTED_RESPONSE_TIMING`, `UNKNOWN_SUPPORT_STATUS`, and `MISSING_GENERATOR_PROVENANCE`. A domain with no applicable expected observation is reported as not applicable rather than zero-percent coverage.
+
+This is a recording-completeness contract only. A complete field may still be inaccurate, invalid, unreliable, unconsented, unrepresentative, or unsuitable for analysis. The contract must not be used as a pupil score, research-readiness score, or evidence of learning, transfer, diagnosis, or neural change.
+
 Compatible V1.8 response trials add `target_play_x`, `target_play_y`, `target_width_px`, `target_height_px`, `touch_delta_x_px`, `touch_delta_y_px`, `play_area_width_px`, `play_area_height_px`, and `distance_to_target_play_diagonal`. Values remain null when there is no meaningful target, including open-ended preference choices. The Research spatial view derives hit-radius bands from `raw_distance_to_target_px / adaptive_hit_radius_px` and a dominant outside-radius direction from the signed deltas. Full local session exports retain this geometry for audit. The pseudonymised model-development export excludes raw pointer coordinates, target coordinates, dimensions, and deltas; it currently retains only the existing distance features defined by its privacy manifest.
 
 The spatial view is a description of interaction geometry. Device dimensions, layout, target size, touch scaling, posture, access method, and assistance can all affect it, so it is not a validated motor, visual-field, attention, or diagnostic measure.
@@ -67,7 +75,7 @@ The Research demand view derives per-session mean displayed option count, mean d
 
 ### Research workspace summary export
 
-`Download scope summary` creates local JSON with `export_schema_version: 1.7.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `model_dataset_composition`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
+`Download scope summary` creates local JSON with `export_schema_version: 1.7.0` for the current Research scope. It contains derived `coverage_by_session`, `data_quality`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `model_dataset_composition`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
 
 `model_dataset_composition` version 1.0.0 is an aggregate descriptive profile for future governed model-development planning. It records participant/session depth bands, longitudinal representation, skill and research-condition exposure, outcome and support-label counts, teacher-review counts, and current local governance eligibility. It excludes learner aliases and states that development, validation, and held-out evaluation must use participant-separated groups. `automatic_split_performed` and `random_trial_split_allowed` are both `false`. This profile does not determine dataset sufficiency, fairness, lawful use, model validity, teaching effectiveness, transfer, or neural change.
 
