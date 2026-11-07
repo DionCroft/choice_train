@@ -36,7 +36,7 @@
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const DATA_QUALITY_SCHEMA_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
-  const RECOMMENDATION_VERSION = '1.0.0';
+  const RECOMMENDATION_VERSION = '1.1.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
   const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.7.0';
@@ -6113,6 +6113,16 @@
     return labels[action] || action;
   }
 
+  function recommendationDecisionLabel(decision){
+    const labels = {
+      approved: 'Approved as proposed',
+      adjusted: 'Approved with changes',
+      declined: 'Declined for now',
+      deferred: 'Deferred'
+    };
+    return labels[decision] || 'Unknown decision';
+  }
+
   function recommendationForSessions(sessions, learnerAlias=currentPupilAlias(), generatedAtWallMs=wallMs()){
     const usableSessions = Array.isArray(sessions) ? sessions : [];
     const states = skillPracticeStatesForSessions(usableSessions, generatedAtWallMs);
@@ -7593,13 +7603,19 @@
     const currentReviews = reviews.filter(review => review.recommendation_id === proposal.recommendation_id);
     const latestReview = currentReviews[currentReviews.length - 1];
     ui.recommendationReviewStatus.textContent = latestReview
-      ? `Latest decision: ${latestReview.decision} on ${new Date(latestReview.reviewed_at_wall_ms).toLocaleString()}. Saving again creates an auditable revision.`
+      ? `Latest decision: ${recommendationDecisionLabel(latestReview.decision)} on ${new Date(latestReview.reviewed_at_wall_ms).toLocaleString()}. Saving again creates an auditable revision.`
       : 'No review saved for this proposal.';
 
-    const decisionRows = ['approved', 'adjusted', 'declined'].map(decision => ({
-      label: decision,
+    const decisionRows = ['approved', 'adjusted', 'declined', 'deferred'].map(decision => ({
+      label: recommendationDecisionLabel(decision),
       value: reviews.filter(review => review.decision === decision).length,
-      color: decision === 'approved' ? themeToken('success') : decision === 'declined' ? themeToken('danger') : themeToken('warning')
+      color: decision === 'approved'
+        ? themeToken('success')
+        : decision === 'declined'
+          ? themeToken('danger')
+          : decision === 'deferred'
+            ? themeToken('secondary', themeToken('primary'))
+            : themeToken('warning')
     }));
     drawResearchBars(ui.researchRecommendationChart, decisionRows, { labelWidth: 120 });
     if(reviews.length){
@@ -7609,7 +7625,7 @@
         review.learner_alias || 'Unknown',
         recommendationActionLabel(review.proposal && review.proposal.action),
         review.proposal && review.proposal.skill_label,
-        review.decision,
+        recommendationDecisionLabel(review.decision),
         review.final_plan && review.final_plan.task_label,
         review.final_plan && review.final_plan.level,
         review.note || 'No note'
@@ -7629,6 +7645,10 @@
       return;
     }
     const decision = ui.recommendationDecision.value;
+    if(!['approved', 'adjusted', 'declined', 'deferred'].includes(decision)){
+      flash('try', 'Choose a valid teacher decision');
+      return;
+    }
     const overrideTask = ui.recommendationOverrideTask.value;
     const overrideLevelText = String(ui.recommendationOverrideLevel.value || '').trim();
     const overrideLevel = overrideLevelText === '' ? null : clamp(safeNumber(overrideLevelText, proposal.recommended_level), 1, 10);
@@ -7640,8 +7660,13 @@
 
     const learner = currentLearnerRecord();
     const previous = learner.reviews.filter(review => review.recommendation_id === proposal.recommendation_id).slice(-1)[0];
-    const finalTask = decision === 'adjusted' && overrideTask ? overrideTask : proposal.recommended_task_kind;
-    const finalLevel = decision === 'adjusted' && overrideLevel != null ? overrideLevel : proposal.recommended_level;
+    const accepted = decision === 'approved' || decision === 'adjusted';
+    const finalTask = accepted
+      ? (decision === 'adjusted' && overrideTask ? overrideTask : proposal.recommended_task_kind)
+      : null;
+    const finalLevel = accepted
+      ? (decision === 'adjusted' && overrideLevel != null ? overrideLevel : proposal.recommended_level)
+      : null;
     const review = {
       review_id: uuid4(),
       recommendation_id: proposal.recommendation_id,
@@ -7663,12 +7688,12 @@
         rationale_codes: proposal.rationale_codes.slice(),
         source_session_ids: proposal.source_session_ids.slice()
       },
-      final_plan: {
+      final_plan: accepted ? {
         task_kind: finalTask,
         task_label: finalTask === 'auto' ? 'Auto level path' : taskLabel(finalTask),
         level: finalLevel,
         support_direction: proposal.support_direction
-      }
+      } : null
     };
     learner.reviews = learner.reviews.concat(review).slice(-100);
     state.learners[name] = learner;
@@ -10840,16 +10865,19 @@
 
   function privacySafeReviews(participantByLearner){
     const rows = [];
+    const allowedDecisions = ['approved', 'adjusted', 'declined', 'deferred'];
     Object.keys(state.learners).forEach(name => {
       const participantCode = participantByLearner.get(name);
       if(!participantCode) return;
       const learner = normalizeLearner(name, state.learners[name]);
       learner.reviews.forEach((review, index) => {
+        const decision = allowedDecisions.includes(review.decision) ? review.decision : null;
+        const accepted = decision === 'approved' || decision === 'adjusted';
         rows.push({
           participant_code: participantCode,
           decision_index: index + 1,
           recommendation_version: review.recommendation_version || null,
-          decision: review.decision || null,
+          decision,
           proposal: review.proposal ? {
             action: review.proposal.action || null,
             skill_id: review.proposal.skill_id || null,
@@ -10858,7 +10886,7 @@
             support_direction: review.proposal.support_direction || null,
             rationale_codes: Array.isArray(review.proposal.rationale_codes) ? review.proposal.rationale_codes.slice() : []
           } : null,
-          final_plan: review.final_plan ? {
+          final_plan: accepted && review.final_plan ? {
             task_kind: review.final_plan.task_kind || null,
             level: review.final_plan.level || null,
             support_direction: review.final_plan.support_direction || null

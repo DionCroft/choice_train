@@ -16,9 +16,10 @@ All notable changes to ChoiceTrain are listed here.
 - browser coverage proving that a fixed seed reproduces the exact target, ordered options, and prompt wording while preserving the original level after progression
 - versioned per-skill practice states using recent accuracy, independent success, session count, recency, observed trend, and support direction without claiming mastery
 - spaced retention observations that require a gap of at least seven days and label follow-ups with small samples rather than treating missing evidence as retention
-- deterministic next-session proposals with human-readable rationale codes and mandatory teacher approve, adjust, or decline review
-- local recommendation audit history with proposal, final task and level, reviewer note, decision timestamp, and revision linkage
-- Research visualisations and accessible tables for practice status, retention observations, recommendation decisions, and review history
+- deterministic next-session proposals with human-readable rationale codes and mandatory teacher approve, adjust, decline, or defer review
+- recommendation contract 1.1.0 with friendly decision labels, revision linkage, and explicit `null` final plans for declined or deferred reviews; task/level overrides are accepted only for approved adjustments
+- local recommendation audit history with proposal, approved final task and level where applicable, reviewer note, decision timestamp, and revision linkage
+- Research visualisations and accessible tables for practice status, retention observations, all four recommendation decisions, and review history
 - an accessible future-AI dataset-composition view for learner/session depth, longitudinal representation, skill and condition coverage, outcome/support balance, teacher reviews, and local governance eligibility without assigning a readiness score
 - explicit participant-separated development/validation/test guidance, with no automatic split or model training and no learner aliases in the exported aggregate composition profile
 - frozen session identity and contextual metadata so selecting another pupil after a session cannot relabel its history or export; duplicate display aliases remain isolated by local profile name

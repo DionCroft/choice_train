@@ -1191,7 +1191,7 @@ test('Research visualises future AI dataset composition without performing a mod
   await page.locator('#adminPanelTab').click();
   await page.locator('#adminNavResearch').click();
   await page.locator('#saveRecommendationReviewBtn').click();
-  await expect(page.locator('#recommendationReviewStatus')).toContainText('approved');
+  await expect(page.locator('#recommendationReviewStatus')).toContainText('Approved as proposed');
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await page.locator('#refreshResearchBtn').click();
 
@@ -1625,9 +1625,23 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
   await page.locator('#recommendationReviewNote').fill('Use familiar animal photos and review after two short sessions.');
   await page.locator('#saveRecommendationReviewBtn').click();
 
-  await expect(page.locator('#recommendationReviewStatus')).toContainText('adjusted');
+  await expect(page.locator('#recommendationReviewStatus')).toContainText('Approved with changes');
   await expect(page.locator('#researchRecommendationBody')).toContainText('Find category');
   await expect(page.locator('#researchRecommendationBody')).toContainText('Use familiar animal photos');
+
+  const taskBeforeDefer = await page.locator('#sessionTaskType').inputValue();
+  const levelBeforeDefer = await page.locator('#startLevel').inputValue();
+  await setValue(page, 'recommendationDecision', 'deferred');
+  await setValue(page, 'recommendationOverrideTask', 'cpat-executive');
+  await setValue(page, 'recommendationOverrideLevel', 9);
+  await page.locator('#recommendationReviewNote').fill('Wait for a second classroom observation before deciding.');
+  await page.locator('#saveRecommendationReviewBtn').click();
+
+  await expect(page.locator('#recommendationReviewStatus')).toContainText('Deferred');
+  await expect(page.locator('#researchRecommendationBody')).toContainText('Deferred');
+  await expect(page.locator('#researchRecommendationBody')).toContainText('Wait for a second classroom observation');
+  await expect(page.locator('#sessionTaskType')).toHaveValue(taskBeforeDefer);
+  await expect(page.locator('#startLevel')).toHaveValue(levelBeforeDefer);
 
   await page.reload();
   await expect(page.locator('#beginFlow')).toBeVisible();
@@ -1637,16 +1651,25 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
   await page.locator('#adminNavResearch').click();
   await page.locator('#refreshResearchBtn').click();
   await expect(page.locator('#researchRecommendationBody')).toContainText('Use familiar animal photos');
+  await expect(page.locator('#researchRecommendationBody')).toContainText('Wait for a second classroom observation');
 
   const payload = await downloadJsonAfter(page, () => page.locator('#adminExportSessionBtn').evaluate(node => node.click()));
-  const review = payload.learner_profile.reviews.at(-1);
-  expect(review).toEqual(expect.objectContaining({
+  const reviews = payload.learner_profile.reviews.slice(-2);
+  const adjustedReview = reviews[0];
+  const deferredReview = reviews[1];
+  expect(adjustedReview).toEqual(expect.objectContaining({
     decision: 'adjusted',
     note: 'Use familiar animal photos and review after two short sessions.'
   }));
-  expect(review.final_plan).toEqual(expect.objectContaining({ task_kind: 'find-category', level: 5 }));
+  expect(adjustedReview.final_plan).toEqual(expect.objectContaining({ task_kind: 'find-category', level: 5 }));
+  expect(deferredReview).toEqual(expect.objectContaining({
+    decision: 'deferred',
+    note: 'Wait for a second classroom observation before deciding.',
+    supersedes_review_id: adjustedReview.review_id,
+    final_plan: null
+  }));
   expect(payload.practice_status_version).toBe('1.0.0');
-  expect(payload.recommendation_version).toBe('1.0.0');
+  expect(payload.recommendation_version).toBe('1.1.0');
   expect(payload.local_recommendation_summary.external_transmission).toBe(false);
 });
 
@@ -2017,6 +2040,28 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   await page.locator('#teacherExitHold').focus();
   await page.locator('#teacherExitHold').press('Enter');
   await page.evaluate(async () => {
+    const learners = JSON.parse(localStorage.getItem('choice_train_learners_v140') || '{}');
+    const learnerName = Object.keys(learners)[0];
+    learners[learnerName].reviews = (learners[learnerName].reviews || []).concat({
+      recommendation_version: '1.0.0',
+      decision: 'deferred',
+      note: 'SECRET-REVIEW wait for family discussion',
+      proposal: {
+        action: 'continue-practice',
+        skill_id: 'recognition.named_object',
+        recommended_task_kind: 'find-object',
+        recommended_level: 4,
+        support_direction: 'maintain',
+        rationale_codes: ['LEGACY_SAMPLE']
+      },
+      final_plan: {
+        task_kind: 'cpat-executive',
+        level: 9,
+        support_direction: 'fade'
+      }
+    });
+    localStorage.setItem('choice_train_learners_v140', JSON.stringify(learners));
+
     const db = await new Promise((resolve, reject) => {
       const request = indexedDB.open('choice_train_runtime_v2', 2);
       request.onsuccess = () => resolve(request.result);
@@ -2103,6 +2148,12 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(payload.sessions[0].trials[0].skill_ids).toContain('recognition.named_object');
   expect(payload.sessions[0].trials[0].coverage_strategy).toBe('balanced-before-repeat');
   expect(payload.sessions[0].trials[0].correct).toBe(true);
+  expect(payload.teacher_decisions).toHaveLength(1);
+  expect(payload.teacher_decisions[0]).toEqual(expect.objectContaining({
+    recommendation_version: '1.0.0',
+    decision: 'deferred',
+    final_plan: null
+  }));
   expect(Object.keys(payload.sessions[0].eeg_marker_diagnostics).sort()).toEqual([
     'version',
     'ordered_trials',
@@ -2129,6 +2180,8 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(exportedText).not.toContain('Private device serial');
   expect(exportedText).not.toContain('SECRET-GOVERNANCE-REFERENCE');
   expect(exportedText).not.toContain('SECRET-DIAGNOSTIC');
+  expect(exportedText).not.toContain('SECRET-REVIEW');
+  expect(exportedText).not.toContain('cpat-executive');
   expect(exportedText).not.toContain('2027-06-01');
   expect(exportedKeys).not.toContain('prompt_wording');
   expect(exportedKeys).not.toContain('photo_labels_used');

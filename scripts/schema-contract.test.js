@@ -91,4 +91,15 @@ test('model-development schema locks privacy and human-oversight invariants', ()
   assert.equal(diagnostics.properties.hardware_synchronization_verified.const, false);
   ['operator_notes', 'exact_wall_time_ms', 'source_session_id']
     .forEach(field => assert.equal(Object.prototype.hasOwnProperty.call(diagnostics.properties, field), false));
+  assert.equal(contract.properties.teacher_decisions.items.$ref, '#/$defs/privacySafeTeacherDecision');
+  const decision = contract.$defs.privacySafeTeacherDecision;
+  assert.equal(decision.additionalProperties, false);
+  assert.deepEqual(new Set(decision.properties.decision.oneOf[0].enum), new Set([
+    'approved',
+    'adjusted',
+    'declined',
+    'deferred'
+  ]));
+  assert.equal(decision.properties.final_plan.oneOf[1].type, 'null');
+  assert.equal(contract.$defs.privacySafeFinalPlan.additionalProperties, false);
 });

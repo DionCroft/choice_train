@@ -49,7 +49,10 @@
         "additionalProperties": true
       }
     },
-    "teacher_decisions": { "type": "array", "items": { "type": "object" } },
+    "teacher_decisions": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/privacySafeTeacherDecision" }
+    },
     "interpretation_boundary": { "type": "string", "minLength": 1 }
   },
   "$defs": {
@@ -72,6 +75,57 @@
         "declared_sync_method": { "type": "string" },
         "hardware_synchronization_verified": { "const": false },
         "interpretation_boundary": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "privacySafeTeacherDecision": {
+      "type": "object",
+      "required": ["participant_code", "decision_index", "recommendation_version", "decision", "proposal", "final_plan"],
+      "properties": {
+        "participant_code": { "type": "string", "minLength": 1 },
+        "decision_index": { "type": "integer", "minimum": 1 },
+        "recommendation_version": { "type": ["string", "null"] },
+        "decision": {
+          "oneOf": [
+            { "enum": ["approved", "adjusted", "declined", "deferred"] },
+            { "type": "null" }
+          ]
+        },
+        "proposal": {
+          "oneOf": [
+            { "$ref": "#/$defs/privacySafeRecommendationProposal" },
+            { "type": "null" }
+          ]
+        },
+        "final_plan": {
+          "oneOf": [
+            { "$ref": "#/$defs/privacySafeFinalPlan" },
+            { "type": "null" }
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "privacySafeRecommendationProposal": {
+      "type": "object",
+      "required": ["action", "skill_id", "recommended_task_kind", "recommended_level", "support_direction", "rationale_codes"],
+      "properties": {
+        "action": { "type": ["string", "null"] },
+        "skill_id": { "type": ["string", "null"] },
+        "recommended_task_kind": { "type": ["string", "null"] },
+        "recommended_level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+        "support_direction": { "type": ["string", "null"] },
+        "rationale_codes": { "type": "array", "items": { "type": "string" } }
+      },
+      "additionalProperties": false
+    },
+    "privacySafeFinalPlan": {
+      "type": "object",
+      "required": ["task_kind", "level", "support_direction"],
+      "properties": {
+        "task_kind": { "type": ["string", "null"] },
+        "level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+        "support_direction": { "type": ["string", "null"] }
       },
       "additionalProperties": false
     }

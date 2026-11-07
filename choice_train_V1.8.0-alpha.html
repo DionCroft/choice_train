@@ -1464,7 +1464,9 @@
                     <option value="approved">Approve as proposed</option>
                     <option value="adjusted">Approve with changes</option>
                     <option value="declined">Decline for now</option>
+                    <option value="deferred">Defer decision</option>
                   </select>
+                  <div class="helperText">Deferring records that more information or time is needed. It does not approve or apply the proposal.</div>
                 </div>
                 <div>
                   <label for="recommendationOverrideTask">Task override (optional)</label>
@@ -1490,7 +1492,7 @@
                   <tbody id="researchRecommendationBody"></tbody>
                 </table>
               </div>
-              <div class="compactNote">ChoiceTrain never applies a proposal automatically. Reviews remain local and are exported for audit; no external AI service is used.</div>
+              <div class="compactNote">ChoiceTrain never applies a proposal automatically. Task and level overrides are used only for an approved adjustment; declined and deferred reviews have no final plan. Reviews remain local and are exported for audit; no external AI service is used.</div>
             </div>
             <div id="researchAiDatasetSection" class="chartCard span2 researchAnchorTarget">
               <h4>Future AI dataset composition</h4>
@@ -2051,7 +2053,7 @@
           <p><b>V1.7 presentation choices</b> let staff adjust font, text size, motion, feedback sound, and celebration for the individual pupil. They are access preferences, not diagnoses. The train reward and short sounds are original ChoiceTrain feedback and can be reduced or switched off.</p>
           <p><b>Personalised photos</b> can be labelled as Mum, Dad, Teacher, favourite toy, favourite food, classroom object, or preferred activity. These labels can be reused in question generation while exports keep the label metadata lightweight.</p>
           <p><b>Signal Station</b>, <b>Ticket Hunt</b>, <b>Platform Pointer</b>, and <b>Traffic Lights</b> keep the AT families playful while preserving the underlying sustained, selective-spatial, orienting, and executive learning goals.</p>
-          <p><b>Next-session planning</b> uses transparent local rules and requires a teacher to approve, adjust, or decline each proposal. The review history is stored locally for audit; no session data is sent to an external AI service.</p>
+          <p><b>Next-session planning</b> uses transparent local rules and requires a teacher to approve, adjust, decline, or defer each proposal. Declined and deferred reviews do not create a final plan. The review history is stored locally for audit; no session data is sent to an external AI service.</p>
         </div>
       </details>
         </div>

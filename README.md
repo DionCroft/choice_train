@@ -426,7 +426,7 @@ The current `V1.7.0` build does not send session data to any external service.
 
 ## Future LLM-Assisted Recommendations
 
-Stable V1.7 includes a local structured summary that could later support LLM-assisted recommendations. The isolated V1.8 alpha now adds deterministic, rule-based next-session proposals and teacher approve/adjust/decline records. These are inspectable local planning aids, not an LLM and not autonomous teaching decisions.
+Stable V1.7 includes a local structured summary that could later support LLM-assisted recommendations. The isolated V1.8 alpha now adds deterministic, rule-based next-session proposals and teacher approve/adjust/decline/defer records. Approval accepts the proposed plan, adjustment records an approved alternative, decline rejects it for now, and defer records that more information or time is needed. Declined and deferred reviews have no approved final plan. These are inspectable local planning aids, not an LLM and not autonomous teaching decisions.
 
 Planned purpose:
 
