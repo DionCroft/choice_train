@@ -89,10 +89,11 @@ All notable changes to ChoiceTrain are listed here.
 - readable current-session reaction-time and target-distance summaries, with every canvas in the Research destination now included in the same automated accessibility audit
 - a browser-level local-only check proving the V1.8 alpha makes no external runtime requests during load
 - an independent two-session browser oracle that derives final-attempt session performance and per-skill counts from raw full exports, then verifies the Research scope summary field by field
+- a browser migration gate that seeds legacy settings, pupil profiles, an older photo schema, migration metadata, and stored history; it proves source records and sessions survive, normalized fields are retained, and a second startup makes no further data changes
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed touch-visualisation checkpoint `14985de` while retaining the experimental channel and explicit non-published V1.7 boundary
-- 31 focused V1.8 browser tests, including multi-seed group-completion and category-difference integrity, deterministic teacher-declared colour replay, independent longitudinal recomputation, multi-learner AI-composition visualisation, participant-separated split safeguards, fixed-condition persistence, drift blocking, export, marker, trial-recording completeness, normalised touch-map evidence, local-only runtime behaviour, and every-Research-chart accessibility coverage; the complete stable, archive, and alpha matrix passes 108 tests
+- 32 focused V1.8 browser tests, including non-destructive idempotent legacy migration, multi-seed group-completion and category-difference integrity, deterministic teacher-declared colour replay, independent longitudinal recomputation, multi-learner AI-composition visualisation, participant-separated split safeguards, fixed-condition persistence, drift blocking, export, marker, trial-recording completeness, normalised touch-map evidence, local-only runtime behaviour, and every-Research-chart accessibility coverage; the complete stable, archive, and alpha matrix passes 109 tests
 
 ### Planned
 

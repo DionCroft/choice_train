@@ -195,6 +195,163 @@ test('V1.8 alpha loads without making external runtime requests', async ({ page 
   expect(externalRequests).toEqual([]);
 });
 
+test('legacy local data migrates non-destructively and idempotently', async ({ page }) => {
+  await gotoAlpha(page);
+
+  const seeded = await page.evaluate(async () => {
+    localStorage.clear();
+    const legacySettings = {
+      selectedPupil: 'Legacy Pupil',
+      pupilAlias: 'Legacy Alias',
+      startLevel: 4,
+      sessionMax: 5,
+      themeChoice: 'soft-green',
+      studentFriendlyMode: true
+    };
+    const legacyLearners = {
+      'Legacy Pupil': {
+        name: 'Legacy Pupil',
+        alias: 'Legacy Alias',
+        lastLevel: 4,
+        sessions: [{ session_id: 'profile-session-legacy' }],
+        baseline: { medicationContext: 'Settled after lunch' },
+        reviews: [{ decision: 'defer' }]
+      }
+    };
+    localStorage.setItem('choice_train_settings_v130', JSON.stringify(legacySettings));
+    localStorage.setItem('ct_profiles', JSON.stringify(legacyLearners));
+
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('choice_train_runtime_v2', 2);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const tx = db.transaction(['assets', 'meta', 'sessions'], 'readwrite');
+    tx.objectStore('assets').clear();
+    tx.objectStore('meta').clear();
+    tx.objectStore('sessions').clear();
+    tx.objectStore('assets').put({
+      key: 'profile:customImages',
+      value: [{
+        id: 'legacy-photo-1',
+        learner: 'Legacy Pupil',
+        label: 'Blue bear',
+        src: 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="2" height="2"/%3E',
+        category: 'animals',
+        colour: 'blue',
+        useInQuestions: true,
+        addedAt: 1700000000000
+      }],
+      updated_at_wall_ms: 1700000000000
+    });
+    tx.objectStore('meta').put({
+      key: 'schema:choice-train-data',
+      version: 5,
+      photo_schema_version: 2,
+      migrated_at_wall_ms: 1700000000000
+    });
+    tx.objectStore('sessions').put({
+      session_id: 'legacy-session-1',
+      learner: 'Legacy Pupil',
+      learner_alias: 'Legacy Alias',
+      archived: false,
+      trials: []
+    });
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+    return { legacySettings, legacyLearners };
+  });
+
+  await page.reload();
+  await expect(page.locator('#beginFlow')).toBeVisible();
+  await expect(page.locator('#pupilSelect')).toHaveValue('Legacy Pupil');
+  await expect(page.locator('#startLevel')).toHaveValue('4');
+  await expect(page.locator('#sessionMax')).toHaveValue('5');
+
+  const readMigrationState = () => page.evaluate(async () => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('choice_train_runtime_v2', 2);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const read = (storeName, key) => new Promise((resolve, reject) => {
+      const tx = db.transaction(storeName, 'readonly');
+      const request = tx.objectStore(storeName).get(key);
+      request.onsuccess = () => resolve(request.result || null);
+      request.onerror = () => reject(request.error);
+    });
+    const [marker, assets, session] = await Promise.all([
+      read('meta', 'schema:choice-train-data'),
+      read('assets', 'profile:customImages'),
+      read('sessions', 'legacy-session-1')
+    ]);
+    db.close();
+    return {
+      marker,
+      assets,
+      session,
+      legacySettings: JSON.parse(localStorage.getItem('choice_train_settings_v130')),
+      legacyLearners: JSON.parse(localStorage.getItem('ct_profiles')),
+      currentLearners: JSON.parse(localStorage.getItem('choice_train_learners_v140'))
+    };
+  });
+
+  await expect.poll(async () => {
+    const snapshot = await readMigrationState();
+    return snapshot.marker && snapshot.marker.version;
+  }).toBe(6);
+
+  const first = await readMigrationState();
+  expect(first.legacySettings).toEqual(seeded.legacySettings);
+  expect(first.legacyLearners).toEqual(seeded.legacyLearners);
+  expect(first.currentLearners['Legacy Pupil']).toEqual(expect.objectContaining({
+    alias: 'Legacy Alias',
+    lastLevel: 4,
+    sessions: [{ session_id: 'profile-session-legacy' }],
+    reviews: [{ decision: 'defer' }]
+  }));
+  expect(first.currentLearners['Legacy Pupil'].baseline.contextNotes).toBe('Settled after lunch');
+  expect(first.session).toEqual(expect.objectContaining({
+    session_id: 'legacy-session-1',
+    learner: 'Legacy Pupil'
+  }));
+  expect(first.assets.value).toHaveLength(1);
+  expect(first.assets.value[0]).toEqual(expect.objectContaining({
+    id: 'legacy-photo-1',
+    label: 'Blue bear',
+    category: 'animals',
+    originalCategory: 'animals',
+    categoryIds: expect.arrayContaining(['animals']),
+    source: 'personalised',
+    attributes: { colour: 'blue' },
+    attributeSource: 'teacher',
+    useInQuestions: true,
+    schemaVersion: 3
+  }));
+  expect(first.assets.value[0].originalSrc).toBe(first.assets.value[0].src);
+  expect(first.assets.value[0].edit).toEqual(expect.objectContaining({
+    squareCrop: false,
+    zoom: 1,
+    focusX: 0.5,
+    focusY: 0.5,
+    rotation: 0
+  }));
+
+  await page.reload();
+  await expect(page.locator('#beginFlow')).toBeVisible();
+  await expect.poll(async () => {
+    const snapshot = await readMigrationState();
+    return snapshot.marker && snapshot.marker.version;
+  }).toBe(6);
+  const second = await readMigrationState();
+
+  expect(second).toEqual(first);
+});
+
 test('V1.8 export declares the versioned research contract and preserves missing values', async ({ page }) => {
   await gotoAlpha(page);
   const payload = await downloadJsonAfter(page, () => page.locator('#exportBtn').click());
