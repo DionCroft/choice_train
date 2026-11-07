@@ -1,17 +1,17 @@
 (() => {
   const APP_BUILD = Object.freeze({
-    app: 'ChoiceTrain for ShowMe',
-    version: '1.8.0-alpha',
-    release_label: 'V1.8.0-alpha',
-    channel: 'experimental',
-    source_file: 'choice_train_V1.8.0-alpha.html',
-    source_script: 'choice_train_V1.8.0-alpha.js',
-    based_on_branch: 'feature/v1.8.0-research-personalisation',
-    based_on_commit: '3d31a07',
-    build_date: '2026-11-07',
-    published_entry: 'not published; V1.7.0 remains live',
-    live_url: 'https://dioncroft.github.io/choice_train/',
-    repo_url: 'https://github.com/DionCroft/choice_train'
+    app: "ChoiceTrain for ShowMe",
+    version: "1.8.0-alpha",
+    release_label: "V1.8.0-alpha",
+    channel: "experimental",
+    source_file: "choice_train_V1.8.0-alpha.html",
+    source_script: "choice_train_V1.8.0-alpha.js",
+    based_on_branch: "feature/v1.8.0-research-personalisation",
+    based_on_commit: "c24156c",
+    build_date: "2026-11-07",
+    published_entry: "not published; V1.7.0 remains live",
+    live_url: "https://dioncroft.github.io/choice_train/",
+    repo_url: "https://github.com/DionCroft/choice_train"
   });
 
   const SETTINGS_KEY = 'choice_train_settings_v140';
