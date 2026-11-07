@@ -30,7 +30,7 @@
   const SESSION_ARCHIVE_LIMIT = 60;
   const DATA_SCHEMA_VERSION = 5;
   const SKILL_GRAPH_VERSION = '1.0.0';
-  const GENERATOR_VERSION = '1.0.0';
+  const GENERATOR_VERSION = '1.1.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
@@ -579,6 +579,23 @@
     return shuffle(items.filter(item => !excludeIds.includes(item.id))).slice(0, count);
   }
 
+  function balancedLessonOrder(items, salt, keyForItem=item => item.id){
+    const lessonSeed = state.lessonSeed || 1;
+    return items.slice().sort((a, b) => {
+      const keyA = String(keyForItem(a));
+      const keyB = String(keyForItem(b));
+      const rankA = hashStringToSeed(`${GENERATOR_VERSION}|${lessonSeed}|${salt}|${keyA}`);
+      const rankB = hashStringToSeed(`${GENERATOR_VERSION}|${lessonSeed}|${salt}|${keyB}`);
+      return rankA - rankB || keyA.localeCompare(keyB);
+    });
+  }
+
+  function balancedLessonChoice(items, occurrenceIndex, salt, keyForItem=item => item.id){
+    if(!items.length) return null;
+    const ordered = balancedLessonOrder(items, salt, keyForItem);
+    return ordered[(Math.max(1, occurrenceIndex) - 1) % ordered.length];
+  }
+
   function safeNumber(value, fallback=0){
     const num = Number(value);
     return Number.isFinite(num) ? num : fallback;
@@ -844,6 +861,7 @@
         task_mode: state.sessionTaskType,
         total_questions: state.totalQuestions,
         max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
+        coverage_strategy: 'balanced-before-repeat',
         research_condition: researchCondition(),
         content_configuration: exportableContentConfiguration(state.sessionContentConfig)
       }
@@ -874,6 +892,7 @@
         task_mode: selectedSessionTaskMode(),
         total_questions: state.totalQuestions,
         max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
+        coverage_strategy: 'balanced-before-repeat',
         research_condition: researchCondition(),
         content_configuration: exportableContentConfiguration(state.sessionContentConfig)
       }
@@ -886,6 +905,7 @@
       task_kind: question.kind,
       level: state.currentLevel,
       max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
+      coverage_strategy: 'balanced-before-repeat',
       auto_level_path: !!(ui.autoLevelPath && ui.autoLevelPath.checked),
       response_window_ms: question.responseWindowMs == null ? null : question.responseWindowMs,
       target_category: question.targetCategory || null,
@@ -2990,6 +3010,14 @@
     return cycle[Math.max(0, index - cycleStart) % cycle.length];
   }
 
+  function taskOccurrenceIndex(kind, questionIndex){
+    let occurrence = 0;
+    for(let index = 1; index <= questionIndex; index++){
+      if(chooseSessionTaskKind(index) === kind) occurrence += 1;
+    }
+    return Math.max(1, occurrence);
+  }
+
   function currentQuestionResponseWindow(){
     return responseWindowMs();
   }
@@ -3084,9 +3112,22 @@
 
     if(currentKind === 'find-object'){
       const eligible = uniqueOptions(sessionPoolFor('find-object'), true);
-      const target = shuffle(eligible)[0];
+      const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
+      const occurrence = taskOccurrenceIndex(currentKind, index);
+      const configuredCategories = snapshot.findObject.categories
+        .map(item => item.id)
+        .filter(category => eligible.some(item => optionMatchesCategory(item, category)));
+      const targetCategory = balancedLessonChoice(configuredCategories, occurrence, 'find-object:categories', item => item);
+      const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, configuredCategories.length)) + 1;
+      const exactCategoryTargets = eligible.filter(item => canonicalCategoryId(item.category) === targetCategory);
+      const targetCandidates = exactCategoryTargets.length
+        ? exactCategoryTargets
+        : eligible.filter(item => optionMatchesCategory(item, targetCategory));
+      const target = balancedLessonChoice(targetCandidates, categoryOccurrence, `find-object:${targetCategory}:targets`)
+        || balancedLessonChoice(eligible, occurrence, 'find-object:all-targets');
       const distractorPool = eligible.filter(item => normalizedConceptLabel(item.label) !== normalizedConceptLabel(target.label));
-      const others = pickDistinct(distractorPool, Math.min(optionCount - 1, distractorPool.length), [target.id]);
+      const others = balancedLessonOrder(distractorPool, `find-object:q${index}:distractors:${target.id}`)
+        .slice(0, Math.min(optionCount - 1, distractorPool.length));
       return {
         ...baseQuestion,
         prompt: buildFindPrompt(target.label, index),
@@ -3096,7 +3137,9 @@
         correctId: target.id,
         renderMode: 'grid',
         distractorCount: others.length,
-        contentConfiguration: exportableContentConfiguration(state.sessionContentConfig).find_object,
+        targetCategory,
+        targetCategoryLabel: targetCategory ? categoryMeta(targetCategory).label : '',
+        contentConfiguration: exportableContentConfiguration(snapshot).find_object,
         expectedResponseType: 'hit'
       };
     }
@@ -3122,14 +3165,17 @@
       const eligible = sessionPoolFor('find-category');
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
       const fairCategories = snapshot.findCategory.fairPromptCategories.map(item => item.id);
-      const category = fairCategories[rand(fairCategories.length)];
+      const occurrence = taskOccurrenceIndex(currentKind, index);
+      const category = balancedLessonChoice(fairCategories, occurrence, 'find-category:categories', item => item);
       const targetCandidates = uniqueOptions(eligible.filter(item => optionMatchesCategory(item, category)), true);
-      const target = shuffle(targetCandidates)[0];
+      const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, fairCategories.length)) + 1;
+      const target = balancedLessonChoice(targetCandidates, categoryOccurrence, `find-category:${category}:targets`);
       const distractorPool = uniqueOptions(eligible.filter(item =>
         !optionMatchesCategory(item, category)
         && normalizedConceptLabel(item.label) !== normalizedConceptLabel(target.label)
       ), true);
-      const distractors = pickDistinct(distractorPool, Math.min(optionCount - 1, distractorPool.length), [target.id]);
+      const distractors = balancedLessonOrder(distractorPool, `find-category:q${index}:distractors:${category}:${target.id}`)
+        .slice(0, Math.min(optionCount - 1, distractorPool.length));
       return {
         ...baseQuestion,
         prompt: buildCategoryPrompt(category, index),
@@ -6335,6 +6381,56 @@
       ]));
     } else renderResearchEmptyRow(ui.researchCategoryBody, 4);
 
+    const targetMap = new Map();
+    finalTrials
+      .filter(trial => trial.task_kind !== 'choice-preference' && (trial.target_id || trial.target_label))
+      .forEach(trial => {
+        const key = trial.target_id || normalizedConceptLabel(trial.target_label);
+        if(!targetMap.has(key)){
+          targetMap.set(key, {
+            label: trial.target_label || 'Unlabelled target',
+            category: trial.target_category_label || trial.target_category || 'Uncategorised',
+            source: trial.target_source || 'not recorded',
+            trials: 0,
+            correct: 0,
+            personalised: false,
+            assisted: 0,
+            responseTimes: []
+          });
+        }
+        const item = targetMap.get(key);
+        item.trials += 1;
+        if(trial.correct) item.correct += 1;
+        if(trial.independence_status && trial.independence_status !== 'independent') item.assisted += 1;
+        if(Number.isFinite(trial.response_time_ms)) item.responseTimes.push(trial.response_time_ms);
+        if((Array.isArray(trial.photo_labels_used) && trial.photo_labels_used.length)
+          || ['upload', 'uploaded', 'pupil-photo', 'personalised'].includes(trial.target_source)){
+          item.personalised = true;
+        }
+      });
+    const targetRows = Array.from(targetMap.values()).sort((a, b) => b.trials - a.trials || a.label.localeCompare(b.label));
+    const targetExposureCount = targetRows.reduce((sum, item) => sum + item.trials, 0);
+    ui.researchDistinctTargets.textContent = String(targetRows.length);
+    ui.researchRepeatTargets.textContent = String(Math.max(0, targetExposureCount - targetRows.length));
+    ui.researchPersonalisedTrials.textContent = String(targetRows.reduce((sum, item) => sum + (item.personalised ? item.trials : 0), 0));
+    drawResearchBars(ui.researchTargetChart, targetRows.slice(0, 8).map(item => ({
+      label: item.label,
+      value: item.trials,
+      color: item.personalised ? themeToken('secondary', themeToken('primary')) : themeToken('primary')
+    })), { labelWidth: 130 });
+    if(targetRows.length){
+      clearNode(ui.researchTargetBody);
+      targetRows.forEach(item => appendResearchRow(ui.researchTargetBody, [
+        item.label,
+        item.category,
+        item.source,
+        item.trials,
+        `${Math.round((item.correct / item.trials) * 100)}%`,
+        item.responseTimes.length ? `${Math.round(median(item.responseTimes))} ms` : null,
+        `${item.assisted}/${item.trials}`
+      ]));
+    } else renderResearchEmptyRow(ui.researchTargetBody, 7, 'No scored target exposure in this scope yet.');
+
     const qualityRows = sessions.map(session => {
       const markerSet = coreMarkerCompleteness(session);
       const diagnostics = session.eeg_marker_diagnostics || markerDiagnostics(session);
@@ -6939,6 +7035,7 @@
       schema_version: trial.schema_version || DATA_SCHEMA_VERSION,
       generator_version: trial.generator_version || null,
       generator_mode: trial.generator_mode || null,
+      coverage_strategy: trial.generator_constraints && trial.generator_constraints.coverage_strategy || null,
       research_condition: trial.research_condition || null,
       category_id: categoryId,
       personalised_content: personalisedContent,

@@ -31,6 +31,20 @@ async function downloadJsonAfter(page, action) {
   return JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
 }
 
+async function completeSessionAndExport(page, questionCount) {
+  await page.locator('#quickStartSessionBtn').click();
+  for(let index = 0; index < questionCount; index += 1) {
+    const target = page.locator('#choiceGrid [data-role="correct-target"]').first();
+    await expect(target).toBeVisible();
+    await target.click();
+    if(index < questionCount - 1) {
+      await expect(page.locator('#qIndex')).toHaveText(`${index + 2} / ${questionCount}`);
+    }
+  }
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  return downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+}
+
 function trackErrors(page) {
   const errors = [];
   page.on('pageerror', error => errors.push(`pageerror: ${error.message}`));
@@ -58,7 +72,7 @@ test('V1.8 export declares the versioned research contract and preserves missing
   expect(payload.build.version).toBe('1.8.0-alpha');
   expect(payload.schema_version).toBe(5);
   expect(payload.skill_graph_version).toBe('1.0.0');
-  expect(payload.generator_version).toBe('1.0.0');
+  expect(payload.generator_version).toBe('1.1.0');
   expect(payload.research_summary_version).toBe('1.0.0');
   expect(payload.skill_graph).toEqual(expect.arrayContaining([
     expect.objectContaining({ skill_id: 'access.touch_screen' }),
@@ -155,6 +169,93 @@ test('a fixed lesson seed reproduces target, options, and prompt wording', async
   expect(secondTrial.option_metadata.map(item => item.id)).toEqual(firstTrial.option_metadata.map(item => item.id));
   expect(secondTrial.prompt_wording).toBe(firstTrial.prompt_wording);
   expect(firstTrial.option_metadata.filter(item => item.id === firstTrial.target_id)).toHaveLength(1);
+});
+
+test('Find object balances configured categories before repeating and preserves invariants across seeds', async ({ page }) => {
+  test.slow();
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'itiSec', 0);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'findObjectSourceMode', 'stock');
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 6);
+  await setValue(page, 'maxObjects', 6);
+
+  for(const seed of [17, 246813579, 4294967291]) {
+    await setValue(page, 'lessonSeedOverride', seed);
+    await setValue(page, 'startLevel', 4);
+    const payload = await completeSessionAndExport(page, 6);
+    expect(payload.generator_version).toBe('1.1.0');
+    expect(payload.lesson_plan.constraints.coverage_strategy).toBe('balanced-before-repeat');
+    expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(6);
+    expect(new Set(payload.trials.map(trial => trial.target_id)).size).toBe(6);
+    payload.trials.forEach(trial => {
+      const optionIds = trial.option_metadata.map(option => option.id);
+      const optionLabels = trial.option_metadata.map(option => option.label.toLowerCase());
+      expect(optionIds.filter(id => id === trial.target_id)).toHaveLength(1);
+      expect(new Set(optionIds).size).toBe(optionIds.length);
+      expect(new Set(optionLabels).size).toBe(optionLabels.length);
+      expect(trial.option_metadata.length).toBeLessThanOrEqual(6);
+      expect(trial.target_source).toBe('stock');
+      expect(trial.prompt_wording.toLowerCase()).toContain(trial.target_label.toLowerCase());
+      expect(trial.generator_constraints.coverage_strategy).toBe('balanced-before-repeat');
+    });
+    await page.locator('#teacherExitHold').focus();
+    await page.locator('#teacherExitHold').press('Enter');
+  }
+
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-session');
+  await expect(page.locator('#researchDistinctTargets')).toHaveText('6');
+  await expect(page.locator('#researchRepeatTargets')).toHaveText('0');
+  await expect(page.locator('#researchTargetBody tr')).toHaveCount(6);
+});
+
+test('Find category rotates fair categories and keeps exactly one correct option across seeds', async ({ page }) => {
+  test.slow();
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'itiSec', 0);
+  await setValue(page, 'sessionTaskType', 'find-category');
+  await setValue(page, 'findCategorySourceMode', 'stock');
+  await setValue(page, 'startLevel', 6);
+  await setValue(page, 'sessionMax', 8);
+  await setValue(page, 'maxObjects', 6);
+
+  for(const seed of [31, 97531, 314159265]) {
+    await setValue(page, 'lessonSeedOverride', seed);
+    await setValue(page, 'startLevel', 6);
+    const payload = await completeSessionAndExport(page, 8);
+    const categoryCounts = payload.trials.reduce((counts, trial) => {
+      counts[trial.target_category] = (counts[trial.target_category] || 0) + 1;
+      return counts;
+    }, {});
+    expect(Object.keys(categoryCounts)).toHaveLength(4);
+    expect(Object.values(categoryCounts).every(count => count === 2)).toBe(true);
+    payload.trials.forEach(trial => {
+      const matchingOptions = trial.option_metadata.filter(option => option.category_ids.includes(trial.target_category));
+      const optionIds = trial.option_metadata.map(option => option.id);
+      expect(matchingOptions).toHaveLength(1);
+      expect(matchingOptions[0].id).toBe(trial.target_id);
+      expect(optionIds.filter(id => id === trial.target_id)).toHaveLength(1);
+      expect(new Set(optionIds).size).toBe(optionIds.length);
+      expect(trial.option_metadata.length).toBeLessThanOrEqual(6);
+      expect(trial.target_source).toBe('stock');
+      expect(trial.prompt_wording).toMatch(/Find |Which one is |Can you find |Where is /);
+    });
+    await page.locator('#teacherExitHold').focus();
+    await page.locator('#teacherExitHold').press('Enter');
+  }
 });
 
 test('Research is a separate admin destination with accessible visual equivalents', async ({ page }) => {
@@ -498,6 +599,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(payload.sessions[0].ending_level).toBe(5);
   expect(payload.sessions[0].session_task_mode).toBe('auto');
   expect(payload.sessions[0].trials[0].skill_ids).toContain('recognition.named_object');
+  expect(payload.sessions[0].trials[0].coverage_strategy).toBe('balanced-before-repeat');
   expect(payload.sessions[0].trials[0].correct).toBe(true);
   expect(exportedText).not.toContain('Pupil A');
   expect(exportedText).not.toContain('Secret Learner Alias');

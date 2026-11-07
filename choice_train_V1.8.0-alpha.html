@@ -1277,6 +1277,19 @@
                 <table><thead><tr><th>Category</th><th>Trials</th><th>Accuracy</th><th>Photo trials</th></tr></thead><tbody id="researchCategoryBody"></tbody></table>
               </div>
             </div>
+            <div class="chartCard">
+              <h4>Target exposure and repetition</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Distinct targets</div><div class="v" id="researchDistinctTargets">0</div></div>
+                <div class="dashCard"><div class="k">Repeat exposures</div><div class="v" id="researchRepeatTargets">0</div></div>
+                <div class="dashCard"><div class="k">Personalised trials</div><div class="v" id="researchPersonalisedTrials">0</div></div>
+              </div>
+              <canvas id="researchTargetChart" class="researchCanvas" width="420" height="240" role="img" aria-label="Trial exposure by named target"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table><thead><tr><th>Target</th><th>Category</th><th>Source</th><th>Trials</th><th>Accuracy</th><th>Median RT</th><th>Assisted</th></tr></thead><tbody id="researchTargetBody"></tbody></table>
+              </div>
+              <div class="compactNote">Repeated success with one target is shown separately from broader content coverage. Preference tasks are excluded because they have no scored target.</div>
+            </div>
             <div class="chartCard span2">
               <h4>Fidelity, artifacts, and EEG marker readiness</h4>
               <div class="dashboard">

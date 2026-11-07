@@ -1223,6 +1223,17 @@ body.panel-view-admin .tableWrap {
   margin: 10px 0;
 }
 
+.compactDashboard {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 10px;
+}
+
+@media (max-width: 720px) {
+  .compactDashboard {
+    grid-template-columns: 1fr;
+  }
+}
+
 .panel .exportCentreGrid button {
   min-height: 120px;
   padding: 16px;

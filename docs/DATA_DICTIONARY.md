@@ -32,6 +32,21 @@ Teacher review records preserve the proposal, decision, optional override, final
 
 V1.8 freezes the selected local pupil name, export alias, profile snapshot, context, presentation settings, and photo metadata when a session starts. Later profile selection cannot relabel that session. The export alias is a display/pseudonym field rather than the local identity key, so two profiles may share an alias without their longitudinal records being merged.
 
+## V1.8 Procedural Lesson Provenance
+
+Generator version `1.1.0` adds a `balanced-before-repeat` coverage strategy for `Find object` and `Find category`.
+
+| Field | Meaning |
+| --- | --- |
+| `lesson_plan.lesson_seed` | Session-level seed used to reproduce the lesson schedule |
+| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.1.0 |
+| `trial.question_seed` | Per-question seed used for reproducible option ordering and other question variation |
+| `trial.generator_version` | Algorithm version required to interpret/replay the generated question |
+| `trial.generator_constraints.coverage_strategy` | Coverage rule active for the question |
+| `trial.target_category` | Configured category selected for the question |
+
+For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. Distractors remain outside the prompted category, option IDs are unique, and the correct target appears exactly once.
+
 ## Core Export Fields
 
 | Field | Type | Meaning | Sensitivity |

@@ -24,11 +24,14 @@ All notable changes to ChoiceTrain are listed here.
 - Research cards, an accessible aggregate chart, and an expanded session table for marker completeness, ordered trials, timing differences, protocol coverage, and declared synchronisation method
 - a separate pseudonymised AI/research export with behavioural features, relative marker times, skill summaries, and sanitised teacher decisions; it excludes names, aliases, free text, images, photo labels, exact timestamps, source session IDs, prompt wording, and raw touch coordinates
 - persistent random research participant codes, with explicit wording that pseudonymised data is not anonymous and remains subject to school governance
-- 12 focused V1.8 browser tests, including protocol/diagnostic visualisation and deliberate direct-identifier/free-text exclusion checks; the complete stable, archive, and alpha matrix passes 89 tests
+- generator version 1.1.0 with deterministic `balanced-before-repeat` category and target schedules for Find object and Find category
+- fair category rotation and target rotation across stock, personalised, and teacher-created content while preserving source/category filters and exactly one valid answer
+- a Research target-exposure chart, distinct-target/repeat/personalised counts, and an accessible object-level table with category, source, accuracy, reaction time, and support context
+- multi-seed learner-flow invariant coverage for target presence, unique options, category fairness, source constraints, prompt grammar, and no premature repeats
+- 14 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 91 tests
 
 ### Planned
 
-- broader randomized generator-invariant coverage
 - physical school-device, staff-usability, safeguarding, privacy, and measured EEG-timing validation
 
 See [the V1.8 research and personalisation plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md) for evidence boundaries, milestones, and promotion gates.
