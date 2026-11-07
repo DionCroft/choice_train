@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 
 const APP_PATH = '/choice_train_V1.8.0-alpha.html';
 const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.schema.json', 'utf8'));
-const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v1.6.schema.json', 'utf8'));
+const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v1.7.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
 
 function expectCoreSchema(value, schema, path='payload') {
@@ -399,7 +399,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('1.6.0');
+  expect(researchPayload.export_schema_version).toBe('1.7.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.trials, 0)).toBe(8);
@@ -477,7 +477,7 @@ test('Complete the group uses two distinct cues and one same-category answer acr
   await expect(page.locator('#researchGroupCategoryNote')).toContainText('multiple examples');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.6.0');
+  expect(researchPayload.export_schema_version).toBe('1.7.0');
   expect(researchPayload.category_group_completion).toHaveLength(4);
   expect(researchPayload.category_group_completion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -545,7 +545,7 @@ test('Find the different one keeps exactly one outside-category target and visua
   await expect(page.locator('#researchExclusionCategoryNote')).toContainText('not a pupil outcome');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.6.0');
+  expect(researchPayload.export_schema_version).toBe('1.7.0');
   expect(researchPayload.category_exclusion).toHaveLength(4);
   expect(researchPayload.category_exclusion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -675,7 +675,7 @@ test('Find by colour uses teacher-declared metadata with deterministic one-answe
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('1.6.0');
+  expect(researchPayload.export_schema_version).toBe('1.7.0');
   expect(researchPayload.attribute_selection).toHaveLength(1);
   expect(researchPayload.attribute_selection.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.find_attribute_trials, 0)).toBe(1);
@@ -787,7 +787,7 @@ test('Research is a separate admin destination with accessible visual equivalent
   await expect(page.locator('#adminNavResearch')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#adminAnalyticsSection')).toBeVisible();
   await expect(page.locator('#researchSectionNav')).toBeVisible();
-  await expect(page.locator('#researchSectionNav a')).toHaveCount(8);
+  await expect(page.locator('#researchSectionNav a')).toHaveCount(9);
   await expect(page.locator('#researchCoverageChart')).toHaveAttribute('role', 'img');
   await expect(page.locator('#researchCoverageBody')).toContainText('No sessions');
   await expect(page.locator('#researchAccuracyChart')).toHaveAttribute('role', 'img');
@@ -812,6 +812,89 @@ test('Research workspace contains wide data tables on a tablet viewport', async 
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
   expect(layout.panelWidth).toBeLessThanOrEqual(layout.viewportWidth);
   expect(['auto', 'scroll']).toContain(layout.tableOverflow);
+});
+
+test('Research visualises future AI dataset composition without performing a model split', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'sessionTaskType', 'touch-object');
+  await setValue(page, 'sessionMax', 1);
+
+  await completeSessionAndExport(page, 1);
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#newPupilName').fill('Pupil B');
+  await page.locator('#addPupil').click();
+  await setValue(page, 'pupilSelect', 'Pupil B');
+  await setValue(page, 'sessionTaskType', 'touch-object');
+  await setValue(page, 'sessionMax', 1);
+  await completeSessionAndExport(page, 1);
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#newPupilName').fill('Pupil C');
+  await page.locator('#addPupil').click();
+  await setValue(page, 'pupilSelect', 'Pupil C');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#saveRecommendationReviewBtn').click();
+  await expect(page.locator('#recommendationReviewStatus')).toContainText('approved');
+  await setValue(page, 'researchScopeSelect', 'all-learners');
+  await page.locator('#refreshResearchBtn').click();
+
+  await expect(page.locator('#researchAiDatasetSection')).toBeVisible();
+  await expect(page.locator('#researchAiParticipantCount')).toHaveText('2');
+  await expect(page.locator('#researchAiLongitudinalCount')).toHaveText('0');
+  await expect(page.locator('#researchAiSkillCount')).toHaveText('1');
+  await expect(page.locator('#researchAiConditionCount')).toHaveText('1');
+  await expect(page.locator('#researchAiGovernanceCount')).toHaveText('0/2');
+  await expect(page.locator('#researchAiParticipantBody tr')).toHaveCount(2);
+  await expect(page.locator('#researchAiParticipantBody')).toContainText('Pupil A');
+  await expect(page.locator('#researchAiParticipantBody')).toContainText('Pupil B');
+  await expect(page.locator('#researchAiParticipantBody')).not.toContainText('Pupil C');
+  await expect(page.locator('#researchAiReviewCount')).toHaveText('0');
+  await expect(page.locator('#researchAiSkillBody')).toContainText('Select a pictured target');
+  await expect(page.locator('#researchAiConditionBody')).toContainText('Training');
+  await expect(page.locator('#researchAiDatasetNote')).toContainText('whole learners');
+  await expect(page.locator('#researchAiDatasetNote')).toContainText('No model training');
+  await expect(page.locator('#researchAiSessionDepthChart')).toHaveAttribute('role', 'img');
+  await expect(page.locator('#researchAiSkillBalanceChart')).toHaveAttribute('role', 'img');
+  await expect(page.locator('#researchAiOutcomeBalanceChart')).toHaveAttribute('role', 'img');
+  await expect(page.locator('#researchAiSupportBalanceChart')).toHaveAttribute('role', 'img');
+
+  const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
+  expect(researchPayload.export_schema_version).toBe('1.7.0');
+  expect(researchPayload.model_dataset_composition).toEqual(expect.objectContaining({
+    profile_version: '1.0.0',
+    participant_count: 2,
+    session_count: 2,
+    final_trial_count: 2,
+    participants_with_three_or_more_sessions: 0,
+    governance_eligible_participant_count: 0,
+    governance_blocked_participant_count: 2,
+    participant_session_depth: {
+      one_session: 2,
+      two_sessions: 0,
+      three_to_four_sessions: 0,
+      five_or_more_sessions: 0
+    },
+    split_policy: {
+      participant_separated_split_required: true,
+      automatic_split_performed: false,
+      random_trial_split_allowed: false
+    }
+  }));
+  expect(researchPayload.model_dataset_composition.skill_rows).toEqual([
+    expect.objectContaining({ skill_id: 'access.touch_target', opportunities: 2 })
+  ]);
+  expect(researchPayload.teacher_decisions).toEqual([]);
+  expect(JSON.stringify(researchPayload.model_dataset_composition)).not.toContain('Pupil A');
+  expect(JSON.stringify(researchPayload.model_dataset_composition)).not.toContain('Pupil B');
 });
 
 test('Research separates Attention Training families and avoids unsupported slope claims', async ({ page }) => {
@@ -911,7 +994,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('1.6.0');
+  expect(researchPayload.export_schema_version).toBe('1.7.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);

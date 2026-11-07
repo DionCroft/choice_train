@@ -1254,6 +1254,7 @@
             <a href="#researchDataQualitySection">Data quality</a>
             <a href="#researchPerformanceSection">Performance</a>
             <a href="#researchSkillsSection">Skills &amp; planning</a>
+            <a href="#researchAiDatasetSection">Future AI data</a>
             <a href="#researchSupportContentSection">Support &amp; content</a>
             <a href="#researchEegReadinessSection">EEG readiness</a>
             <a href="#researchContextTransferSection">Context &amp; transfer</a>
@@ -1472,6 +1473,56 @@
                 </table>
               </div>
               <div class="compactNote">ChoiceTrain never applies a proposal automatically. Reviews remain local and are exported for audit; no external AI service is used.</div>
+            </div>
+            <div id="researchAiDatasetSection" class="chartCard span2 researchAnchorTarget">
+              <h4>Future AI dataset composition</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Learners represented</div><div class="v" id="researchAiParticipantCount">0</div></div>
+                <div class="dashCard"><div class="k">Learners with 3+ sessions</div><div class="v" id="researchAiLongitudinalCount">0</div></div>
+                <div class="dashCard"><div class="k">Skills represented</div><div class="v" id="researchAiSkillCount">0</div></div>
+                <div class="dashCard"><div class="k">Conditions represented</div><div class="v" id="researchAiConditionCount">0</div></div>
+                <div class="dashCard"><div class="k">Teacher reviews</div><div class="v" id="researchAiReviewCount">0</div></div>
+                <div class="dashCard"><div class="k">Governance eligible</div><div class="v" id="researchAiGovernanceCount">0/0</div></div>
+              </div>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Observed sessions per learner</div>
+                  <canvas id="researchAiSessionDepthChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Observed session count for each learner in the selected Research scope"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Skill opportunities in the selected scope</div>
+                  <canvas id="researchAiSkillBalanceChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Observed trial opportunities by versioned ChoiceTrain skill"></canvas>
+                </div>
+              </div>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Recorded outcome labels</div>
+                  <canvas id="researchAiOutcomeBalanceChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Counts of recorded correct, incorrect, omission, commission, correct-rejection, and open-ended outcomes"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Recorded support labels</div>
+                  <canvas id="researchAiSupportBalanceChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Counts of independent, prompted, assisted, and unknown support labels"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Learner</th><th>Sessions</th><th>Active days</th><th>Span</th><th>Trials</th><th>Skills</th><th>Conditions</th><th>Teacher reviews</th><th>Model-use governance</th></tr></thead>
+                  <tbody id="researchAiParticipantBody"></tbody>
+                </table>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Skill</th><th>Opportunities</th><th>Dataset share</th><th>Scored</th><th>Correct</th><th>Incorrect</th><th>Omissions</th><th>Commissions</th><th>Independent</th><th>Assisted / prompted</th><th>Support unknown</th></tr></thead>
+                  <tbody id="researchAiSkillBody"></tbody>
+                </table>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Research condition</th><th>Sessions</th><th>Learners</th><th>Final trials</th><th>Dataset share</th></tr></thead>
+                  <tbody id="researchAiConditionBody"></tbody>
+                </table>
+              </div>
+              <div id="researchAiDatasetNote" class="compactNote">Composition is descriptive. ChoiceTrain does not train a model, create train/test splits, or determine that a dataset is sufficient, representative, unbiased, lawful, or effective.</div>
             </div>
             <div id="researchSupportContentSection" class="chartCard researchAnchorTarget">
               <h4>Support and independence</h4>

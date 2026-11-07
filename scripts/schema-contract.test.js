@@ -32,11 +32,16 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
   assert.deepEqual(new Set(contract.properties.skill_ids.items.enum), new Set(objectKeys('SKILL_GRAPH')));
 });
 
-test('Research summary schema matches its runtime export version and category sections', () => {
-  const contract = schema('choice-train-research-summary-v1.6.schema.json');
+test('Research summary schema matches its runtime export version and category/AI composition sections', () => {
+  const contract = schema('choice-train-research-summary-v1.7.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('RESEARCH_WORKSPACE_EXPORT_VERSION'));
-  ['category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage']
+  ['category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'model_dataset_composition']
     .forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
+  const profile = contract.properties.model_dataset_composition;
+  assert.equal(profile.properties.profile_version.const, runtimeConstant('MODEL_DATASET_PROFILE_VERSION'));
+  assert.equal(profile.properties.split_policy.properties.participant_separated_split_required.const, true);
+  assert.equal(profile.properties.split_policy.properties.automatic_split_performed.const, false);
+  assert.equal(profile.properties.split_policy.properties.random_trial_split_allowed.const, false);
 });
 
 test('model-development schema locks privacy and human-oversight invariants', () => {

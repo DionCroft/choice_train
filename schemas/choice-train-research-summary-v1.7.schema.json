@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-research-summary-v1.7.schema.json",
+  "title": "ChoiceTrain Research workspace summary core contract v1.7",
+  "type": "object",
+  "required": ["export_schema_version", "scope", "session_count", "final_trial_count", "privacy_manifest", "skill_summaries", "attention_families", "category_matching", "category_group_completion", "category_exclusion", "attribute_selection", "category_lesson_coverage", "model_dataset_composition", "interpretation_boundary"],
+  "properties": {
+    "export_schema_version": { "const": "1.7.0" },
+    "scope": { "enum": ["current-session", "current-learner", "all-learners"] },
+    "session_count": { "type": "integer", "minimum": 0 },
+    "final_trial_count": { "type": "integer", "minimum": 0 },
+    "privacy_manifest": { "type": "object" },
+    "skill_summaries": { "type": "array", "items": { "type": "object" } },
+    "attention_families": { "type": "array", "items": { "type": "object" } },
+    "category_matching": { "type": "array", "items": { "type": "object" } },
+    "category_group_completion": { "type": "array", "items": { "type": "object" } },
+    "category_exclusion": { "type": "array", "items": { "type": "object" } },
+    "attribute_selection": { "type": "array", "items": { "type": "object" } },
+    "category_lesson_coverage": { "type": "array", "items": { "type": "object" } },
+    "model_dataset_composition": {
+      "type": "object",
+      "required": ["profile_version", "participant_count", "session_count", "final_trial_count", "participants_with_two_or_more_sessions", "participants_with_three_or_more_sessions", "participants_with_seven_day_span", "skill_count", "condition_count", "teacher_review_count", "governance_eligible_participant_count", "governance_blocked_participant_count", "participant_session_depth", "skill_rows", "condition_rows", "outcome_counts", "support_counts", "split_policy", "interpretation_boundary"],
+      "properties": {
+        "profile_version": { "const": "1.0.0" },
+        "participant_count": { "type": "integer", "minimum": 0 },
+        "session_count": { "type": "integer", "minimum": 0 },
+        "final_trial_count": { "type": "integer", "minimum": 0 },
+        "participants_with_two_or_more_sessions": { "type": "integer", "minimum": 0 },
+        "participants_with_three_or_more_sessions": { "type": "integer", "minimum": 0 },
+        "participants_with_seven_day_span": { "type": "integer", "minimum": 0 },
+        "skill_count": { "type": "integer", "minimum": 0 },
+        "condition_count": { "type": "integer", "minimum": 0 },
+        "teacher_review_count": { "type": "integer", "minimum": 0 },
+        "governance_eligible_participant_count": { "type": "integer", "minimum": 0 },
+        "governance_blocked_participant_count": { "type": "integer", "minimum": 0 },
+        "participant_session_depth": {
+          "type": "object",
+          "required": ["one_session", "two_sessions", "three_to_four_sessions", "five_or_more_sessions"],
+          "properties": {
+            "one_session": { "type": "integer", "minimum": 0 },
+            "two_sessions": { "type": "integer", "minimum": 0 },
+            "three_to_four_sessions": { "type": "integer", "minimum": 0 },
+            "five_or_more_sessions": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "skill_rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["skill_id", "label", "opportunities", "scored_opportunities", "correct", "incorrect", "omissions", "commissions", "independent", "assisted_or_prompted", "support_unknown", "dataset_share_pct"],
+            "properties": {
+              "skill_id": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "opportunities": { "type": "integer", "minimum": 0 },
+              "scored_opportunities": { "type": "integer", "minimum": 0 },
+              "correct": { "type": "integer", "minimum": 0 },
+              "incorrect": { "type": "integer", "minimum": 0 },
+              "omissions": { "type": "integer", "minimum": 0 },
+              "commissions": { "type": "integer", "minimum": 0 },
+              "independent": { "type": "integer", "minimum": 0 },
+              "assisted_or_prompted": { "type": "integer", "minimum": 0 },
+              "support_unknown": { "type": "integer", "minimum": 0 },
+              "dataset_share_pct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "condition_rows": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["condition", "label", "sessions", "participants", "final_trials", "dataset_share_pct"],
+            "properties": {
+              "condition": { "type": "string", "minLength": 1 },
+              "label": { "type": "string", "minLength": 1 },
+              "sessions": { "type": "integer", "minimum": 0 },
+              "participants": { "type": "integer", "minimum": 0 },
+              "final_trials": { "type": "integer", "minimum": 0 },
+              "dataset_share_pct": { "type": ["number", "null"], "minimum": 0, "maximum": 100 }
+            },
+            "additionalProperties": false
+          }
+        },
+        "outcome_counts": {
+          "type": "object",
+          "required": ["correct", "incorrect", "omission", "commission", "correct_rejection", "open_ended"],
+          "properties": {
+            "correct": { "type": "integer", "minimum": 0 },
+            "incorrect": { "type": "integer", "minimum": 0 },
+            "omission": { "type": "integer", "minimum": 0 },
+            "commission": { "type": "integer", "minimum": 0 },
+            "correct_rejection": { "type": "integer", "minimum": 0 },
+            "open_ended": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "support_counts": {
+          "type": "object",
+          "required": ["independent", "prompted", "assisted", "unknown"],
+          "properties": {
+            "independent": { "type": "integer", "minimum": 0 },
+            "prompted": { "type": "integer", "minimum": 0 },
+            "assisted": { "type": "integer", "minimum": 0 },
+            "unknown": { "type": "integer", "minimum": 0 }
+          },
+          "additionalProperties": false
+        },
+        "split_policy": {
+          "type": "object",
+          "required": ["participant_separated_split_required", "automatic_split_performed", "random_trial_split_allowed"],
+          "properties": {
+            "participant_separated_split_required": { "const": true },
+            "automatic_split_performed": { "const": false },
+            "random_trial_split_allowed": { "const": false }
+          },
+          "additionalProperties": false
+        },
+        "interpretation_boundary": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    },
+    "interpretation_boundary": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}

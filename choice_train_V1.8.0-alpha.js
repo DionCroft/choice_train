@@ -38,7 +38,8 @@
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.6.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.7.0';
+  const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 3;
@@ -7415,10 +7416,14 @@
 
   function researchReviewsForSessions(sessions){
     const scope = ui.researchScopeSelect ? ui.researchScopeSelect.value : 'current-learner';
+    const records = Array.isArray(sessions) ? sessions : [];
+    const representedNames = new Set(records.map(session => String(session && session.learner || '').trim()).filter(Boolean));
+    const representedAliases = new Set(records.map(session => String(session && session.learner_alias || '').trim()).filter(Boolean));
     const reviews = [];
     Object.keys(state.learners).forEach(name => {
       const learner = normalizeLearner(name, state.learners[name]);
-      if(scope === 'all-learners' || name === currentPupilName()){
+      const represented = representedNames.has(name) || representedAliases.has(String(learner.alias || name).trim());
+      if((scope === 'all-learners' && represented) || (scope !== 'all-learners' && name === currentPupilName())){
         learner.reviews.forEach(review => reviews.push({
           ...review,
           learner_name: review.learner_name || name,
@@ -8094,6 +8099,247 @@
     })).sort((a, b) => b.trials - a.trials || a.category.localeCompare(b.category));
   }
 
+  function modelDatasetComposition(sessions){
+    const records = Array.isArray(sessions) ? sessions : [];
+    const participantGroups = new Map();
+    const allFinalTrials = [];
+    records.forEach((session, sessionIndex) => {
+      const learnerName = String(session && session.learner || '').trim();
+      const learnerAlias = String(session && (session.learner_alias || session.learner) || 'Unknown').trim() || 'Unknown';
+      const participantKey = learnerName || `alias:${learnerAlias}` || `unknown:${sessionIndex}`;
+      if(!participantGroups.has(participantKey)){
+        participantGroups.set(participantKey, {
+          participant_key: participantKey,
+          learner_name: learnerName,
+          learner_alias: learnerAlias,
+          sessions: [],
+          active_days: new Set(),
+          timestamps: [],
+          trials: [],
+          skills: new Set(),
+          conditions: new Set()
+        });
+      }
+      const participant = participantGroups.get(participantKey);
+      const sessionTrials = latestTrialsByQuestion(Array.isArray(session && session.trials) ? session.trials : []);
+      const timestamp = Number(session && session.updated_at_wall_ms);
+      const condition = String(
+        session && session.research_condition
+        || session && session.study_protocol && session.study_protocol.research_condition
+        || 'not-recorded'
+      );
+      participant.sessions.push(session);
+      participant.trials.push(...sessionTrials);
+      participant.conditions.add(condition);
+      if(Number.isFinite(timestamp)){
+        participant.timestamps.push(timestamp);
+        participant.active_days.add(researchDateLabel(timestamp));
+      }
+      sessionTrials.forEach(trial => {
+        const skillIds = Array.isArray(trial.skill_ids) && trial.skill_ids.length
+          ? trial.skill_ids
+          : skillIdsForTask(trial.task_kind);
+        skillIds.forEach(skillId => participant.skills.add(skillId));
+      });
+      allFinalTrials.push(...sessionTrials);
+    });
+
+    const representedNames = new Set(Array.from(participantGroups.values())
+      .map(participant => participant.learner_name)
+      .filter(Boolean));
+    const representedAliases = new Set(Array.from(participantGroups.values())
+      .filter(participant => !participant.learner_name)
+      .map(participant => participant.learner_alias)
+      .filter(Boolean));
+    const reviews = researchReviewsForSessions(records).filter(review => {
+      const reviewName = String(review.learner_name || '').trim();
+      const reviewAlias = String(review.learner_alias || '').trim();
+      return (reviewName && representedNames.has(reviewName))
+        || (!reviewName && reviewAlias && representedAliases.has(reviewAlias));
+    });
+    const participantRows = Array.from(participantGroups.values()).map(participant => {
+      const timestamps = participant.timestamps.slice().sort((a, b) => a - b);
+      const spanDays = timestamps.length > 1
+        ? Math.max(0, Math.round((timestamps[timestamps.length - 1] - timestamps[0]) / 86400000))
+        : 0;
+      const reviewCount = reviews.filter(review => {
+        const reviewName = String(review.learner_name || '').trim();
+        const reviewAlias = String(review.learner_alias || '').trim();
+        return (participant.learner_name && reviewName === participant.learner_name)
+          || (!participant.learner_name && reviewAlias === participant.learner_alias);
+      }).length;
+      const governance = participant.learner_name && state.learners[participant.learner_name]
+        ? dataGovernanceForLearner(participant.learner_name)
+        : null;
+      const governanceEligible = !!(
+        governance
+        && governance.status === 'recorded-separately'
+        && governance.approved_uses
+        && governance.approved_uses.model_development
+      );
+      return {
+        learner_alias: participant.learner_alias,
+        session_count: participant.sessions.length,
+        active_days: participant.active_days.size,
+        span_days: spanDays,
+        final_trial_count: participant.trials.length,
+        skill_count: participant.skills.size,
+        condition_count: participant.conditions.size,
+        teacher_review_count: reviewCount,
+        governance_eligible: governanceEligible
+      };
+    }).sort((a, b) => b.session_count - a.session_count || a.learner_alias.localeCompare(b.learner_alias));
+
+    const skillGroups = new Map();
+    const outcomeCounts = {
+      correct: 0,
+      incorrect: 0,
+      omission: 0,
+      commission: 0,
+      correct_rejection: 0,
+      open_ended: 0
+    };
+    const supportCounts = { independent: 0, prompted: 0, assisted: 0, unknown: 0 };
+    allFinalTrials.forEach(trial => {
+      const openEnded = trial.scored_response === false || skillIdsForTask(trial.task_kind).includes('choice.preference');
+      const scored = !openEnded;
+      if(openEnded) outcomeCounts.open_ended += 1;
+      else if(trial.correct) outcomeCounts.correct += 1;
+      else if(!trial.omission && !trial.correct_rejection) outcomeCounts.incorrect += 1;
+      if(trial.omission) outcomeCounts.omission += 1;
+      if(trial.commission) outcomeCounts.commission += 1;
+      if(trial.correct_rejection) outcomeCounts.correct_rejection += 1;
+
+      const independence = ['independent', 'prompted', 'assisted'].includes(trial.independence_status)
+        ? trial.independence_status
+        : 'unknown';
+      supportCounts[independence] += 1;
+      const skillIds = Array.isArray(trial.skill_ids) && trial.skill_ids.length
+        ? trial.skill_ids
+        : skillIdsForTask(trial.task_kind);
+      skillIds.forEach(skillId => {
+        if(!skillGroups.has(skillId)){
+          skillGroups.set(skillId, {
+            skill_id: skillId,
+            label: SKILL_GRAPH[skillId] ? SKILL_GRAPH[skillId].label : skillId,
+            opportunities: 0,
+            scored_opportunities: 0,
+            correct: 0,
+            incorrect: 0,
+            omissions: 0,
+            commissions: 0,
+            independent: 0,
+            assisted_or_prompted: 0,
+            support_unknown: 0
+          });
+        }
+        const row = skillGroups.get(skillId);
+        row.opportunities += 1;
+        if(scored) row.scored_opportunities += 1;
+        if(scored && trial.correct) row.correct += 1;
+        if(scored && !trial.correct && !trial.omission && !trial.correct_rejection) row.incorrect += 1;
+        if(trial.omission) row.omissions += 1;
+        if(trial.commission) row.commissions += 1;
+        if(independence === 'independent') row.independent += 1;
+        else if(independence === 'prompted' || independence === 'assisted') row.assisted_or_prompted += 1;
+        else row.support_unknown += 1;
+      });
+    });
+    const totalSkillOpportunities = Array.from(skillGroups.values()).reduce((sum, row) => sum + row.opportunities, 0);
+    const skillRows = Array.from(skillGroups.values()).map(row => ({
+      ...row,
+      dataset_share_pct: totalSkillOpportunities ? percentage(row.opportunities, totalSkillOpportunities) : null
+    })).sort((a, b) => b.opportunities - a.opportunities || a.label.localeCompare(b.label));
+
+    const conditionGroups = new Map();
+    records.forEach((session, sessionIndex) => {
+      const condition = String(
+        session && session.research_condition
+        || session && session.study_protocol && session.study_protocol.research_condition
+        || 'not-recorded'
+      );
+      if(!conditionGroups.has(condition)){
+        conditionGroups.set(condition, {
+          condition,
+          label: RESEARCH_CONDITION_LABELS[condition] || condition.replace(/-/g, ' '),
+          sessions: 0,
+          participant_keys: new Set(),
+          final_trials: 0
+        });
+      }
+      const row = conditionGroups.get(condition);
+      row.sessions += 1;
+      row.participant_keys.add(String(session && session.learner || session && session.learner_alias || `unknown:${sessionIndex}`));
+      row.final_trials += latestTrialsByQuestion(Array.isArray(session && session.trials) ? session.trials : []).length;
+    });
+    const conditionRows = Array.from(conditionGroups.values()).map(row => ({
+      condition: row.condition,
+      label: row.label,
+      sessions: row.sessions,
+      participants: row.participant_keys.size,
+      final_trials: row.final_trials,
+      dataset_share_pct: allFinalTrials.length ? percentage(row.final_trials, allFinalTrials.length) : null
+    })).sort((a, b) => b.sessions - a.sessions || a.label.localeCompare(b.label));
+
+    const governanceEligibleCount = participantRows.filter(row => row.governance_eligible).length;
+    return {
+      profile_version: MODEL_DATASET_PROFILE_VERSION,
+      participant_count: participantRows.length,
+      session_count: records.length,
+      final_trial_count: allFinalTrials.length,
+      participants_with_two_or_more_sessions: participantRows.filter(row => row.session_count >= 2).length,
+      participants_with_three_or_more_sessions: participantRows.filter(row => row.session_count >= 3).length,
+      participants_with_seven_day_span: participantRows.filter(row => row.span_days >= 7).length,
+      skill_count: skillRows.length,
+      condition_count: conditionRows.length,
+      teacher_review_count: reviews.length,
+      governance_eligible_participant_count: governanceEligibleCount,
+      governance_blocked_participant_count: participantRows.length - governanceEligibleCount,
+      participant_rows: participantRows,
+      skill_rows: skillRows,
+      condition_rows: conditionRows,
+      outcome_counts: outcomeCounts,
+      support_counts: supportCounts,
+      split_policy: {
+        participant_separated_split_required: true,
+        automatic_split_performed: false,
+        random_trial_split_allowed: false
+      },
+      interpretation_boundary: 'Descriptive local dataset composition only. Counts do not establish sample sufficiency, representativeness, fairness, lawful use, model validity, teaching effectiveness, transfer, or neural change.'
+    };
+  }
+
+  function exportableModelDatasetComposition(profile){
+    const sessionDepth = { one_session: 0, two_sessions: 0, three_to_four_sessions: 0, five_or_more_sessions: 0 };
+    profile.participant_rows.forEach(row => {
+      if(row.session_count <= 1) sessionDepth.one_session += 1;
+      else if(row.session_count === 2) sessionDepth.two_sessions += 1;
+      else if(row.session_count <= 4) sessionDepth.three_to_four_sessions += 1;
+      else sessionDepth.five_or_more_sessions += 1;
+    });
+    return {
+      profile_version: profile.profile_version,
+      participant_count: profile.participant_count,
+      session_count: profile.session_count,
+      final_trial_count: profile.final_trial_count,
+      participants_with_two_or_more_sessions: profile.participants_with_two_or_more_sessions,
+      participants_with_three_or_more_sessions: profile.participants_with_three_or_more_sessions,
+      participants_with_seven_day_span: profile.participants_with_seven_day_span,
+      skill_count: profile.skill_count,
+      condition_count: profile.condition_count,
+      teacher_review_count: profile.teacher_review_count,
+      governance_eligible_participant_count: profile.governance_eligible_participant_count,
+      governance_blocked_participant_count: profile.governance_blocked_participant_count,
+      participant_session_depth: sessionDepth,
+      skill_rows: clonePlain(profile.skill_rows),
+      condition_rows: clonePlain(profile.condition_rows),
+      outcome_counts: clonePlain(profile.outcome_counts),
+      support_counts: clonePlain(profile.support_counts),
+      split_policy: clonePlain(profile.split_policy),
+      interpretation_boundary: profile.interpretation_boundary
+    };
+  }
+
   function renderResearchWorkspace(){
     if(!ui.researchScopeSelect) return;
     const sessions = researchSessionsInScope();
@@ -8532,6 +8778,84 @@
     const currentLearnerSessions = sessions.filter(session => sessionMatchesLearner(session, currentName, currentAlias));
     const proposal = recommendationForSessions(currentLearnerSessions, currentAlias);
     renderRecommendationResearch(sessions, proposal);
+
+    const modelProfile = modelDatasetComposition(sessions);
+    ui.researchAiParticipantCount.textContent = String(modelProfile.participant_count);
+    ui.researchAiLongitudinalCount.textContent = String(modelProfile.participants_with_three_or_more_sessions);
+    ui.researchAiSkillCount.textContent = String(modelProfile.skill_count);
+    ui.researchAiConditionCount.textContent = String(modelProfile.condition_count);
+    ui.researchAiReviewCount.textContent = String(modelProfile.teacher_review_count);
+    ui.researchAiGovernanceCount.textContent = `${modelProfile.governance_eligible_participant_count}/${modelProfile.participant_count}`;
+    drawResearchBars(ui.researchAiSessionDepthChart, modelProfile.participant_rows.map(item => ({
+      label: item.learner_alias,
+      value: item.session_count,
+      color: themeToken('primary')
+    })), { labelWidth: 135 });
+    drawResearchBars(ui.researchAiSkillBalanceChart, modelProfile.skill_rows.map(item => ({
+      label: item.label,
+      value: item.opportunities,
+      color: themeToken('secondary', themeToken('primary'))
+    })), { labelWidth: 165 });
+    const aiOutcomeRows = [
+      { label: 'Correct', value: modelProfile.outcome_counts.correct, color: themeToken('success') },
+      { label: 'Incorrect', value: modelProfile.outcome_counts.incorrect, color: themeToken('danger') },
+      { label: 'Omission', value: modelProfile.outcome_counts.omission, color: themeToken('warning') },
+      { label: 'Commission', value: modelProfile.outcome_counts.commission, color: themeToken('danger') },
+      { label: 'Correct rejection', value: modelProfile.outcome_counts.correct_rejection, color: themeToken('primary') },
+      { label: 'Open-ended', value: modelProfile.outcome_counts.open_ended, color: themeToken('reward') }
+    ];
+    drawResearchBars(ui.researchAiOutcomeBalanceChart, aiOutcomeRows, { labelWidth: 135 });
+    const aiSupportRows = [
+      { label: 'Independent', value: modelProfile.support_counts.independent, color: themeToken('success') },
+      { label: 'Prompted', value: modelProfile.support_counts.prompted, color: themeToken('warning') },
+      { label: 'Assisted', value: modelProfile.support_counts.assisted, color: themeToken('secondary', themeToken('primary')) },
+      { label: 'Unknown', value: modelProfile.support_counts.unknown, color: themeToken('danger') }
+    ];
+    drawResearchBars(ui.researchAiSupportBalanceChart, aiSupportRows, { labelWidth: 125 });
+    if(modelProfile.participant_rows.length){
+      clearNode(ui.researchAiParticipantBody);
+      modelProfile.participant_rows.forEach(item => appendResearchRow(ui.researchAiParticipantBody, [
+        item.learner_alias,
+        item.session_count,
+        item.active_days,
+        `${item.span_days} days`,
+        item.final_trial_count,
+        item.skill_count,
+        item.condition_count,
+        item.teacher_review_count,
+        item.governance_eligible ? 'Eligible by local declaration' : 'Blocked by data-use settings'
+      ]));
+    } else renderResearchEmptyRow(ui.researchAiParticipantBody, 9, 'No learners are represented in this scope yet.');
+    if(modelProfile.skill_rows.length){
+      clearNode(ui.researchAiSkillBody);
+      modelProfile.skill_rows.forEach(item => appendResearchRow(ui.researchAiSkillBody, [
+        item.label,
+        item.opportunities,
+        item.dataset_share_pct == null ? null : `${item.dataset_share_pct}%`,
+        item.scored_opportunities,
+        item.correct,
+        item.incorrect,
+        item.omissions,
+        item.commissions,
+        item.independent,
+        item.assisted_or_prompted,
+        item.support_unknown
+      ]));
+    } else renderResearchEmptyRow(ui.researchAiSkillBody, 11, 'No versioned skill opportunities are represented in this scope yet.');
+    if(modelProfile.condition_rows.length){
+      clearNode(ui.researchAiConditionBody);
+      modelProfile.condition_rows.forEach(item => appendResearchRow(ui.researchAiConditionBody, [
+        item.label,
+        item.sessions,
+        item.participants,
+        item.final_trials,
+        item.dataset_share_pct == null ? null : `${item.dataset_share_pct}%`
+      ]));
+    } else renderResearchEmptyRow(ui.researchAiConditionBody, 5, 'No research conditions are represented in this scope yet.');
+    const scopeGuidance = scope === 'all-learners'
+      ? 'If a governed model study is later approved, assign whole learners to development, validation, and held-out evaluation groups; do not randomly split one learner\'s trials across groups.'
+      : 'Select All learners to inspect cross-learner composition before planning any governed model-development study.';
+    ui.researchAiDatasetNote.textContent = `${scopeGuidance} Governance eligibility means only that the local profile contains the required declaration; ChoiceTrain does not verify the separately held evidence. Outcome labels can overlap, such as a commission also being incorrect. No model training or automatic split is performed.`;
 
     const supportOrder = ['independent', 'prompted', 'assisted', 'unknown'];
     const supportRows = supportOrder.map(status => {
@@ -10144,6 +10468,7 @@
       category_exclusion: categoryExclusionResearchRows(finalTrials),
       attribute_selection: attributeSelectionResearchRows(finalTrials),
       category_lesson_coverage: categoryLessonCoverageRows(finalTrials),
+      model_dataset_composition: exportableModelDatasetComposition(modelDatasetComposition(sessions)),
       session_context: context,
       eeg_readiness: eegReadiness,
       teacher_decisions: teacherDecisions,

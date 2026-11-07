@@ -19,6 +19,8 @@ All notable changes to ChoiceTrain are listed here.
 - deterministic next-session proposals with human-readable rationale codes and mandatory teacher approve, adjust, or decline review
 - local recommendation audit history with proposal, final task and level, reviewer note, decision timestamp, and revision linkage
 - Research visualisations and accessible tables for practice status, retention observations, recommendation decisions, and review history
+- an accessible future-AI dataset-composition view for learner/session depth, longitudinal representation, skill and condition coverage, outcome/support balance, teacher reviews, and local governance eligibility without assigning a readiness score
+- explicit participant-separated development/validation/test guidance, with no automatic split or model training and no learner aliases in the exported aggregate composition profile
 - frozen session identity and contextual metadata so selecting another pupil after a session cannot relabel its history or export; duplicate display aliases remain isolated by local profile name
 - versioned EEG study metadata for protocol, pseudonymous participant code, visit, run, acquisition-system label, declared synchronisation method, planned markers, and clock/latency notes
 - per-session browser diagnostics for core marker completeness, event ordering, response-timing differences, duplicate IDs, non-monotonic clocks, and protocol-field completeness
@@ -32,12 +34,12 @@ All notable changes to ChoiceTrain are listed here.
 - a four-task automatic Level 6 rotation across Find category, Match category, Complete the group, and Find the different one when at least three answer options are configured; two-option sessions retain all except Find the different one
 - multi-seed browser safeguards for category-task grammar, distinct IDs and labels, source/category constraints, exactly one valid answer, reproducible provenance, and Level 6 task rotation
 - an accessible category-matching Research profile for trials, categories, distinct cues, targets and cue-target pairs, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
-- Research workspace summary export version 1.6.0 with category-level matching, group-completion, category-difference, teacher-declared colour, and consolidated category-by-task coverage aggregates, fixed-condition adherence rows, and no cue or target item labels
+- Research workspace summary export version 1.7.0 with category-level matching, group-completion, category-difference, teacher-declared colour, consolidated category-by-task coverage, and versioned future-model dataset-composition aggregates, fixed-condition adherence rows, and no cue or target item labels in derived profiles
 - photo schema 3 and local migration 6 with an optional controlled teacher-declared colour field; existing photos normalise to an empty attribute object and ChoiceTrain does not inspect image pixels to infer attributes
 - a deterministic `Find by colour` lesson that requires at least two fair declared-colour rules, keeps alternatives in the same primary teacher-selected category, includes exactly one matching target, and rejects inherited-category duplication
 - an accessible teacher-declared colour Research chart and table for colour/category exposure, target and displayed-item breadth, personalised use, accuracy, independence, omissions, median RT, and independently recalculated generator integrity
 - a consolidated category lesson coverage chart and accessible table for task-family exposure, distinct targets, cues and displayed items, personalised-content use, accuracy, independence, and omissions
-- JSON Schema 2020-12 core contracts for trial schema 8, Research summary 1.6, and privacy-minimised model dataset 1.0, with dependency-free version/task/skill/privacy drift tests in branch and Pages CI; the prior Research summary 1.5 contract remains available for historical exports
+- JSON Schema 2020-12 core contracts for trial schema 8, Research summary 1.7, and privacy-minimised model dataset 1.0, with dependency-free version/task/skill/privacy/split-policy drift tests in branch and Pages CI; prior Research summary 1.5 and 1.6 contracts remain available for historical exports
 - a dependency-free V1.8 candidate-readiness gate that protects the byte-identical V1.7 live entry, checks paired alpha assets, build and research-contract versions, local-only runtime boundaries, CI coverage, and explicit promotion/governance/EEG limitations
 - a release-readiness checklist separating automated engineering evidence from product-owner approval, school usability, safeguarding, privacy, ethics, physical-device, and measured EEG hardware gates
 - an accessible complete-the-group Research profile for cue, cue-set and target breadth, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
@@ -83,7 +85,7 @@ All notable changes to ChoiceTrain are listed here.
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary
-- 27 focused V1.8 browser tests, including multi-seed group-completion and category-difference integrity, deterministic teacher-declared colour replay, fixed-condition persistence, drift blocking, export, marker, and Research-view coverage; the complete stable, archive, and alpha matrix passes 104 tests
+- 28 focused V1.8 browser tests, including multi-seed group-completion and category-difference integrity, deterministic teacher-declared colour replay, multi-learner AI-composition visualisation, participant-separated split safeguards, fixed-condition persistence, drift blocking, export, marker, and Research-view coverage; the complete stable, archive, and alpha matrix passes 105 tests
 
 ### Planned
 
