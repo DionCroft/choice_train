@@ -126,7 +126,8 @@ function independentlyDerivedSkillRows(payloads) {
 
 async function gotoAlpha(page) {
   await page.goto(APP_PATH);
-  await expect(page.locator('#beginFlow')).toBeVisible();
+  await expect(page.locator('#teacherPanelTab')).toBeVisible();
+  await expect(page.locator('#beginFlow')).toBeAttached();
 }
 
 async function setCheckbox(page, id, checked) {
@@ -190,6 +191,7 @@ async function learnerLayoutSnapshot(page) {
     const stage = bounds('.stage');
     const playArea = bounds('#playArea');
     const footer = bounds('.footerBar');
+    const promptBox = bounds('#screenChoice .promptBox');
     const choices = Array.from(document.querySelectorAll('#choiceGrid .choice')).map(node => {
       const rect = node.getBoundingClientRect();
       return {
@@ -214,6 +216,12 @@ async function learnerLayoutSnapshot(page) {
         bottom: playArea.bottom,
         left: playArea.left
       },
+      promptBox: {
+        top: promptBox.top,
+        right: promptBox.right,
+        bottom: promptBox.bottom,
+        left: promptBox.left
+      },
       choices
     };
   });
@@ -224,6 +232,10 @@ function expectLearnerLayoutContained(layout, expectedChoices) {
   expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
   expect(layout.stageBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
   expect(layout.footerBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.promptBox.left).toBeGreaterThanOrEqual(layout.playArea.left - 1);
+  expect(layout.promptBox.right).toBeLessThanOrEqual(layout.playArea.right + 1);
+  expect(layout.promptBox.top).toBeGreaterThanOrEqual(layout.playArea.top - 1);
+  expect(layout.promptBox.bottom).toBeLessThanOrEqual(layout.playArea.bottom + 1);
   layout.choices.forEach(rect => {
     expect(rect.left).toBeGreaterThanOrEqual(layout.playArea.left - 1);
     expect(rect.right).toBeLessThanOrEqual(layout.playArea.right + 1);
@@ -3281,6 +3293,7 @@ test('learner Q&A fits compact landscape with enlarged text and six choices', as
 
 [
   { name: 'small phone portrait', width: 320, height: 568 },
+  { name: 'short phone portrait', width: 360, height: 480 },
   { name: 'small phone landscape', width: 568, height: 320 }
 ].forEach(viewport => {
   test(`six-choice learner Q&A fits a ${viewport.name} with enlarged text`, async ({ page }) => {
@@ -3396,6 +3409,41 @@ test('teacher and admin workspaces remain reachable without horizontal overflow 
     expect(rect.width).toBeGreaterThanOrEqual(44);
     expect(rect.height).toBeGreaterThanOrEqual(44);
   });
+});
+
+test('narrow teacher workspace keeps the learner canvas out of the setup flow until preview', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAlpha(page);
+
+  await expect(page.locator('#teacherPanelTab')).toBeVisible();
+  await expect(page.locator('#quickStartSessionBtn')).toBeVisible();
+  await expect(page.locator('#learnerModeBtn')).toBeVisible();
+  await expect(page.locator('.wrap:not(.learner) .main')).toBeHidden();
+  const teacherLayout = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+    mainDisplay: getComputedStyle(document.querySelector('.main')).display
+  }));
+  expect(teacherLayout.documentWidth).toBeLessThanOrEqual(teacherLayout.viewportWidth + 1);
+  expect(teacherLayout.mainDisplay).toBe('none');
+
+  await page.locator('#learnerModeBtn').click();
+  await expect(page.locator('.wrap')).toHaveClass(/learner/);
+  await expect(page.locator('#screenWelcome.active')).toBeVisible();
+  await expect(page.locator('.wrap.learner .main')).toBeVisible();
+  const learnerLayout = await page.evaluate(() => {
+    const stage = document.querySelector('.stage').getBoundingClientRect();
+    return {
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+      stageTop: stage.top,
+      stageBottom: stage.bottom,
+      viewportHeight: innerHeight
+    };
+  });
+  expect(learnerLayout.documentWidth).toBeLessThanOrEqual(learnerLayout.viewportWidth + 1);
+  expect(learnerLayout.stageTop).toBeGreaterThanOrEqual(0);
+  expect(learnerLayout.stageBottom).toBeLessThanOrEqual(learnerLayout.viewportHeight + 1);
 });
 
 test('mobile photo editor stays inside the usable viewport', async ({ page }) => {

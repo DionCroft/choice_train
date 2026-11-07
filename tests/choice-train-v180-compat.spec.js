@@ -31,7 +31,8 @@ test('V1.8 learner pacing and Q&A layout remain usable in the compatibility prof
   });
 
   await page.goto(APP_PATH);
-  await expect(page.locator('#beginFlow')).toBeVisible();
+  await expect(page.locator('#teacherPanelTab')).toBeVisible();
+  await expect(page.locator('#beginFlow')).toBeAttached();
   await expect(page).toHaveTitle(/V1\.8\.0-alpha/);
 
   await setValue(page, 'sessionTaskType', 'find-object');

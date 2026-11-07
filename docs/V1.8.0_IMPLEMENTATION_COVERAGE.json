@@ -230,7 +230,7 @@
     {
       "id": "adaptive_browser_layout",
       "status": "implemented-and-verified",
-      "summary": "The candidate adapts learner and staff workspaces across narrow portrait, short landscape, enlarged text, safe areas, orientation changes, and representative browser profiles, then freezes a privacy-minimised delivery context for longitudinal review.",
+      "summary": "The candidate adapts learner and staff workspaces across narrow and short portrait, short landscape, enlarged text, safe areas, orientation changes, setup-to-full-learner routing, and representative browser profiles, then freezes a privacy-minimised delivery context for longitudinal review.",
       "implementation_evidence": [
         { "path": "choice_train_V1.8.0-alpha.html", "contains": "viewport-fit=cover" },
         { "path": "choice_train_V1.8.0-alpha.js", "contains": "function syncAdaptiveViewportCssMetrics()" },
@@ -240,6 +240,7 @@
       ],
       "automated_evidence": [
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "six-choice learner Q&A fits a ${viewport.name} with enlarged text" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "narrow teacher workspace keeps the learner canvas out of the setup flow until preview" },
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "active learner question relayouts after portrait-to-landscape rotation without changing the task" },
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research cards and wide tables remain contained on a small phone" },
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "mobile photo editor stays inside the usable viewport" },

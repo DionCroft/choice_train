@@ -1861,6 +1861,10 @@
     return viewport.width > viewport.height && viewport.height <= 540;
   }
 
+  function compactShortPortraitViewport(viewport=learnerViewportSize()){
+    return viewport.width <= 360 && viewport.height <= 560 && viewport.height >= viewport.width;
+  }
+
   function responsiveActivityGridHeight(){
     const viewport = learnerViewportSize();
     const playHeight = ui.playArea && ui.playArea.clientHeight ? ui.playArea.clientHeight : viewport.height * 0.66;
@@ -1877,8 +1881,11 @@
   function responsiveChoiceMinHeight(baseHeight){
     const viewport = learnerViewportSize();
     const compactLandscape = compactLandscapeViewport(viewport);
-    const minimum = compactLandscape ? 76 : 104;
-    const viewportCap = Math.max(minimum, Math.min(compactLandscape ? 112 : 220, viewport.height * 0.25));
+    const compactShortPortrait = compactShortPortraitViewport(viewport);
+    const minimum = compactLandscape ? 76 : compactShortPortrait ? 72 : 104;
+    const viewportCap = compactShortPortrait
+      ? 84
+      : Math.max(minimum, Math.min(compactLandscape ? 112 : 220, viewport.height * 0.25));
     return Math.round(clamp(baseHeight * getAdaptiveTouchScale(), minimum, viewportCap));
   }
 

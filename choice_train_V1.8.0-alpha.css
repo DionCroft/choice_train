@@ -789,6 +789,18 @@ td {
   color: var(--text);
 }
 
+.promptText,
+.promptRule,
+.choiceLabel,
+.choiceSmall,
+.hero,
+.heroSub,
+.rewardJourneyLabel,
+.rewardCollection {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+}
+
 .heroSub,
 .promptRule,
 .choiceSmall {
@@ -1512,7 +1524,7 @@ body.panel-view-admin th {
 @media (max-width: 900px) {
   .wrap {
     grid-template-columns: 1fr;
-    grid-template-rows: auto minmax(72vh, 1fr);
+    grid-template-rows: auto;
   }
 
   .panel {
@@ -1527,12 +1539,16 @@ body.panel-view-admin th {
     position: relative;
   }
 
-  .main {
-    min-height: 72vh;
+  .wrap:not(.learner) .main {
+    display: none;
   }
 
-  .playArea {
-    min-height: 70vh;
+  .wrap.learner {
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .wrap.learner .main {
+    display: block;
   }
 }
 
@@ -1657,6 +1673,8 @@ body.panel-view-admin th {
 
   .wrap.learner .screen {
     padding: 12px;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
   }
 
   .wrap.learner .choice {
@@ -1774,6 +1792,34 @@ body.panel-view-admin th {
 
   .wrap.learner .choiceSmall {
     font-size: 10px;
+  }
+}
+
+@media (max-height: 560px) {
+  .wrap.learner .screen {
+    gap: 8px;
+    padding: 8px;
+  }
+
+  .wrap.learner #screenChoice.active {
+    justify-content: flex-start;
+  }
+
+  .wrap.learner .hero {
+    font-size: clamp(1.45rem, 7vh, 2.25rem);
+  }
+
+  .wrap.learner .heroSub {
+    font-size: 0.92rem;
+    line-height: 1.35;
+  }
+
+  .wrap.learner .rewardJourney {
+    padding: 8px 10px;
+  }
+
+  .wrap.learner .rewardRail {
+    margin-top: 16px;
   }
 }
 
@@ -1937,7 +1983,7 @@ body.panel-view-admin th {
     justify-items: stretch;
     gap: 8px;
     padding: 8px;
-    overflow: hidden;
+    overflow: auto;
   }
 
   .wrap.learner #screenChoice .promptBox,
