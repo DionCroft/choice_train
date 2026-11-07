@@ -1,0 +1,254 @@
+{
+  "manifest_version": "1.0.0",
+  "candidate_version": "1.8.0-alpha",
+  "purpose": "Pupil-data-free traceability from the V1.8 objective to implementation and automated evidence. This record does not approve promotion or any external gate.",
+  "contains_pupil_data": false,
+  "external_evidence_record": "docs/V1.8.0_PROMOTION_EVIDENCE.json",
+  "requirements": [
+    {
+      "id": "stable_v170_release",
+      "status": "implemented-and-verified",
+      "summary": "The reviewed V1.7.0 release remains the byte-identical public entry while V1.8 stays isolated.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.7.0.js", "contains": "version: '1.7.0'" },
+        { "path": "scripts/check-v180-candidate.js", "contains": "protected V1.7 live entry is byte-identical" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v170.spec.js", "contains": "V1.7.0 stable loads its product shell without browser errors" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "V1.8 alpha is versioned without changing the stable entry point" }
+      ],
+      "limitations": ["V1.8 is not the published GitHub Pages entry and cannot replace V1.7 without explicit approval."]
+    },
+    {
+      "id": "versioned_skill_trial_quality",
+      "status": "implemented-and-verified",
+      "summary": "Versioned skill, trial, Research-summary, recording-completeness, and model-dataset contracts are machine readable and drift checked.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "const SKILL_GRAPH_VERSION = '1.4.0';" },
+        { "path": "schemas/choice-train-trial-v8.schema.json", "contains": "ChoiceTrain trial core contract v8" },
+        { "path": "schemas/choice-train-data-quality-v1.schema.json", "contains": "ChoiceTrain trial recording completeness" }
+      ],
+      "automated_evidence": [
+        { "path": "scripts/schema-contract.test.js", "contains": "trial schema versions and enums match the V1.8 runtime" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research visualises versioned trial recording completeness without treating repeats as errors" }
+      ],
+      "limitations": ["Schema completeness records field presence and structure, not correctness, validity, consent, representativeness, or research suitability."]
+    },
+    {
+      "id": "deterministic_procedural_lessons",
+      "status": "implemented-and-verified",
+      "summary": "Constraint-first seeded lessons cover built-in and teacher-created categories with stored generator provenance and one-answer safeguards.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "function buildSeededQuestion(index)" },
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "generatorMode: 'deterministic-seeded'" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "a fixed lesson seed reproduces target, options, and prompt wording" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "teacher-created categories generate reproducible personalised lessons and Research coverage" }
+      ],
+      "limitations": ["Generator integrity does not establish that practitioner-created categories are equivalent, pedagogically optimal, or effective."]
+    },
+    {
+      "id": "learner_state_retention_support_transfer",
+      "status": "implemented-and-verified",
+      "summary": "Per-skill and category-by-skill states, spacing, retention observations, support fading, dosage, teacher ratings, and transfer context remain descriptive and scope aware.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "function skillPracticeStatesForSessions" },
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Practice status and spaced retention observations" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research labels a spaced follow-up as an observed retention comparison" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research visualises support fading, dosage, and teacher-rated transfer observations" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research visualises versioned category-by-skill learner state without pooling trajectories" }
+      ],
+      "limitations": ["Statuses and trends are transparent planning aids, not mastery, causal, diagnostic, generalisation, or neural-plasticity measures."]
+    },
+    {
+      "id": "teacher_review_and_override",
+      "status": "implemented-and-verified",
+      "summary": "Next-session proposals require explicit teacher approve, adjust, decline, or defer decisions and retain review-to-session provenance.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "function saveRecommendationReview()" },
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "function stageApprovedRecommendationPlan()" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "teacher-reviewed recommendations persist locally and export an audit record" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "an approved recommendation is explicitly staged, linked to one session, and visualised" }
+      ],
+      "limitations": ["No proposal may automatically change a pupil level, support, category focus, research condition, or session."]
+    },
+    {
+      "id": "eeg_protocol_sync_active_control_fixed_condition",
+      "status": "implemented-and-verified",
+      "summary": "Browser event markers, protocol fields, timing diagnostics, artifacts, active-control tasks, and fixed-condition drift controls prepare later EEG study integration.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "const EEG_EVENT_CODES = Object.freeze" },
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "'active-control': 'Active control'" },
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Enforce a fixed research condition" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "EEG protocol metadata and browser timing diagnostics are exported and visualised" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "fixed research conditions persist, block drift, reapply, export, and visualise adherence" }
+      ],
+      "limitations": ["Browser timestamps are not LSL or hardware triggers and do not validate acquisition latency, clock alignment, artifacts, or EEG signal quality."]
+    },
+    {
+      "id": "privacy_safe_ai_export",
+      "status": "implemented-and-verified",
+      "summary": "A deny-by-default, purpose-gated, pseudonymised model-development export uses an allowlist and excludes direct identifiers, free text, images, exact dates, and raw coordinates.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "async function exportPseudonymisedAiDataset()" },
+        { "path": "schemas/choice-train-model-dataset-v1.schema.json", "contains": "ChoiceTrain privacy-minimised model-development dataset core contract v1" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "model-development export is denied by default without a recorded authority declaration" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "pseudonymised AI research export excludes direct identifiers and free text" }
+      ],
+      "limitations": ["Pseudonymised data remains personal data and still requires an approved purpose, authority, secure transfer, retention, bias review, and human oversight."]
+    },
+    {
+      "id": "research_attention_and_performance",
+      "status": "implemented-and-verified",
+      "summary": "Research separates attention families and visualises accuracy, response speed, omissions, commissions, variability, and observed learning slopes with readable alternatives.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Accuracy and response speed" },
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Attention Training family profile and observed change" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research separates Attention Training families and avoids unsupported slope claims" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research visualises error, timing-consistency, and touch trends with observed-value counts" }
+      ],
+      "limitations": ["All attention and performance outputs are descriptive in-app observations and must not be presented as diagnosis or proof of neural change."]
+    },
+    {
+      "id": "research_touch_support_transfer",
+      "status": "implemented-and-verified",
+      "summary": "Research visualises normalised touch behaviour, support and independence, dosage, spacing, maintenance, generalisation, and transfer observations.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Normalised per-task touch map" },
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Maintenance, generalisation, and classroom transfer observations" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research visualises error, timing-consistency, and touch trends with observed-value counts" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research visualises support fading, dosage, and teacher-rated transfer observations" }
+      ],
+      "limitations": ["Touch geometry varies with device, layout, target size, scaling, and access method and is not a standalone motor or visual-field measure."]
+    },
+    {
+      "id": "research_content_fidelity_artifacts_history",
+      "status": "implemented-and-verified",
+      "summary": "Research covers content/category exposure, preferences, fidelity, practitioner-logged artifacts, EEG marker quality, and recommendation decision/use history.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Fidelity, artifacts, and EEG marker readiness" },
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Teacher-reviewed next-session planning" },
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "category-task exposure" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "teacher-created categories generate reproducible personalised lessons and Research coverage" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "an approved recommendation is explicitly staged, linked to one session, and visualised" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "EEG protocol metadata and browser timing diagnostics are exported and visualised" }
+      ],
+      "limitations": ["Fidelity, artifact, preference, and marker-quality views describe recorded implementation context and do not establish signal quality, stable preference, or causal effectiveness."]
+    },
+    {
+      "id": "local_first_no_pupil_llm",
+      "status": "implemented-and-verified",
+      "summary": "The static candidate keeps data in the browser, contains no cloud LLM call, and rejects browser network transport primitives and runtime external requests.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "Local-only structured summary reserved for future LLM-assisted recommendations." },
+        { "path": "scripts/check-v180-candidate.js", "contains": "candidate runtime contains no external transport implementation" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "V1.8 alpha loads without making external runtime requests" }
+      ],
+      "limitations": ["Any future external model or cloud integration requires a new consent or authority, safeguarding, governance, security, and bias-review process."]
+    },
+    {
+      "id": "preserve_existing_workflows",
+      "status": "implemented-and-verified",
+      "summary": "Learner mode, Teacher/Admin workspaces, profiles, speech, photos, themes, touch tracking, heatmaps, history, exports, EEG markers, and local persistence remain covered by the stable and candidate suites.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Teacher workspace" },
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Admin &amp; research" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v170.spec.js", "contains": "learner view hides configuration and provides a deliberate teacher return" },
+        { "path": "tests/choice-train-v170.spec.js", "contains": "admin navigation opens the correct research and system destinations" },
+        { "path": "tests/choice-train.spec.js", "contains": "photo upload adds a labelled personalised photo and records its metadata in exports" }
+      ],
+      "limitations": ["Automated regression evidence does not replace representative staff and learner review on managed school devices."]
+    },
+    {
+      "id": "automated_regression_accessibility",
+      "status": "implemented-and-verified",
+      "summary": "Release, promotion, schema, candidate, browser, compatibility, migration, export, and Research accessibility checks run in branch and Pages CI.",
+      "implementation_evidence": [
+        { "path": ".github/workflows/ci.yml", "contains": "Run mobile and WebKit compatibility smoke tests" },
+        { "path": ".github/workflows/pages.yml", "contains": "Run browser tests" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research is a separate admin destination with accessible visual equivalents" },
+        { "path": "tests/choice-train-v180-compat.spec.js", "contains": "V1.8 teacher and admin navigation remain reachable in the compatibility profile" }
+      ],
+      "limitations": ["Emulated Chromium and WebKit profiles do not prove physical-device, browser, assistive-technology, speech, touch, or classroom suitability."]
+    },
+    {
+      "id": "documentation_evidence_boundaries",
+      "status": "implemented-and-verified",
+      "summary": "Product, user, architecture, privacy, data, research-evidence, release, and validation documents state non-diagnostic and non-neural-claim boundaries.",
+      "implementation_evidence": [
+        { "path": "docs/RESEARCH_EVIDENCE.md", "contains": "do not make the current app a diagnostic, therapeutic, or medically validated intervention" },
+        { "path": "docs/DATA_AND_PRIVACY.md", "contains": "It does not connect to EEG hardware or provide clinical interpretation." },
+        { "path": "docs/V1.8.0_EXTERNAL_VALIDATION_PROTOCOL.md", "contains": "does not establish educational efficacy, clinical validity, legal authority, safeguarding approval, or hardware-synchronised EEG timing" }
+      ],
+      "automated_evidence": [
+        { "path": "scripts/check-v180-candidate.js", "contains": "promotion and external validation boundaries remain documented" }
+      ],
+      "limitations": ["Documentation records design rationale and boundaries; it is not ethics approval, legal advice, clinical validation, or evidence of effectiveness."]
+    },
+    {
+      "id": "fail_closed_promotion",
+      "status": "implemented-and-verified",
+      "summary": "Promotion requires a frozen exact commit, complete external evidence, accepted limitations, a passing guard, and explicit product-owner authorisation.",
+      "implementation_evidence": [
+        { "path": "scripts/check-v180-promotion.js", "contains": "promotion_authorised must be true" },
+        { "path": "docs/V1.8.0_PROMOTION_EVIDENCE.json", "contains": "\"promotion_authorised\": false" }
+      ],
+      "automated_evidence": [
+        { "path": "scripts/check-v180-promotion.test.js", "contains": "a pending record cannot authorise release" },
+        { "path": "scripts/check-v180-promotion.test.js", "contains": "complete evidence for the exact frozen commit passes the manual guard" }
+      ],
+      "limitations": ["Automation can reject incomplete evidence but cannot perform or approve product-owner, school, safeguarding, governance, ethics, device, access, or EEG reviews."]
+    },
+    {
+      "id": "adaptive_browser_layout",
+      "status": "implemented-and-verified",
+      "summary": "The candidate adapts learner and staff workspaces across narrow portrait, short landscape, enlarged text, safe areas, orientation changes, and representative browser profiles.",
+      "implementation_evidence": [
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "viewport-fit=cover" },
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "function buildDeviceReadinessReport()" }
+      ],
+      "automated_evidence": [
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "six-choice learner Q&A fits a ${viewport.name} with enlarged text" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "active learner question relayouts after portrait-to-landscape rotation without changing the task" },
+        { "path": "tests/choice-train-v180-compat.spec.js", "contains": "V1.8 learner pacing and Q&A layout remain usable in the compatibility profile" }
+      ],
+      "limitations": ["Physical Windows, iPad, Android, Kindle, browser-zoom, virtual-keyboard, and intended assistive-access checks remain external gates."]
+    }
+  ],
+  "external_gates": [
+    { "id": "automated_engineering", "status": "managed-by-promotion-record" },
+    { "id": "branch_ci", "status": "managed-by-promotion-record" },
+    { "id": "product_owner_approval", "status": "managed-by-promotion-record" },
+    { "id": "staff_usability", "status": "managed-by-promotion-record" },
+    { "id": "learner_safeguarding", "status": "managed-by-promotion-record" },
+    { "id": "information_governance", "status": "managed-by-promotion-record" },
+    { "id": "legal_ethics", "status": "managed-by-promotion-record" },
+    { "id": "windows_touchscreen", "status": "managed-by-promotion-record" },
+    { "id": "ipad_safari", "status": "managed-by-promotion-record" },
+    { "id": "android_chrome", "status": "managed-by-promotion-record" },
+    { "id": "kindle_silk", "status": "managed-by-promotion-record" },
+    { "id": "assistive_access", "status": "managed-by-promotion-record" },
+    { "id": "eeg_hardware_timing", "status": "managed-by-promotion-record" }
+  ]
+}

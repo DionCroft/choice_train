@@ -34,6 +34,9 @@ jobs:
       - name: Validate research data contracts
         run: npm run test:schema
 
+      - name: Validate V1.8 implementation coverage
+        run: npm run test:coverage
+
       - name: Check V1.8 candidate readiness
         run: npm run check:candidate:v180
 

@@ -3,6 +3,7 @@
 const crypto = require('node:crypto');
 const fs = require('node:fs');
 const path = require('node:path');
+const { validateManifest: validateCoverageManifest } = require('./check-v180-coverage.js');
 
 const ROOT = path.resolve(__dirname, '..');
 const PROTECTED_STABLE_SHA256 = '77b4033411d9b20caafaaa6739f7c5317eef1efb010cf88c92a1571ed58e16aa';
@@ -140,16 +141,22 @@ check('promotion evidence record has the complete pupil-data-free structure', ()
   });
 });
 
+check('implementation coverage traces every internal objective without approving external gates', () => {
+  const coverage = JSON.parse(read('docs/V1.8.0_IMPLEMENTATION_COVERAGE.json'));
+  const errors = validateCoverageManifest(coverage);
+  assert(errors.length === 0, errors.join('; '));
+});
+
 check('candidate runtime contains no external transport implementation', () => {
   const source = read('choice_train_V1.8.0-alpha.js');
   const networkPrimitive = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)\s*(?:\(|\.)/;
   assert(!networkPrimitive.test(source), 'found a browser network transport primitive in the candidate runtime');
 });
 
-check('CI validates release, promotion-guard, schema, candidate, and browser gates', () => {
+check('CI validates release, promotion-guard, schema, coverage, candidate, and browser gates', () => {
   ['.github/workflows/ci.yml', '.github/workflows/pages.yml'].forEach((file) => {
     const workflow = read(file);
-    ['npm run test:release', 'npm run test:promotion', 'npm run test:schema', 'npm run check:candidate:v180', 'npm run test:browser', 'npm run test:browser:compat']
+    ['npm run test:release', 'npm run test:promotion', 'npm run test:schema', 'npm run test:coverage', 'npm run check:candidate:v180', 'npm run test:browser', 'npm run test:browser:compat']
       .forEach((command) => assert(workflow.includes(command), `${file} does not run ${command}`));
     assert(/playwright install --with-deps chromium webkit/.test(workflow), `${file} does not install Chromium and WebKit`);
   });
