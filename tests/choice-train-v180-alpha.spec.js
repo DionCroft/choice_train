@@ -7,6 +7,7 @@ const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-researc
 const DATA_QUALITY_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-data-quality-v1.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
 const DEVICE_READINESS_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-device-readiness-v1.schema.json', 'utf8'));
+const EEG_CONFORMANCE_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-eeg-conformance-v1.schema.json', 'utf8'));
 
 function expectCoreSchema(value, schema, path='payload') {
   expect(value, `${path} must be an object`).toBeTruthy();
@@ -2560,6 +2561,84 @@ test('Research view keeps same-numbered questions from separate sessions distinc
   await expect(page.locator('#researchSkillBody')).toContainText('Find a named object');
   await expect(page.locator('#researchQualityBody tr')).toHaveCount(2);
   expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('EEG conformance fixture is deterministic, pupil-free, and covers every marker code', async ({ page }) => {
+  const expectedCodes = {
+    session_start: 1,
+    prompt_onset: 10,
+    cue_onset: 11,
+    stimulus_onset: 12,
+    target_present: 13,
+    no_go: 14,
+    question_answer_blank_onset: 15,
+    question_answer_blank_offset: 16,
+    response: 20,
+    omission: 21,
+    commission: 22,
+    feedback_onset: 30,
+    prompt_onset_support: 31,
+    audio_onset: 32,
+    reward_onset: 33,
+    break_onset: 40,
+    break_offset: 41,
+    artifact: 50,
+    session_complete: 90
+  };
+  const downloadFixture = async selector => {
+    const downloadPromise = page.waitForEvent('download');
+    await page.locator(selector).click();
+    const download = await downloadPromise;
+    return {
+      filename: download.suggestedFilename(),
+      text: fs.readFileSync(await download.path(), 'utf8')
+    };
+  };
+  const objectKeysDeep = value => {
+    if(Array.isArray(value)) return value.flatMap(objectKeysDeep);
+    if(!value || typeof value !== 'object') return [];
+    return Object.entries(value).flatMap(([key, nested]) => [key, ...objectKeysDeep(nested)]);
+  };
+
+  await gotoAlpha(page);
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavEeg').click();
+  await expect(page.locator('#downloadEegConformanceJsonBtn')).toBeVisible();
+
+  const firstDownload = await downloadFixture('#downloadEegConformanceJsonBtn');
+  expect(firstDownload.filename).toBe('ChoiceTrain_EEG_Conformance_V1.0.0.json');
+  const first = JSON.parse(firstDownload.text);
+  expectCoreSchema(first, EEG_CONFORMANCE_SCHEMA, 'eegConformance');
+  expect(first).toEqual(expect.objectContaining({
+    fixture_schema_version: '1.0.0',
+    synthetic_data: true,
+    contains_pupil_data: false,
+    external_transmission: false,
+    transport_implemented: false,
+    timing_validation_performed: false,
+    hardware_synchronization_verified: false
+  }));
+  expect(first.marker_code_map).toEqual(expectedCodes);
+  expect(first.markers).toHaveLength(Object.keys(expectedCodes).length);
+  expect(Object.fromEntries(first.markers.map(marker => [marker.name, marker.code]))).toEqual(expectedCodes);
+  expect(first.markers.map(marker => marker.t_rel_ms)).toEqual(first.markers.map((_marker, index) => index * 100));
+  expect(new Set(first.markers.map(marker => marker.marker_id)).size).toBe(first.markers.length);
+  const fixtureKeys = new Set(objectKeysDeep(first));
+  [
+    'learner', 'learner_alias', 'pupil', 'session_id', 'context_notes', 'research_participant_id',
+    't_wall_ms', 't_perf_ms', 'user_agent', 'platform', 'device_id'
+  ].forEach(key => expect(fixtureKeys.has(key), `${key} must not be exported`).toBe(false));
+
+  const secondDownload = await downloadFixture('#downloadEegConformanceJsonBtn');
+  expect(JSON.parse(secondDownload.text)).toEqual(first);
+
+  const tsvDownload = await downloadFixture('#downloadEegConformanceTsvBtn');
+  expect(tsvDownload.filename).toBe('ChoiceTrain_EEG_Conformance_V1.0.0.tsv');
+  const rows = tsvDownload.text.trim().split(/\r?\n/);
+  expect(rows).toHaveLength(20);
+  expect(rows[0]).toBe('marker_id\tsequence_index\tscenario_group\tcode\tname\tt_rel_ms');
+  Object.keys(expectedCodes).forEach(name => expect(tsvDownload.text).toContain(`\t${name}\t`));
+  await expect(page.locator('#eegConformanceStatus')).toContainText('parser compatibility only');
 });
 
 test('EEG protocol metadata and browser timing diagnostics are exported and visualised', async ({ page }) => {

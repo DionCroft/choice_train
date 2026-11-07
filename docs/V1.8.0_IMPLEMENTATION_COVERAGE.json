@@ -83,10 +83,15 @@
       "summary": "Browser event markers, protocol fields, timing diagnostics, artifacts, active-control tasks, and fixed-condition drift controls prepare later EEG study integration.",
       "implementation_evidence": [
         { "path": "choice_train_V1.8.0-alpha.js", "contains": "const EEG_EVENT_CODES = Object.freeze" },
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "function buildEegConformanceFixture()" },
         { "path": "choice_train_V1.8.0-alpha.js", "contains": "'active-control': 'Active control'" },
-        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Enforce a fixed research condition" }
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "Enforce a fixed research condition" },
+        { "path": "choice_train_V1.8.0-alpha.html", "contains": "EEG bridge conformance fixture" },
+        { "path": "schemas/choice-train-eeg-conformance-v1.schema.json", "contains": "ChoiceTrain pupil-free EEG marker conformance fixture 1.0.0" }
       ],
       "automated_evidence": [
+        { "path": "scripts/schema-contract.test.js", "contains": "EEG conformance schema matches every runtime marker and locks the pupil-free parser boundary" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "EEG conformance fixture is deterministic, pupil-free, and covers every marker code" },
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "EEG protocol metadata and browser timing diagnostics are exported and visualised" },
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "fixed research conditions persist, block drift, reapply, export, and visualise adherence" }
       ],

@@ -679,6 +679,8 @@ If the study uses fixed software conditions, save and enable the local condition
 
 Use the Research destination after a session to check marker completeness, event ordering, response-timing differences, and protocol metadata. A complete software record is useful for audit, but it does not replace LSL/device triggers, measured end-to-end latency, cap/signal checks, or the research team's artifact-cleaning procedure.
 
+Before pupil testing, an external bridge developer can open `Admin & research` > `EEG` and download the marker-conformance JSON or TSV. These pupil-free files provide the current marker names and numeric codes for parser testing. The offsets are synthetic and deterministic; the files do not send live events or test clocks, latency, jitter, display/audio onset, acquisition hardware, or EEG signal quality.
+
 The app currently supports **research preparation and export**, not direct clinical or diagnostic interpretation.
 
 Future EEG integration may build on these exported markers and structured event timings.

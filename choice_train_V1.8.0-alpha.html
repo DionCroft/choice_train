@@ -959,6 +959,15 @@
         </div>
         <div id="fixedConditionStatus" class="compactNote" role="status">Fixed-condition checks are off. Ordinary classroom sessions are not restricted.</div>
         <div class="helperText">A saved condition is a local software-settings manifest. It supports reproducible delivery but does not replace an approved protocol, preregistration, allocation procedures, blinding, or measured EEG synchronisation.</div>
+        <div class="section" style="margin-top:14px">
+          <div class="sub">EEG bridge conformance fixture</div>
+          <div class="helperText">Download a deterministic, pupil-free catalogue of every ChoiceTrain marker name and code for parser development. It contains synthetic offsets only and does not connect to LSL, send data, or validate latency, clocks, hardware, or EEG signal quality.</div>
+          <div class="dashboardTools" style="margin-top:10px">
+            <button id="downloadEegConformanceJsonBtn" type="button">Download fixture JSON</button>
+            <button id="downloadEegConformanceTsvBtn" type="button">Download fixture TSV</button>
+          </div>
+          <div id="eegConformanceStatus" class="compactNote" role="status">No fixture downloaded. Use this before pupil testing to check an external bridge parser against marker contract 1.0.0.</div>
+        </div>
         </div>
 
         <div id="adminPromptSection" class="section adminAnchor" data-admin-pages="learners" style="padding-top:14px">

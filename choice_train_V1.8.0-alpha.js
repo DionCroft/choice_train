@@ -41,6 +41,7 @@
   const HUMAN_OBSERVATION_CONTEXT_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.5.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
+  const EEG_CONFORMANCE_FIXTURE_VERSION = '1.0.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
   const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.3.0';
   const DELIVERY_CONTEXT_VERSION = '1.0.0';
@@ -2289,6 +2290,78 @@
       }).join('\t'));
     });
     return lines.join('\n');
+  }
+
+  function eegConformanceScenarioGroup(name){
+    if(name === 'session_start' || name === 'session_complete') return 'session-boundary';
+    if(['prompt_onset', 'cue_onset', 'prompt_onset_support', 'audio_onset'].includes(name)) return 'prompting';
+    if(name.startsWith('question_answer_blank_')) return 'question-answer-blank';
+    if(['stimulus_onset', 'target_present', 'no_go'].includes(name)) return 'stimulus';
+    if(['response', 'omission', 'commission'].includes(name)) return 'outcome';
+    if(['feedback_onset', 'reward_onset'].includes(name)) return 'feedback';
+    if(name === 'break_onset' || name === 'break_offset') return 'break';
+    return 'artifact';
+  }
+
+  function buildEegConformanceFixture(){
+    const markers = Object.entries(EEG_EVENT_CODES).map(([name, code], index) => ({
+      marker_id: `fixture-${String(index + 1).padStart(3, '0')}`,
+      sequence_index: index + 1,
+      scenario_group: eegConformanceScenarioGroup(name),
+      code,
+      name,
+      t_rel_ms: index * 100
+    }));
+    return {
+      fixture_schema_version: EEG_CONFORMANCE_FIXTURE_VERSION,
+      fixture_id: 'choice-train-eeg-marker-conformance-v1',
+      purpose: 'Pupil-free parser and event-code compatibility check for a separately implemented EEG bridge.',
+      synthetic_data: true,
+      contains_pupil_data: false,
+      external_transmission: false,
+      transport_implemented: false,
+      timing_validation_performed: false,
+      hardware_synchronization_verified: false,
+      timing_basis: 'Deterministic synthetic offsets for parser checks only; values are not measured browser, bridge, display, audio, amplifier, or acquisition latency.',
+      build: {
+        app: APP_BUILD.app,
+        version: APP_BUILD.version,
+        channel: APP_BUILD.channel,
+        based_on_commit: APP_BUILD.based_on_commit
+      },
+      marker_code_map: clonePlain(EEG_EVENT_CODES),
+      markers,
+      required_external_checks: [
+        'real-time bridge transport',
+        'clock alignment',
+        'end-to-end latency and jitter',
+        'dropped, duplicated, and out-of-order markers',
+        'display and audio onset measurement',
+        'acquisition-system verification'
+      ]
+    };
+  }
+
+  function eegConformanceFixtureTsv(fixture=buildEegConformanceFixture()){
+    const headers = ['marker_id', 'sequence_index', 'scenario_group', 'code', 'name', 't_rel_ms'];
+    const rows = fixture.markers.map(marker => headers.map(header => marker[header]).join('\t'));
+    return [headers.join('\t'), ...rows].join('\n');
+  }
+
+  function downloadEegConformanceFixture(format){
+    const fixture = buildEegConformanceFixture();
+    const extension = format === 'tsv' ? 'tsv' : 'json';
+    const content = extension === 'tsv'
+      ? eegConformanceFixtureTsv(fixture)
+      : JSON.stringify(fixture, null, 2);
+    const mimeType = extension === 'tsv' ? 'text/tab-separated-values' : 'application/json';
+    triggerBlobDownload(
+      new Blob([content], { type: mimeType }),
+      `ChoiceTrain_EEG_Conformance_V${EEG_CONFORMANCE_FIXTURE_VERSION}.${extension}`
+    );
+    if(ui.eegConformanceStatus){
+      ui.eegConformanceStatus.textContent = `Downloaded the synthetic ${extension.toUpperCase()} marker fixture. This checks parser compatibility only; it does not test live transport or timing.`;
+    }
   }
 
   function getBlockRange(index){
@@ -13012,6 +13085,8 @@
     bindAction(ui.soundPreviewBtn, () => playSoundCue('preview', { source: 'teacher-preview' }));
     bindAction(ui.saveFixedConditionBtn, saveFixedConditionManifest);
     bindAction(ui.applyFixedConditionBtn, applyFixedConditionManifest);
+    bindAction(ui.downloadEegConformanceJsonBtn, () => downloadEegConformanceFixture('json'));
+    bindAction(ui.downloadEegConformanceTsvBtn, () => downloadEegConformanceFixture('tsv'));
     bindAction(ui.adminExportSessionBtn, exportLogs);
     bindAction(ui.adminExportResearchBtn, exportEegMarkers);
     bindAction(ui.adminExportHistoryBtn, exportStoredHistory);

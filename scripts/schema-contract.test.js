@@ -22,6 +22,15 @@ function objectKeys(blockName){
   return Array.from(match[1].matchAll(/^\s+'([^']+)':/gm), item => item[1]);
 }
 
+function numericObjectEntries(blockName){
+  const match = runtime.match(new RegExp(`const ${blockName} = (?:Object\\.freeze\\()?\\{([\\s\\S]*?)\\n  \\}\\)?;`));
+  assert.ok(match, `Runtime object ${blockName} must exist`);
+  return Object.fromEntries(Array.from(
+    match[1].matchAll(/^\s*(?:'([^']+)'|([A-Za-z_][A-Za-z0-9_]*)):\s*(\d+),?$/gm),
+    item => [item[1] || item[2], Number(item[3])]
+  ));
+}
+
 test('trial schema versions and enums match the V1.8 runtime', () => {
   const contract = schema('choice-train-trial-v8.schema.json');
   assert.equal(contract.$schema, 'https://json-schema.org/draft/2020-12/schema');
@@ -181,5 +190,32 @@ test('device-readiness schema locks the pupil-data-free physical-review boundary
   assert.equal(contract.properties.interface_checks.properties.viewport_fit_cover.const, true);
   assert.equal(contract.additionalProperties, false);
   ['learner', 'pupil', 'session', 'context_notes', 'research_participant_id']
+    .forEach(field => assert.equal(Object.prototype.hasOwnProperty.call(contract.properties, field), false));
+});
+
+test('EEG conformance schema matches every runtime marker and locks the pupil-free parser boundary', () => {
+  const contract = schema('choice-train-eeg-conformance-v1.schema.json');
+  const runtimeCodes = numericObjectEntries('EEG_EVENT_CODES');
+  const schemaCodes = Object.fromEntries(Object.entries(contract.properties.marker_code_map.properties)
+    .map(([name, definition]) => [name, definition.const]));
+  const markerItem = contract.properties.markers.items;
+
+  assert.equal(contract.$schema, 'https://json-schema.org/draft/2020-12/schema');
+  assert.equal(contract.properties.fixture_schema_version.const, runtimeConstant('EEG_CONFORMANCE_FIXTURE_VERSION'));
+  assert.equal(contract.properties.synthetic_data.const, true);
+  assert.equal(contract.properties.contains_pupil_data.const, false);
+  assert.equal(contract.properties.external_transmission.const, false);
+  assert.equal(contract.properties.transport_implemented.const, false);
+  assert.equal(contract.properties.timing_validation_performed.const, false);
+  assert.equal(contract.properties.hardware_synchronization_verified.const, false);
+  assert.equal(contract.additionalProperties, false);
+  assert.equal(contract.properties.marker_code_map.additionalProperties, false);
+  assert.deepEqual(schemaCodes, runtimeCodes);
+  assert.deepEqual(new Set(contract.properties.marker_code_map.required), new Set(Object.keys(runtimeCodes)));
+  assert.deepEqual(new Set(markerItem.properties.name.enum), new Set(Object.keys(runtimeCodes)));
+  assert.deepEqual(new Set(markerItem.properties.code.enum), new Set(Object.values(runtimeCodes)));
+  assert.equal(contract.properties.markers.minItems, Object.keys(runtimeCodes).length);
+  assert.equal(contract.properties.markers.maxItems, Object.keys(runtimeCodes).length);
+  ['learner', 'pupil', 'session', 'context_notes', 'research_participant_id', 't_wall_ms', 't_perf_ms']
     .forEach(field => assert.equal(Object.prototype.hasOwnProperty.call(contract.properties, field), false));
 });

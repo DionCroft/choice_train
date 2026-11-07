@@ -20,7 +20,8 @@ const EXPECTED_CONTRACTS = Object.freeze({
   recommendation: '1.5.0',
   privacyExport: '1.3.0',
   dataQuality: '1.0.0',
-  deviceReadinessReport: '1.0.0'
+  deviceReadinessReport: '1.0.0',
+  eegConformanceFixture: '1.0.0'
 });
 
 const failures = [];
@@ -106,6 +107,7 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
   assert(new RegExp(`const PRIVACY_EXPORT_VERSION = ['"]${EXPECTED_CONTRACTS.privacyExport.replaceAll('.', '\\.')}['"];`).test(source), 'privacy export version drifted');
   assert(new RegExp(`const DATA_QUALITY_SCHEMA_VERSION = ['"]${EXPECTED_CONTRACTS.dataQuality.replaceAll('.', '\\.')}['"];`).test(source), 'data-quality schema version drifted');
   assert(new RegExp(`const DEVICE_READINESS_REPORT_VERSION = ['"]${EXPECTED_CONTRACTS.deviceReadinessReport.replaceAll('.', '\\.')}['"];`).test(source), 'device-readiness report version drifted');
+  assert(new RegExp(`const EEG_CONFORMANCE_FIXTURE_VERSION = ['"]${EXPECTED_CONTRACTS.eegConformanceFixture.replaceAll('.', '\\.')}['"];`).test(source), 'EEG conformance fixture version drifted');
 });
 
 check('machine-readable candidate contracts are present and parseable', () => {
@@ -114,7 +116,8 @@ check('machine-readable candidate contracts are present and parseable', () => {
     'schemas/choice-train-research-summary-v2.3.schema.json',
     'schemas/choice-train-data-quality-v1.schema.json',
     'schemas/choice-train-model-dataset-v1.schema.json',
-    'schemas/choice-train-device-readiness-v1.schema.json'
+    'schemas/choice-train-device-readiness-v1.schema.json',
+    'schemas/choice-train-eeg-conformance-v1.schema.json'
   ].forEach((file) => {
     const schema = JSON.parse(read(file));
     assert(schema.$schema === 'https://json-schema.org/draft/2020-12/schema', `${file} is not JSON Schema 2020-12`);
@@ -153,6 +156,9 @@ check('candidate runtime contains no external transport implementation', () => {
   const source = read('choice_train_V1.8.0-alpha.js');
   const networkPrimitive = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)\s*(?:\(|\.)/;
   assert(!networkPrimitive.test(source), 'found a browser network transport primitive in the candidate runtime');
+  assert(/function buildEegConformanceFixture\(\)/.test(source), 'pupil-free EEG conformance fixture builder is missing');
+  assert(/transport_implemented:\s*false/.test(source), 'EEG conformance fixture must declare that live transport is not implemented');
+  assert(/timing_validation_performed:\s*false/.test(source), 'EEG conformance fixture must not claim timing validation');
 });
 
 check('CI validates release, promotion-guard, schema, coverage, review-pack, candidate, and browser gates', () => {

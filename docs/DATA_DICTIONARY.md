@@ -247,6 +247,8 @@ Field availability depends on the task and enabled logging mode. Missing data mu
 
 These are browser event times. Real EEG synchronisation still requires a hardware/LSL integration and measured clock, display, audio, and transport latency.
 
+Admin > EEG can separately download conformance fixture `1.0.0` as JSON or TSV. The JSON follows `schemas/choice-train-eeg-conformance-v1.schema.json`; it contains the complete marker name/code map, one deterministic synthetic row per marker, build metadata, and the external checks still required. The TSV contains `marker_id`, `sequence_index`, `scenario_group`, `code`, `name`, and `t_rel_ms`. Neither format contains pupil/session fields or measured event timing, and both explicitly declare that live transport, timing validation, and hardware synchronisation are absent.
+
 Full session exports record `blank_interval_enabled`, `blank_interval_ms`, and `blank_interval_position: between-question-and-answer`. When enabled, `prompt_onset`, `question_answer_blank_onset`, `question_answer_blank_offset`, and `stimulus_onset` describe the intended question-to-answer sequence. These remain browser timestamps rather than measured EEG trigger timing.
 
 ## V1.8 EEG Protocol and Diagnostics
