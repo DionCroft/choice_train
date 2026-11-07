@@ -439,6 +439,8 @@
     lessonSeedSource: null,
     activeRecommendation: null,
     sessionStartMs: 0,
+    sessionEndMs: 0,
+    sessionEndReason: '',
     questionIndex: 0,
     attemptIndex: 0,
     totalQuestions: 8,
@@ -4764,7 +4766,7 @@
     logEvent('learner_stop_requested', {
       question_index: state.currentQuestion ? state.currentQuestion.questionIndex : state.questionIndex
     });
-    endSession();
+    endSession('learner-stop');
   }
 
   function applyLearnerPreferences(){
@@ -4835,7 +4837,7 @@
   function advanceAfterFeedback(){
     clearTimeout(state.timers.reward);
     if(state.questionIndex >= state.totalQuestions || sessionTimedOut()){
-      endSession();
+      endSession(state.questionIndex >= state.totalQuestions ? 'planned-questions-complete' : 'session-time-limit');
       return;
     }
     if(maybePauseAfterCurrentQuestion()) return;
@@ -5515,6 +5517,36 @@
     });
   }
 
+  function currentSessionTimingSnapshot(){
+    const completedQuestions = latestTrialsByQuestion(state.trials).length;
+    const plannedQuestions = Math.max(0, Number(state.totalQuestions) || 0);
+    const startedAt = Number.isFinite(state.sessionStartMs) && state.sessionStartMs > 0
+      ? state.sessionStartMs
+      : null;
+    const endedAt = Number.isFinite(state.sessionEndMs) && state.sessionEndMs > 0
+      ? state.sessionEndMs
+      : null;
+    const durationEnd = endedAt || (startedAt && state.phase !== 'idle' ? wallMs() : null);
+    const durationMs = startedAt && durationEnd
+      ? Math.max(0, durationEnd - startedAt)
+      : null;
+    const completionPct = plannedQuestions
+      ? Math.round((Math.min(completedQuestions, plannedQuestions) / plannedQuestions) * 100)
+      : null;
+    return {
+      started_at_wall_ms: startedAt,
+      ended_at_wall_ms: endedAt,
+      duration_ms: durationMs,
+      planned_questions: plannedQuestions,
+      completed_questions: completedQuestions,
+      completion_pct: completionPct,
+      completion_status: endedAt
+        ? (state.sessionEndedEarly ? 'stopped-early' : state.sessionEndReason === 'session-time-limit' ? 'time-limit' : 'completed')
+        : startedAt ? 'in-progress' : 'not-started',
+      end_reason: state.sessionEndReason || null
+    };
+  }
+
   function buildSessionRecord(){
     const summary = analyticsSummary();
     const snapshot = state.sessionSnapshot;
@@ -5538,6 +5570,7 @@
       skill_graph: skillGraphSnapshot(),
       settings: snapshot ? clonePlain(snapshot.settings) : settingsSnapshot(),
       learner_snapshot: snapshot ? clonePlain(snapshot.learner_profile) : currentLearnerRecord(),
+      session_timing: currentSessionTimingSnapshot(),
       summary,
       research_summary: researchSummaryForTrials(state.trials),
       fidelity: fidelitySnapshot(),
@@ -5569,7 +5602,7 @@
   }
 
   async function persistCurrentSession(){
-    if(!state.trials.length) return;
+    if(!state.trials.length && state.phase !== 'complete') return;
     const record = buildSessionRecord();
     if(state.storage.useIndexedDb){
       await idbPut(IDB_SESSIONS_STORE, record);
@@ -6012,6 +6045,74 @@
       commission_pct: finalTrials.length ? Math.round((finalTrials.filter(trial => trial.commission).length / finalTrials.length) * 100) : null,
       touch_observed_count: touchDistances.length,
       mean_touch_distance_px: touchDistances.length ? Number(mean(touchDistances).toFixed(1)) : null
+    };
+  }
+
+  function sessionEvent(session, type){
+    const events = Array.isArray(session.events) ? session.events : [];
+    return events.find(event => event && event.type === type) || null;
+  }
+
+  function sessionTimingResearchRow(session){
+    const finalTrials = latestTrialsByQuestion(session.trials || []);
+    const timing = session.session_timing || {};
+    const startEvent = sessionEvent(session, 'session_start');
+    const completeEvent = sessionEvent(session, 'session_complete');
+    const stopEvent = sessionEvent(session, 'learner_stop_requested');
+    const trialStarts = finalTrials
+      .flatMap(trial => [trial.cue_onset_wall_ms, trial.stimulus_onset_wall_ms])
+      .filter(Number.isFinite);
+    const trialEnds = finalTrials
+      .flatMap(trial => [trial.feedback_onset_wall_ms, trial.response_wall_ms])
+      .filter(Number.isFinite);
+    const startedAt = Number.isFinite(timing.started_at_wall_ms)
+      ? timing.started_at_wall_ms
+      : startEvent && Number.isFinite(startEvent.t_wall_ms)
+        ? startEvent.t_wall_ms
+        : trialStarts.length ? Math.min(...trialStarts) : null;
+    const endedAt = Number.isFinite(timing.ended_at_wall_ms)
+      ? timing.ended_at_wall_ms
+      : completeEvent && Number.isFinite(completeEvent.t_wall_ms)
+        ? completeEvent.t_wall_ms
+        : trialEnds.length ? Math.max(...trialEnds) : null;
+    const plannedQuestions = Number.isFinite(timing.planned_questions)
+      ? timing.planned_questions
+      : startEvent && Number.isFinite(Number(startEvent.total_questions))
+        ? Number(startEvent.total_questions)
+        : Number.isFinite(Number(session.settings && session.settings.sessionMax))
+          ? Number(session.settings.sessionMax)
+          : null;
+    const completedQuestions = finalTrials.length;
+    const completionPct = plannedQuestions > 0
+      ? Math.round((Math.min(completedQuestions, plannedQuestions) / plannedQuestions) * 100)
+      : null;
+    const durationMs = Number.isFinite(timing.duration_ms)
+      ? timing.duration_ms
+      : Number.isFinite(startedAt) && Number.isFinite(endedAt)
+        ? Math.max(0, endedAt - startedAt)
+        : null;
+    const timedTrials = finalTrials.filter(trial => (
+      Number.isFinite(trial.response_time_ms)
+      && Number.isFinite(trial.timeout_after_ms)
+      && trial.timeout_after_ms > 0
+    ));
+    const windowUse = timedTrials.map(trial => Math.min(100, Math.max(0, (trial.response_time_ms / trial.timeout_after_ms) * 100)));
+    const endReason = timing.end_reason
+      || (stopEvent ? 'learner-stop' : completionPct === 100 ? 'planned-questions-complete' : completeEvent ? 'session-ended' : 'not-recorded');
+    const status = timing.completion_status
+      || (endReason === 'learner-stop' ? 'stopped-early' : endReason === 'session-time-limit' ? 'time-limit' : completionPct === 100 ? 'completed' : 'incomplete');
+    return {
+      date: researchDateLabel(Number(session.updated_at_wall_ms)),
+      learner: session.learner_alias || session.learner || 'Unknown',
+      status,
+      end_reason: endReason,
+      planned_questions: plannedQuestions,
+      completed_questions: completedQuestions,
+      completion_pct: completionPct,
+      duration_minutes: Number.isFinite(durationMs) ? Number((durationMs / 60000).toFixed(2)) : null,
+      timed_response_count: timedTrials.length,
+      median_window_use_pct: windowUse.length ? Number(median(windowUse).toFixed(1)) : null,
+      timeout_count: finalTrials.filter(trial => trial.timed_out).length
     };
   }
 
@@ -6865,6 +6966,47 @@
     ui.researchBehaviourNote.textContent = scope === 'all-learners'
       ? 'Each point is one session; points are not connected across different learners. Missing timing and touch values remain missing.'
       : 'Rates use final trial outcomes. RT variability requires at least two observed response times; touch distance depends on task geometry and device setup.';
+
+    const timingRows = sessions.map(sessionTimingResearchRow);
+    const connectTimingPoints = scope !== 'all-learners';
+    ui.researchCompletedSessions.textContent = String(timingRows.filter(row => row.status === 'completed').length);
+    ui.researchStoppedSessions.textContent = String(timingRows.filter(row => row.status === 'stopped-early').length);
+    ui.researchTimeLimitSessions.textContent = String(timingRows.filter(row => row.status === 'time-limit').length);
+    ui.researchTimingCoverage.textContent = `${timingRows.filter(row => Number.isFinite(row.duration_minutes)).length}/${timingRows.length}`;
+    drawResearchMetricTrend(ui.researchCompletionChart, timingRows, [
+      { key: 'completion_pct', label: 'Question completion', color: themeToken('success') },
+      { key: 'median_window_use_pct', label: 'Median window use', color: themeToken('primary') }
+    ], {
+      maxValue: 100,
+      suffix: '%',
+      connectPoints: connectTimingPoints,
+      emptyText: 'No question-completion or response-window values in this scope'
+    });
+    drawResearchMetricTrend(ui.researchSessionDurationChart, timingRows, [
+      { key: 'duration_minutes', label: 'Elapsed time', color: themeToken('warning') }
+    ], {
+      suffix: ' min',
+      connectPoints: connectTimingPoints,
+      emptyText: 'No elapsed session times in this scope'
+    });
+    if(timingRows.length){
+      clearNode(ui.researchSessionTimingBody);
+      timingRows.forEach(row => appendResearchRow(ui.researchSessionTimingBody, [
+        row.date,
+        row.learner,
+        row.status.replace(/-/g, ' '),
+        row.end_reason.replace(/-/g, ' '),
+        row.planned_questions == null ? `${row.completed_questions}/--` : `${row.completed_questions}/${row.planned_questions}`,
+        row.completion_pct == null ? null : `${row.completion_pct}%`,
+        row.duration_minutes == null ? null : `${row.duration_minutes} min`,
+        row.timed_response_count,
+        row.median_window_use_pct == null ? null : `${row.median_window_use_pct}%`,
+        row.timeout_count
+      ]));
+    } else renderResearchEmptyRow(ui.researchSessionTimingBody, 10, 'No sessions in this scope yet.');
+    ui.researchSessionTimingNote.textContent = scope === 'all-learners'
+      ? 'Each point is one session and points are not connected across learners. Timing describes delivery and opportunity; slower responses are not automatically worse.'
+      : 'Response-window use is reaction time as a percentage of the configured trial window. It is descriptive context, not a speed target or judgement of ability.';
 
     const spatialRows = sessions.map(session => {
       const sessionTrials = latestTrialsByQuestion(session.trials || []);
@@ -7934,12 +8076,14 @@
     return advanced ? `Start Level ${state.currentLevel}` : 'Start Again';
   }
 
-  function endSession(){
+  function endSession(reason='planned-questions-complete'){
     clearTimeout(state.timers.session);
     clearTimeout(state.timers.response);
     clearTimeout(state.timers.preview);
     clearTimeout(state.timers.blank);
     state.phase = 'complete';
+    state.sessionEndMs = wallMs();
+    state.sessionEndReason = reason;
     const summary = analyticsSummary();
     const advanced = shouldAdvanceLevel(summary);
     if(advanced){
@@ -7948,22 +8092,27 @@
     }
     savePupilProgress(summary, advanced);
     saveCurrentLearnerProfile();
-    persistCurrentSession().catch(() => {});
     if(ui.summaryRestart) ui.summaryRestart.textContent = summaryRestartLabel(advanced);
     ui.summaryText.textContent = studentFriendlyModeEnabled()
       ? (advanced ? `Great work. You are ready for Level ${state.currentLevel}.` : 'Great work. This session is complete.')
       : `${summary.correct} correct, ${summary.incorrect} incorrect, ${summary.accuracy_pct}% accuracy, ${summary.omission_count} omissions, ${summary.commission_count} commissions, mean RT ${summary.mean_rt_ms || 0} ms, RT variability ${summary.rt_sd_ms || 0} ms. ${describeLevelOutcome(summary, advanced, false)} Fidelity ${fidelityScorePct()}%. ${state.sessionEndedEarly ? 'The session was stopped early.' : ''}`;
     showScreen('screenSummary');
     setFooter(advanced ? `Session complete. Ready for Level ${state.currentLevel}.` : 'Session complete. Export or start again.', advanced ? 'Next level' : 'Complete');
-    logEvent('session_complete', { summary, next_level: state.currentLevel, progressed_level: advanced });
+    logEvent('session_complete', {
+      summary,
+      next_level: state.currentLevel,
+      progressed_level: advanced,
+      session_timing: currentSessionTimingSnapshot()
+    });
     pushEegMarker('session_complete', {
-      response_type: state.sessionEndedEarly ? 'stopped-early' : 'completed',
+      response_type: state.sessionEndedEarly ? 'stopped-early' : reason === 'session-time-limit' ? 'time-limit' : 'completed',
       correct: summary.correct,
       omission: summary.omission_count,
       commission: summary.commission_count
     });
+    persistCurrentSession().catch(() => {});
     playSoundCue('complete', {
-      response_type: state.sessionEndedEarly ? 'stopped-early' : 'completed',
+      response_type: state.sessionEndedEarly ? 'stopped-early' : reason === 'session-time-limit' ? 'time-limit' : 'completed',
       correct: summary.correct
     });
     refreshDashboard(true);
@@ -7982,6 +8131,8 @@
     state.lessonSeed = null;
     state.lessonSeedSource = null;
     state.sessionStartMs = 0;
+    state.sessionEndMs = 0;
+    state.sessionEndReason = '';
     state.questionIndex = 0;
     state.attemptIndex = 0;
     state.currentQuestion = null;
@@ -8054,6 +8205,8 @@
     state.attemptIndex = 0;
     state.phase = 'running';
     state.sessionStartMs = wallMs();
+    state.sessionEndMs = 0;
+    state.sessionEndReason = '';
     state.totalQuestions = clamp(safeNumber(ui.sessionMax.value, 8), 1, 20);
     state.currentLevel = clamp(safeNumber(ui.startLevel.value, 1), 1, 10);
     state.sessionTaskType = ui.sessionTaskType.value === 'auto' ? 'auto' : ui.sessionTaskType.value;
@@ -8110,7 +8263,7 @@
     });
     state.timers.session = window.setTimeout(() => {
       flash('try', 'Session time reached');
-      endSession();
+      endSession('session-time-limit');
     }, safeNumber(ui.sessionMinutes.value, 3) * 60 * 1000);
     if(ui.preSessionPreference.value === 'needs-break'){
       beginBreak('pre-session-regulation', {
@@ -8150,6 +8303,7 @@
       session_id: state.sessionId,
       pupil: sessionPupilName(),
       pupil_alias: sessionPupilAlias(),
+      session_timing: currentSessionTimingSnapshot(),
       session_overview: {
         pupil_alias: sessionPupilAlias(),
         exported_date: schoolTimestampParts().date,

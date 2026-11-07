@@ -123,6 +123,16 @@ test('a learner trial exports skill, generator, and descriptive research metadat
   expect(trial.play_area_width_px).toBeGreaterThan(0);
   expect(trial.play_area_height_px).toBeGreaterThan(0);
   expect(trial.distance_to_target_play_diagonal).toEqual(expect.any(Number));
+  expect(payload.session_timing).toEqual(expect.objectContaining({
+    planned_questions: 1,
+    completed_questions: 1,
+    completion_pct: 100,
+    completion_status: 'completed',
+    end_reason: 'planned-questions-complete'
+  }));
+  expect(payload.session_timing.duration_ms).toBeGreaterThanOrEqual(0);
+  expect(payload.events.some(event => event.type === 'session_complete')).toBe(true);
+  expect(payload.eeg_markers.some(marker => marker.name === 'session_complete')).toBe(true);
 
   const skill = payload.research_summary.skill_summaries.find(item => item.skill_id === 'recognition.named_object');
   expect(skill).toEqual(expect.objectContaining({
@@ -466,6 +476,18 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await expect(page.locator('#researchBehaviourBody')).toContainText('ms');
   await expect(page.locator('#researchBehaviourBody')).toContainText('px');
   await expect(page.locator('#researchBehaviourNote')).toContainText('device setup');
+  await expect(page.locator('#researchCompletionChart')).toBeVisible();
+  await expect(page.locator('#researchSessionDurationChart')).toBeVisible();
+  await expect(page.locator('#researchCompletedSessions')).toHaveText('1');
+  await expect(page.locator('#researchStoppedSessions')).toHaveText('0');
+  await expect(page.locator('#researchTimeLimitSessions')).toHaveText('0');
+  await expect(page.locator('#researchTimingCoverage')).toHaveText('1/1');
+  await expect(page.locator('#researchSessionTimingBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('completed');
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('planned questions complete');
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('3/3');
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('100%');
+  await expect(page.locator('#researchSessionTimingNote')).toContainText('not a speed target');
   await expect(page.locator('#researchTouchBandChart')).toBeVisible();
   await expect(page.locator('#researchTouchDirectionChart')).toBeVisible();
   await expect(page.locator('#researchTouchSpatialBody tr')).toHaveCount(1);
@@ -477,6 +499,45 @@ test('Research visualises error, timing-consistency, and touch trends with obser
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchBehaviourNote')).toContainText('not connected');
+  await expect(page.locator('#researchSessionTimingNote')).toContainText('not connected');
+
+  await page.reload();
+  await expect(page.locator('#beginFlow')).toBeVisible();
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-learner');
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('planned questions complete');
+  await expect(page.locator('#researchTimingCoverage')).toHaveText('1/1');
+});
+
+test('a learner stop before the first response persists as an incomplete session observation', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'allowLearnerStop', true);
+  await setValue(page, 'sessionMax', 3);
+
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#choiceGrid')).toBeVisible();
+  await expect(page.locator('#learnerStopBtn')).toBeVisible();
+  await page.locator('#learnerStopBtn').click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await page.waitForTimeout(400);
+
+  await page.reload();
+  await expect(page.locator('#beginFlow')).toBeVisible();
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-learner');
+
+  await expect(page.locator('#researchSessionCount')).toHaveText('1');
+  await expect(page.locator('#researchTrialCount')).toHaveText('0');
+  await expect(page.locator('#researchStoppedSessions')).toHaveText('1');
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('stopped early');
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('learner stop');
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('0/3');
+  await expect(page.locator('#researchSessionTimingBody')).toContainText('0%');
 });
 
 test('Research visualises support fading, dosage, and teacher-rated transfer observations', async ({ page }) => {

@@ -1287,6 +1287,32 @@
               <div id="researchBehaviourNote" class="compactNote">Missing timing and touch values remain missing. Rates use final trial outcomes in each session.</div>
             </div>
             <div class="chartCard span2">
+              <h4>Session completion and timing context</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Planned sessions completed</div><div class="v" id="researchCompletedSessions">0</div></div>
+                <div class="dashCard"><div class="k">Stopped early</div><div class="v" id="researchStoppedSessions">0</div></div>
+                <div class="dashCard"><div class="k">Ended at time limit</div><div class="v" id="researchTimeLimitSessions">0</div></div>
+                <div class="dashCard"><div class="k">Elapsed time observed</div><div class="v" id="researchTimingCoverage">0/0</div></div>
+              </div>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Question completion and median response-window use (%)</div>
+                  <canvas id="researchCompletionChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Question completion percentage and median response-window use across sessions"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Observed elapsed session time</div>
+                  <canvas id="researchSessionDurationChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Elapsed session duration in minutes across sessions"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Status</th><th>End reason</th><th>Questions</th><th>Completion</th><th>Elapsed</th><th>Timed responses</th><th>Median window use</th><th>Timeouts</th></tr></thead>
+                  <tbody id="researchSessionTimingBody"></tbody>
+                </table>
+              </div>
+              <div id="researchSessionTimingNote" class="compactNote">Timing describes task delivery and response opportunity. Slower responses and longer sessions are not automatically worse.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Target-relative touch profile</h4>
               <div class="researchMetricPair">
                 <div>

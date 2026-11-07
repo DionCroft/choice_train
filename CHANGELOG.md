@@ -41,6 +41,7 @@ All notable changes to ChoiceTrain are listed here.
 - pooled all-learner response-quality points are left unconnected so they cannot be mistaken for one learner's longitudinal trajectory
 - longitudinal support-fading and dosage visualisations for independent responding, prompt/assistance counts, unknown support status, mean prompt level, actual/target minutes, and fidelity
 - training-cadence visualisations for observed cumulative minutes, active days, dose-field coverage, and current-learner inter-session gaps, with sequencing suppressed for pooled learners
+- explicit session start/end, completion status, end reason, elapsed-time, planned-question, and completed-question metadata, plus Research views for completion, response-window use, duration, and timeouts; final completion events and markers are now persisted before the session record is written, including learner-stopped sessions with no completed response
 - prompt-ladder and learner-agency visualisations for highest prompt level, help requests, prompt events, repeats, learner breaks, automatic pauses, early stops, reward onsets, and reward choice
 - an end-to-end learner-flow test proving help, break, repeat, and reward events reach the Research view, with explicit non-deficit interpretation wording
 - teacher-rating and transfer-observation visualisations for 1-5 attention/independence ratings and recorded maintenance/generalisation status counts, with all-learner points left unconnected
@@ -59,7 +60,7 @@ All notable changes to ChoiceTrain are listed here.
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary
-- 21 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 98 tests
+- 22 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 99 tests
 
 ### Planned
 
