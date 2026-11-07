@@ -188,6 +188,162 @@ test('Research workspace contains wide data tables on a tablet viewport', async 
   expect(['auto', 'scroll']).toContain(layout.tableOverflow);
 });
 
+test('teacher-reviewed recommendations persist locally and export an audit record', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+
+  await expect(page.locator('#researchPracticeBody')).toContainText('More observations needed');
+  await expect(page.locator('#researchRecommendationSummary')).toContainText('Continue focused practice');
+  await setValue(page, 'recommendationDecision', 'adjusted');
+  await setValue(page, 'recommendationOverrideTask', 'find-category');
+  await setValue(page, 'recommendationOverrideLevel', 5);
+  await page.locator('#recommendationReviewNote').fill('Use familiar animal photos and review after two short sessions.');
+  await page.locator('#saveRecommendationReviewBtn').click();
+
+  await expect(page.locator('#recommendationReviewStatus')).toContainText('adjusted');
+  await expect(page.locator('#researchRecommendationBody')).toContainText('Find category');
+  await expect(page.locator('#researchRecommendationBody')).toContainText('Use familiar animal photos');
+
+  await page.reload();
+  await expect(page.locator('#beginFlow')).toBeVisible();
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#refreshResearchBtn').click();
+  await expect(page.locator('#researchRecommendationBody')).toContainText('Use familiar animal photos');
+
+  const payload = await downloadJsonAfter(page, () => page.locator('#adminExportSessionBtn').evaluate(node => node.click()));
+  const review = payload.learner_profile.reviews.at(-1);
+  expect(review).toEqual(expect.objectContaining({
+    decision: 'adjusted',
+    note: 'Use familiar animal photos and review after two short sessions.'
+  }));
+  expect(review.final_plan).toEqual(expect.objectContaining({ task_kind: 'find-category', level: 5 }));
+  expect(payload.practice_status_version).toBe('1.0.0');
+  expect(payload.recommendation_version).toBe('1.0.0');
+  expect(payload.local_recommendation_summary.external_transmission).toBe(false);
+});
+
+test('current-learner research does not merge pupils that share an export alias', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+  await setValue(page, 'pupilAlias', 'Shared Alias');
+
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+
+  await page.locator('#newPupilName').fill('Pupil B');
+  await page.locator('#addPupil').click();
+  await expect(page.locator('#pupilSelect')).toHaveValue('Pupil B');
+  await setValue(page, 'pupilAlias', 'Shared Alias');
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+
+  await setValue(page, 'pupilSelect', 'Pupil A');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#refreshResearchBtn').click();
+  await expect(page.locator('#researchSessionCount')).toHaveText('1');
+  await expect(page.locator('#researchTrialCount')).toHaveText('1');
+
+  const payload = await downloadJsonAfter(page, () => page.locator('#adminExportSessionBtn').evaluate(node => node.click()));
+  expect(payload.pupil).toBe('Pupil B');
+  expect(payload.learner_profile.name).toBe('Pupil B');
+  expect(payload.trials.every(trial => trial.learner === 'Pupil B')).toBe(true);
+});
+
+test('Research labels a spaced follow-up as an observed retention comparison', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 3);
+
+  async function completeThreeQuestions(){
+    for(let index = 0; index < 3; index += 1){
+      const target = page.locator('#choiceGrid [data-role="correct-target"]').first();
+      await expect(target).toBeVisible();
+      await target.click();
+      if(index < 2) await expect(page.locator('#qIndex')).toHaveText(`${index + 2} / 3`);
+    }
+    await expect(page.locator('#screenSummary.active')).toBeVisible();
+  }
+
+  await page.locator('#quickStartSessionBtn').click();
+  await completeThreeQuestions();
+  const first = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  await page.evaluate(async sessionId => {
+    const database = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('choice_train_runtime_v2');
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const record = await new Promise((resolve, reject) => {
+      const transaction = database.transaction('sessions', 'readonly');
+      const request = transaction.objectStore('sessions').get(sessionId);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const offset = 8 * 24 * 60 * 60 * 1000;
+    record.updated_at_wall_ms -= offset;
+    record.trials.forEach(trial => {
+      ['cue_onset_wall_ms', 'stimulus_onset_wall_ms', 'response_wall_ms', 'feedback_onset_wall_ms'].forEach(field => {
+        if(Number.isFinite(trial[field])) trial[field] -= offset;
+      });
+    });
+    await new Promise((resolve, reject) => {
+      const transaction = database.transaction('sessions', 'readwrite');
+      transaction.objectStore('sessions').put(record);
+      transaction.oncomplete = resolve;
+      transaction.onerror = () => reject(transaction.error);
+    });
+    database.close();
+  }, first.session_id);
+
+  await page.locator('#summaryRestart').click();
+  await completeThreeQuestions();
+  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#refreshResearchBtn').click();
+
+  await expect(page.locator('#researchPracticeBody')).toContainText('Similar at spaced observation');
+  await expect(page.locator('#researchPracticeBody')).toContainText('8d gap');
+  await expect(page.locator('#researchPracticeBody')).not.toContainText('mastery');
+});
+
 test('Research view keeps same-numbered questions from separate sessions distinct', async ({ page }) => {
   const errors = trackErrors(page);
   await gotoAlpha(page);

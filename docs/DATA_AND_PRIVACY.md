@@ -35,6 +35,10 @@ Staff should treat presentation preferences as access settings, not diagnoses. C
 
 Research mode prepares structured local markers and exports. It does not connect to EEG hardware or provide clinical interpretation. Any future device synchronisation, cloud recommendation, or LLM feature requires separate ethics, safeguarding, information-governance, and security review.
 
+The V1.8 alpha can create deterministic local planning proposals and store teacher review decisions. These records include educational performance summaries, reviewer notes, and final task/level choices, so schools should apply the same access, retention, minimisation, and export controls used for session records. The proposal engine is rule based; it does not call an external AI or apply changes without teacher action.
+
+V1.8 snapshots session identity and context at Start. Changing the selected pupil later does not relabel an existing session or its export. Aliases are pseudonymous display values, not guaranteed unique identifiers; longitudinal filtering uses the local pupil profile name when available and only falls back to alias for legacy records.
+
 The alpha adds `audio_onset` and `reward_onset` browser markers. They provide event context for protocol development but are not substitutes for hardware triggers or measured end-to-end timing validation. See [DATA_DICTIONARY.md](DATA_DICTIONARY.md) for field meanings and [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md) for pre-promotion checks.
 
 ## Incident Reporting

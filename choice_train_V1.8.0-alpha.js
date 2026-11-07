@@ -32,6 +32,8 @@
   const SKILL_GRAPH_VERSION = '1.0.0';
   const GENERATOR_VERSION = '1.0.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
+  const PRACTICE_STATUS_VERSION = '1.0.0';
+  const RECOMMENDATION_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
   const MAX_IMPORT_FILES = 100;
   const MAX_IMAGE_FILE_BYTES = 12 * 1024 * 1024;
@@ -416,10 +418,12 @@
     adminPage: 'overview',
     phase: 'idle',
     sessionId: '',
+    sessionSnapshot: null,
     lessonPlanId: null,
     lessonPlan: null,
     lessonSeed: null,
     lessonSeedSource: null,
+    activeRecommendation: null,
     sessionStartMs: 0,
     questionIndex: 0,
     attemptIndex: 0,
@@ -800,7 +804,7 @@
     const hasOverride = overrideText !== '' && Number.isFinite(overrideValue) && overrideValue > 0;
     state.lessonSeed = hasOverride
       ? ((Math.floor(overrideValue) >>> 0) || 1)
-      : hashStringToSeed(`${GENERATOR_VERSION}|${state.sessionId}|${currentPupilAlias()}|${state.currentLevel}|${state.sessionTaskType}`);
+      : hashStringToSeed(`${GENERATOR_VERSION}|${state.sessionId}|${sessionPupilAlias()}|${state.currentLevel}|${state.sessionTaskType}`);
     state.lessonSeedSource = hasOverride ? 'admin-override' : 'session-generated';
     state.lessonPlanId = `lesson-${state.lessonSeed.toString(16).padStart(8, '0')}-${state.sessionId.slice(0, 8)}`;
     state.lessonPlan = {
@@ -810,7 +814,7 @@
       generator_version: GENERATOR_VERSION,
       generator_mode: 'deterministic-seeded',
       constraints: {
-        learner_alias: currentPupilAlias(),
+        learner_alias: sessionPupilAlias(),
         level: state.currentLevel,
         task_mode: state.sessionTaskType,
         total_questions: state.totalQuestions,
@@ -840,7 +844,7 @@
       generator_version: GENERATOR_VERSION,
       generator_mode: 'deterministic-seeded',
       constraints: {
-        learner_alias: currentPupilAlias(),
+        learner_alias: sessionPupilAlias(),
         level: state.currentLevel,
         task_mode: selectedSessionTaskMode(),
         total_questions: state.totalQuestions,
@@ -1066,25 +1070,37 @@
 
   function schoolExportFilename(suffix='session', extension='json'){
     const stamp = schoolTimestampParts();
-    return `ChoiceTrain_${safeFilenamePart(currentPupilAlias())}_${stamp.date}_${stamp.time}_${suffix}.${extension}`;
+    return `ChoiceTrain_${safeFilenamePart(state.trials.length ? sessionPupilAlias() : currentPupilAlias())}_${stamp.date}_${stamp.time}_${suffix}.${extension}`;
   }
 
   // Local-only structured summary reserved for future LLM-assisted recommendations.
   // No session data is currently sent externally from this static build.
   function buildLocalRecommendationSummary(summary=analyticsSummary()){
+    const learnerName = state.trials.length ? sessionPupilName() : currentPupilName();
+    const learnerAlias = state.trials.length ? sessionPupilAlias() : currentPupilAlias();
+    const sessions = planningSessionsForLearner(learnerName, learnerAlias);
+    const practiceStates = skillPracticeStatesForSessions(sessions);
+    const proposal = recommendationForSessions(sessions, learnerAlias);
+    const learner = normalizeLearner(learnerName, state.learners[learnerName] || (state.sessionSnapshot && state.sessionSnapshot.learner_profile) || {});
+    const photoMetadata = state.trials.length && state.sessionSnapshot
+      ? state.sessionSnapshot.photo_library_metadata || []
+      : photoLibraryMetadata();
     return {
       local_only: true,
       external_transmission: false,
+      recommendation_version: RECOMMENDATION_VERSION,
+      practice_status_version: PRACTICE_STATUS_VERSION,
       learner_level: state.currentLevel,
       recent_accuracy_pct: summary.accuracy_pct,
       recent_reaction_time_ms: summary.mean_rt_ms || null,
       prompt_support_used: summary.prompted_success_count,
-      preferred_content: photoLibraryMetadata().slice(0, 6).map(item => item.label),
-      recent_theme: currentThemeChoice(),
-      recent_context_notes: currentContextNotes(),
-      suggested_next_session: summary.accuracy_pct >= 80 && summary.omission_count === 0
-        ? 'Continue to the next level with the same theme and personalised content.'
-        : 'Repeat the current level with familiar content, generous support, and a short session.'
+      preferred_content: photoMetadata.slice(0, 6).map(item => item.label),
+      recent_theme: state.trials.length && state.sessionSnapshot ? state.sessionSnapshot.theme_used : currentThemeChoice(),
+      recent_context_notes: state.trials.length && state.sessionSnapshot ? state.sessionSnapshot.context_notes : currentContextNotes(),
+      practice_states: practiceStates,
+      suggested_next_session: proposal,
+      teacher_review_history: learner.reviews.slice(-20),
+      interpretation_boundary: 'Local planning structure only. Teacher review is required and no data is sent to an external model.'
     };
   }
 
@@ -1141,6 +1157,28 @@
     return state.currentPupil && state.currentPupil.name
       ? state.currentPupil.name
       : (ui.pupilAlias && ui.pupilAlias.value.trim()) || 'Unknown';
+  }
+
+  function sessionPupilName(){
+    return state.sessionSnapshot && state.sessionSnapshot.learner
+      ? state.sessionSnapshot.learner
+      : currentPupilName();
+  }
+
+  function sessionPupilAlias(){
+    return state.sessionSnapshot && state.sessionSnapshot.learner_alias
+      ? state.sessionSnapshot.learner_alias
+      : currentPupilAlias();
+  }
+
+  function clonePlain(value){
+    return value == null ? value : JSON.parse(JSON.stringify(value));
+  }
+
+  function sessionMatchesLearner(session, learnerName=currentPupilName(), learnerAlias=currentPupilAlias()){
+    const storedName = String(session && session.learner || '').trim();
+    if(storedName) return storedName === learnerName;
+    return !!learnerAlias && String(session && session.learner_alias || '').trim() === learnerAlias;
   }
 
   function getAdaptiveTouchScale(){
@@ -1516,7 +1554,8 @@
       code: EEG_EVENT_CODES[name] || 0,
       name,
       session_id: state.sessionId,
-      learner: currentPupilName(),
+      learner: sessionPupilName(),
+      learner_alias: sessionPupilAlias(),
       t_rel_ms: markerTimeRelativeMs(),
       t_wall_ms: wallMs(),
       t_perf_ms: Math.round(nowMs()),
@@ -3080,7 +3119,7 @@
   }
 
   function buildSeededQuestion(index){
-    const lessonSeed = state.lessonSeed || hashStringToSeed(`${state.sessionId}|${currentPupilAlias()}|${state.currentLevel}`);
+    const lessonSeed = state.lessonSeed || hashStringToSeed(`${state.sessionId}|${sessionPupilAlias()}|${state.currentLevel}`);
     const questionSeed = hashStringToSeed(`${GENERATOR_VERSION}|${lessonSeed}|question-${index}`);
     const previousRandom = state.runtime.questionRandom;
     state.runtime.questionRandom = createSeededRandom(questionSeed);
@@ -3418,7 +3457,8 @@
       id: uuid4(),
       type,
       session_id: state.sessionId,
-      pupil_alias: currentPupilName(),
+      learner: sessionPupilName(),
+      pupil_alias: sessionPupilAlias(),
       level: state.currentLevel,
       t_wall_ms: wallMs(),
       t_perf_ms: Math.round(nowMs()),
@@ -3466,8 +3506,8 @@
       generator_version: GENERATOR_VERSION,
       generator_mode: question.generatorMode || 'legacy-stochastic',
       generator_constraints: generatorConstraintsForQuestion(question),
-      learner: currentPupilName(),
-      learner_alias: currentPupilAlias(),
+      learner: sessionPupilName(),
+      learner_alias: sessionPupilAlias(),
       level: state.currentLevel,
       question_index: question.questionIndex,
       attempt_index: attemptIndex,
@@ -4736,6 +4776,332 @@
     };
   }
 
+  function sessionObservedAt(session){
+    const direct = Number(session && session.updated_at_wall_ms);
+    if(Number.isFinite(direct)) return direct;
+    const trialTimes = latestTrialsByQuestion((session && session.trials) || [])
+      .flatMap(trial => [trial.response_wall_ms, trial.stimulus_onset_wall_ms, trial.cue_onset_wall_ms])
+      .filter(Number.isFinite);
+    return trialTimes.length ? Math.max(...trialTimes) : null;
+  }
+
+  function percentage(numerator, denominator){
+    return denominator > 0 ? Math.round((numerator / denominator) * 100) : null;
+  }
+
+  function practiceStatusLabel(status){
+    const labels = {
+      'not-scored': 'Not scored',
+      'insufficient-sample': 'More observations needed',
+      'needs-support': 'Needs additional support',
+      developing: 'Developing in current sample',
+      'consistent-current-sample': 'Consistent in current sample'
+    };
+    return labels[status] || status;
+  }
+
+  function retentionStatusLabel(status){
+    const labels = {
+      'not-observed': 'No spaced check observed',
+      'spaced-sample-small': 'Spaced sample too small',
+      'observed-lower': 'Lower at spaced observation',
+      'observed-similar': 'Similar at spaced observation',
+      'observed-higher': 'Higher at spaced observation'
+    };
+    return labels[status] || status;
+  }
+
+  function trendStatusLabel(status){
+    const labels = {
+      'not-enough-data': 'Not enough data',
+      lower: 'Lower in latest observation',
+      similar: 'Broadly similar',
+      higher: 'Higher in latest observation'
+    };
+    return labels[status] || status;
+  }
+
+  function supportDirectionLabel(status){
+    const labels = {
+      'consider-fading-one-step': 'Consider fading one prompt step',
+      'hold-current-support': 'Hold current support',
+      'increase-or-simplify': 'Increase support or simplify demand',
+      'observe-before-changing': 'Observe before changing support'
+    };
+    return labels[status] || status;
+  }
+
+  function skillPracticeStatesForSessions(sessions, generatedAtWallMs=wallMs()){
+    const ordered = (Array.isArray(sessions) ? sessions : [])
+      .map(session => ({ session, observedAt: sessionObservedAt(session) }))
+      .filter(item => Number.isFinite(item.observedAt))
+      .sort((a, b) => a.observedAt - b.observedAt);
+    const bySkill = new Map();
+
+    ordered.forEach(({ session, observedAt }) => {
+      const summary = researchSummaryForTrials(session.trials || [], observedAt);
+      summary.skill_summaries.forEach(skill => {
+        if(!bySkill.has(skill.skill_id)){
+          bySkill.set(skill.skill_id, {
+            skill_id: skill.skill_id,
+            label: skill.label,
+            observations: []
+          });
+        }
+        bySkill.get(skill.skill_id).observations.push({
+          session_id: session.session_id || '',
+          observed_at_wall_ms: observedAt,
+          level: session.summary && Number.isFinite(session.summary.current_level)
+            ? session.summary.current_level
+            : null,
+          opportunities: skill.opportunities,
+          scored_opportunities: skill.scored_opportunities,
+          correct: skill.correct,
+          independent_correct: skill.independent_correct,
+          assisted_correct: skill.assisted_correct,
+          omissions: skill.omissions,
+          commissions: skill.commissions,
+          median_reaction_time_ms: skill.median_reaction_time_ms,
+          highest_prompt_level: skill.highest_prompt_level
+        });
+      });
+    });
+
+    return Array.from(bySkill.values()).map(item => {
+      const observations = item.observations;
+      const recent = observations.slice(-3);
+      const totalOpportunities = observations.reduce((sum, entry) => sum + entry.opportunities, 0);
+      const totalScored = observations.reduce((sum, entry) => sum + entry.scored_opportunities, 0);
+      const recentScored = recent.reduce((sum, entry) => sum + entry.scored_opportunities, 0);
+      const recentCorrect = recent.reduce((sum, entry) => sum + entry.correct, 0);
+      const recentIndependent = recent.reduce((sum, entry) => sum + entry.independent_correct, 0);
+      const recentAccuracy = percentage(recentCorrect, recentScored);
+      const recentIndependentPct = percentage(recentIndependent, recentScored);
+      const recentOmissions = recent.reduce((sum, entry) => sum + entry.omissions, 0);
+      const recentCommissions = recent.reduce((sum, entry) => sum + entry.commissions, 0);
+      const latest = observations[observations.length - 1];
+      const daysSince = Number.isFinite(latest.observed_at_wall_ms)
+        ? Math.max(0, Math.floor((generatedAtWallMs - latest.observed_at_wall_ms) / 86400000))
+        : null;
+
+      let practiceStatus = 'not-scored';
+      if(totalScored > 0){
+        if(totalScored < 5 || observations.length < 2) practiceStatus = 'insufficient-sample';
+        else if(recentAccuracy != null && recentAccuracy < 60) practiceStatus = 'needs-support';
+        else if(recentScored >= 8 && recentAccuracy >= 80 && recentIndependentPct >= 70) practiceStatus = 'consistent-current-sample';
+        else practiceStatus = 'developing';
+      }
+
+      let trendStatus = 'not-enough-data';
+      if(observations.length >= 2){
+        const first = observations[0];
+        const firstAccuracy = percentage(first.correct, first.scored_opportunities);
+        const latestAccuracy = percentage(latest.correct, latest.scored_opportunities);
+        if(firstAccuracy != null && latestAccuracy != null && first.scored_opportunities >= 2 && latest.scored_opportunities >= 2){
+          const difference = latestAccuracy - firstAccuracy;
+          trendStatus = difference >= 10 ? 'higher' : difference <= -10 ? 'lower' : 'similar';
+        }
+      }
+
+      let retentionStatus = 'not-observed';
+      let retentionGapDays = null;
+      let retentionDifferencePct = null;
+      for(let laterIndex = observations.length - 1; laterIndex > 0; laterIndex -= 1){
+        const later = observations[laterIndex];
+        const earlier = observations.slice(0, laterIndex).reverse().find(candidate => (
+          later.observed_at_wall_ms - candidate.observed_at_wall_ms >= 7 * 86400000
+        ));
+        if(!earlier) continue;
+        retentionGapDays = Math.floor((later.observed_at_wall_ms - earlier.observed_at_wall_ms) / 86400000);
+        if(earlier.scored_opportunities < 3 || later.scored_opportunities < 3){
+          retentionStatus = 'spaced-sample-small';
+        } else {
+          const earlierAccuracy = percentage(earlier.correct, earlier.scored_opportunities);
+          const laterAccuracy = percentage(later.correct, later.scored_opportunities);
+          retentionDifferencePct = laterAccuracy - earlierAccuracy;
+          retentionStatus = retentionDifferencePct >= 10
+            ? 'observed-higher'
+            : retentionDifferencePct <= -10
+              ? 'observed-lower'
+              : 'observed-similar';
+        }
+        break;
+      }
+
+      let supportDirection = 'observe-before-changing';
+      if(recentScored >= 5){
+        if(recentAccuracy >= 80 && recentIndependentPct >= 70) supportDirection = 'consider-fading-one-step';
+        else if(recentAccuracy != null && (recentAccuracy < 60 || recentOmissions + recentCommissions > 0)) supportDirection = 'increase-or-simplify';
+        else supportDirection = 'hold-current-support';
+      }
+
+      return {
+        version: PRACTICE_STATUS_VERSION,
+        skill_id: item.skill_id,
+        label: item.label,
+        practice_status: practiceStatus,
+        practice_status_label: practiceStatusLabel(practiceStatus),
+        sessions_observed: observations.length,
+        opportunities: totalOpportunities,
+        scored_opportunities: totalScored,
+        recent_window_sessions: recent.length,
+        recent_scored_opportunities: recentScored,
+        recent_accuracy_pct: recentAccuracy,
+        recent_independent_success_pct: recentIndependentPct,
+        recent_omissions: recentOmissions,
+        recent_commissions: recentCommissions,
+        last_practised_wall_ms: latest.observed_at_wall_ms,
+        days_since_last_practice: daysSince,
+        trend_status: trendStatus,
+        trend_status_label: trendStatusLabel(trendStatus),
+        retention_status: retentionStatus,
+        retention_status_label: retentionStatusLabel(retentionStatus),
+        retention_gap_days: retentionGapDays,
+        retention_difference_pct: retentionDifferencePct,
+        support_direction: supportDirection,
+        support_direction_label: supportDirectionLabel(supportDirection),
+        observations
+      };
+    }).sort((a, b) => a.skill_id.localeCompare(b.skill_id));
+  }
+
+  function preferredTaskKindForSkill(skillId){
+    const preferredOrder = [
+      'touch-screen', 'touch-object', 'moving-target', 'find-object', 'discriminate-object', 'find-category',
+      'choice-preference', 'cpat-sustained', 'cpat-selective', 'cpat-orienting', 'cpat-executive'
+    ];
+    return preferredOrder.find(kind => (TASK_SKILL_IDS[kind] || []).includes(skillId)) || 'auto';
+  }
+
+  function latestLevelFromSessions(sessions){
+    const ordered = (Array.isArray(sessions) ? sessions : [])
+      .slice()
+      .sort((a, b) => Number(sessionObservedAt(a) || 0) - Number(sessionObservedAt(b) || 0));
+    const latest = ordered[ordered.length - 1];
+    if(!latest) return state.currentLevel;
+    if(latest.summary && Number.isFinite(latest.summary.current_level)) return latest.summary.current_level;
+    const trial = latestTrialsByQuestion(latest.trials || []).slice(-1)[0];
+    return trial && Number.isFinite(trial.level) ? trial.level : state.currentLevel;
+  }
+
+  function recommendationActionLabel(action){
+    const labels = {
+      'collect-baseline': 'Collect a short baseline',
+      'run-spaced-check': 'Run a spaced retention check',
+      'strengthen-support': 'Strengthen support and simplify demand',
+      'continue-practice': 'Continue focused practice',
+      'extend-practice': 'Consider extending to the next linked skill'
+    };
+    return labels[action] || action;
+  }
+
+  function recommendationForSessions(sessions, learnerAlias=currentPupilAlias(), generatedAtWallMs=wallMs()){
+    const usableSessions = Array.isArray(sessions) ? sessions : [];
+    const states = skillPracticeStatesForSessions(usableSessions, generatedAtWallMs);
+    const scoredStates = states.filter(item => item.scored_opportunities > 0);
+    let selected = null;
+    let action = 'collect-baseline';
+    const rationaleCodes = [];
+    const rationale = [];
+
+    const dueRetention = scoredStates
+      .filter(item => item.days_since_last_practice >= 7)
+      .sort((a, b) => b.days_since_last_practice - a.days_since_last_practice)[0];
+    const needsSupport = scoredStates
+      .filter(item => item.practice_status === 'needs-support')
+      .sort((a, b) => (a.recent_accuracy_pct || 0) - (b.recent_accuracy_pct || 0))[0];
+    const developing = scoredStates
+      .filter(item => ['developing', 'insufficient-sample'].includes(item.practice_status))
+      .sort((a, b) => a.scored_opportunities - b.scored_opportunities)[0];
+    const consistent = scoredStates
+      .filter(item => item.practice_status === 'consistent-current-sample')
+      .sort((a, b) => b.recent_independent_success_pct - a.recent_independent_success_pct)[0];
+
+    if(dueRetention){
+      selected = dueRetention;
+      action = 'run-spaced-check';
+      rationaleCodes.push('SPACED_CHECK_DUE');
+      rationale.push(`${dueRetention.label} was last observed ${dueRetention.days_since_last_practice} day(s) ago; a short check can provide an observed retention comparison.`);
+    } else if(needsSupport){
+      selected = needsSupport;
+      action = 'strengthen-support';
+      rationaleCodes.push('RECENT_ACCURACY_BELOW_60');
+      rationale.push(`${needsSupport.label} has ${needsSupport.recent_accuracy_pct}% accuracy in the latest three-session window.`);
+      if(needsSupport.recent_omissions > 0) {
+        rationaleCodes.push('RECENT_OMISSIONS');
+        rationale.push(`${needsSupport.recent_omissions} omission(s) were observed in that window.`);
+      }
+    } else if(developing){
+      selected = developing;
+      action = 'continue-practice';
+      rationaleCodes.push(developing.practice_status === 'insufficient-sample' ? 'MORE_OBSERVATIONS_NEEDED' : 'DEVELOPING_CURRENT_SAMPLE');
+      rationale.push(`${developing.label} needs more repeated observations before support or progression is changed.`);
+    } else if(consistent){
+      selected = consistent;
+      action = 'extend-practice';
+      rationaleCodes.push('CONSISTENT_CURRENT_SAMPLE');
+      rationale.push(`${consistent.label} is consistent in the current sample with ${consistent.recent_accuracy_pct}% recent accuracy and ${consistent.recent_independent_success_pct}% independent success.`);
+    } else {
+      rationaleCodes.push('NO_SCORED_HISTORY');
+      rationale.push('No scored skill history is available for a longitudinal proposal yet.');
+    }
+
+    const recommendedLevel = clamp(latestLevelFromSessions(usableSessions), 1, 10);
+    const recommendedTask = selected ? preferredTaskKindForSkill(selected.skill_id) : 'auto';
+    const sessionIds = usableSessions.map(session => session.session_id).filter(Boolean).sort();
+    const idSeed = [
+      RECOMMENDATION_VERSION, learnerAlias, sessionIds.join(','), action,
+      selected ? selected.skill_id : 'baseline', recommendedTask, recommendedLevel
+    ].join('|');
+    return {
+      recommendation_id: `rec-${hashStringToSeed(idSeed).toString(16).padStart(8, '0')}`,
+      version: RECOMMENDATION_VERSION,
+      generated_at_wall_ms: generatedAtWallMs,
+      learner_alias: learnerAlias,
+      source_session_ids: sessionIds,
+      action,
+      action_label: recommendationActionLabel(action),
+      skill_id: selected ? selected.skill_id : null,
+      skill_label: selected ? selected.label : 'General baseline',
+      recommended_task_kind: recommendedTask,
+      recommended_task_label: recommendedTask === 'auto' ? 'Auto level path' : taskLabel(recommendedTask),
+      recommended_level: recommendedLevel,
+      support_direction: selected ? selected.support_direction : 'observe-before-changing',
+      support_direction_label: selected ? selected.support_direction_label : supportDirectionLabel('observe-before-changing'),
+      rationale_codes: rationaleCodes,
+      rationale,
+      metrics_snapshot: selected ? {
+        practice_status: selected.practice_status,
+        sessions_observed: selected.sessions_observed,
+        scored_opportunities: selected.scored_opportunities,
+        recent_accuracy_pct: selected.recent_accuracy_pct,
+        recent_independent_success_pct: selected.recent_independent_success_pct,
+        days_since_last_practice: selected.days_since_last_practice,
+        retention_status: selected.retention_status
+      } : null,
+      review_required: true,
+      external_transmission: false,
+      interpretation_boundary: 'Planning proposal only. A teacher must review it; it is not a diagnostic, mastery, transfer, or neural-plasticity conclusion.'
+    };
+  }
+
+  function planningSessionsForLearner(learnerName=currentPupilName(), learnerAlias=currentPupilAlias()){
+    const sessions = state.history.sessions
+      .filter(session => session.session_id !== state.sessionId)
+      .filter(session => sessionMatchesLearner(session, learnerName, learnerAlias));
+    if(state.trials.length && sessionPupilName() === learnerName){
+      sessions.push({
+        session_id: state.sessionId,
+        learner: sessionPupilName(),
+        learner_alias: sessionPupilAlias(),
+        updated_at_wall_ms: wallMs(),
+        summary: analyticsSummary(),
+        trials: state.trials.slice()
+      });
+    }
+    return sessions.sort((a, b) => Number(sessionObservedAt(a) || 0) - Number(sessionObservedAt(b) || 0));
+  }
+
   function analyticsSummary(){
     const cacheKey = `${state.sessionId}|${state.trials.length}|${state.currentLevel}|${state.questionIndex}|${state.history.revision}`;
     if(state.cache.summaryKey === cacheKey && state.cache.summaryValue) return state.cache.summaryValue;
@@ -4767,7 +5133,7 @@
       rt_sd_ms: byDomain[key].rt.length ? Math.round(standardDeviation(byDomain[key].rt)) : 0
     }));
     const summary = {
-      learner: currentPupilName(),
+      learner: sessionPupilName(),
       task_kind: selectedSessionTaskMode(),
       task_label: taskLabel(selectedSessionTaskMode()),
       questions_answered: finalTrials.length,
@@ -4915,21 +5281,24 @@
 
   function buildSessionRecord(){
     const summary = analyticsSummary();
+    const snapshot = state.sessionSnapshot;
     return {
       session_id: state.sessionId,
-      learner: currentPupilName(),
-      learner_alias: currentPupilAlias(),
+      learner: sessionPupilName(),
+      learner_alias: sessionPupilAlias(),
       build: buildExportMeta(),
       schema_version: DATA_SCHEMA_VERSION,
       skill_graph_version: SKILL_GRAPH_VERSION,
       generator_version: GENERATOR_VERSION,
       research_summary_version: RESEARCH_SUMMARY_VERSION,
+      practice_status_version: PRACTICE_STATUS_VERSION,
+      recommendation_version: RECOMMENDATION_VERSION,
       lesson_plan_id: currentLessonPlanId(),
       lesson_seed: state.lessonSeed,
       lesson_plan: lessonPlanSnapshot(),
       skill_graph: skillGraphSnapshot(),
-      settings: settingsSnapshot(),
-      learner_snapshot: currentLearnerRecord(),
+      settings: snapshot ? clonePlain(snapshot.settings) : settingsSnapshot(),
+      learner_snapshot: snapshot ? clonePlain(snapshot.learner_profile) : currentLearnerRecord(),
       summary,
       research_summary: researchSummaryForTrials(state.trials),
       fidelity: fidelitySnapshot(),
@@ -4938,13 +5307,14 @@
       block_summaries: buildBlockSummaries(),
       events: state.logs.slice(),
       trials: state.trials.slice(),
-      context_notes: currentContextNotes(),
-      classroom_transfer_notes: ui.classroomTransferNotes.value || '',
-      theme_used: currentThemeChoice(),
-      student_friendly_mode: studentFriendlyModeEnabled(),
+      context_notes: snapshot ? snapshot.context_notes : currentContextNotes(),
+      classroom_transfer_notes: snapshot ? snapshot.classroom_transfer_notes : (ui.classroomTransferNotes.value || ''),
+      theme_used: snapshot ? snapshot.theme_used : currentThemeChoice(),
+      sensory_preferences: snapshot ? clonePlain(snapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
+      student_friendly_mode: snapshot ? snapshot.student_friendly_mode : studentFriendlyModeEnabled(),
       content_configuration: exportableContentConfiguration(),
       local_recommendation_summary: buildLocalRecommendationSummary(summary),
-      photo_library_metadata: photoLibraryMetadata(),
+      photo_library_metadata: snapshot ? clonePlain(snapshot.photo_library_metadata) : photoLibraryMetadata(),
       archived: false,
       updated_at_wall_ms: wallMs()
     };
@@ -5314,7 +5684,7 @@
     const learner = currentPupilName();
     return getKnownSessionRecords(true)
       .filter(session => includeArchived || !session.archived)
-      .filter(session => scope !== 'current-learner' || session.learner === learner || session.learner_alias === currentPupilAlias())
+      .filter(session => scope !== 'current-learner' || sessionMatchesLearner(session, learner, currentPupilAlias()))
       .sort((a, b) => Number(a.updated_at_wall_ms || 0) - Number(b.updated_at_wall_ms || 0));
   }
 
@@ -5519,6 +5889,162 @@
     ctx.restore();
   }
 
+  function researchReviewsForSessions(sessions){
+    const scope = ui.researchScopeSelect ? ui.researchScopeSelect.value : 'current-learner';
+    const reviews = [];
+    Object.keys(state.learners).forEach(name => {
+      const learner = normalizeLearner(name, state.learners[name]);
+      if(scope === 'all-learners' || name === currentPupilName()){
+        learner.reviews.forEach(review => reviews.push({
+          ...review,
+          learner_name: review.learner_name || name,
+          learner_alias: review.learner_alias || learner.alias || name
+        }));
+      }
+    });
+    const unique = new Map();
+    reviews.forEach(review => unique.set(review.review_id || `${review.recommendation_id}|${review.reviewed_at_wall_ms}`, review));
+    return Array.from(unique.values()).sort((a, b) => Number(a.reviewed_at_wall_ms || 0) - Number(b.reviewed_at_wall_ms || 0));
+  }
+
+  function populateRecommendationTaskOptions(){
+    if(!ui.recommendationOverrideTask) return;
+    const current = ui.recommendationOverrideTask.value;
+    clearNode(ui.recommendationOverrideTask);
+    const defaultOption = document.createElement('option');
+    defaultOption.value = '';
+    defaultOption.textContent = 'Use proposed task';
+    ui.recommendationOverrideTask.appendChild(defaultOption);
+    Object.keys(TASK_META)
+      .filter(kind => kind !== 'cpat-suite')
+      .sort((a, b) => taskLabel(a).localeCompare(taskLabel(b)))
+      .forEach(kind => {
+        const option = document.createElement('option');
+        option.value = kind;
+        option.textContent = taskLabel(kind);
+        ui.recommendationOverrideTask.appendChild(option);
+      });
+    if(Array.from(ui.recommendationOverrideTask.options).some(option => option.value === current)){
+      ui.recommendationOverrideTask.value = current;
+    }
+  }
+
+  function renderRecommendationResearch(sessions, proposal){
+    if(!ui.researchRecommendationSummary) return;
+    state.activeRecommendation = proposal;
+    const taskText = proposal.recommended_task_kind === 'auto' ? 'Auto level path' : proposal.recommended_task_label;
+    ui.researchRecommendationSummary.textContent = `${proposal.action_label}: ${proposal.skill_label}. Suggested task: ${taskText}, Level ${proposal.recommended_level}. Support direction: ${proposal.support_direction_label}. Teacher review is required.`;
+    clearNode(ui.researchRecommendationRationale);
+    proposal.rationale.forEach(text => {
+      const item = document.createElement('li');
+      item.textContent = text;
+      ui.researchRecommendationRationale.appendChild(item);
+    });
+
+    const reviews = researchReviewsForSessions(sessions);
+    const currentReviews = reviews.filter(review => review.recommendation_id === proposal.recommendation_id);
+    const latestReview = currentReviews[currentReviews.length - 1];
+    ui.recommendationReviewStatus.textContent = latestReview
+      ? `Latest decision: ${latestReview.decision} on ${new Date(latestReview.reviewed_at_wall_ms).toLocaleString()}. Saving again creates an auditable revision.`
+      : 'No review saved for this proposal.';
+
+    const decisionRows = ['approved', 'adjusted', 'declined'].map(decision => ({
+      label: decision,
+      value: reviews.filter(review => review.decision === decision).length,
+      color: decision === 'approved' ? themeToken('success') : decision === 'declined' ? themeToken('danger') : themeToken('warning')
+    }));
+    drawResearchBars(ui.researchRecommendationChart, decisionRows, { labelWidth: 120 });
+    if(reviews.length){
+      clearNode(ui.researchRecommendationBody);
+      reviews.forEach(review => appendResearchRow(ui.researchRecommendationBody, [
+        researchDateLabel(Number(review.reviewed_at_wall_ms)),
+        review.learner_alias || 'Unknown',
+        recommendationActionLabel(review.proposal && review.proposal.action),
+        review.proposal && review.proposal.skill_label,
+        review.decision,
+        review.final_plan && review.final_plan.task_label,
+        review.final_plan && review.final_plan.level,
+        review.note || 'No note'
+      ]));
+    } else renderResearchEmptyRow(ui.researchRecommendationBody, 8, 'No teacher recommendation reviews in this scope yet.');
+  }
+
+  function saveRecommendationReview(){
+    const proposal = state.activeRecommendation;
+    if(!proposal){
+      flash('try', 'Refresh the Research view first');
+      return;
+    }
+    const name = currentPupilName();
+    if(!name || name === 'Unknown'){
+      flash('try', 'Select a pupil before reviewing');
+      return;
+    }
+    const decision = ui.recommendationDecision.value;
+    const overrideTask = ui.recommendationOverrideTask.value;
+    const overrideLevelText = String(ui.recommendationOverrideLevel.value || '').trim();
+    const overrideLevel = overrideLevelText === '' ? null : clamp(safeNumber(overrideLevelText, proposal.recommended_level), 1, 10);
+    const note = ui.recommendationReviewNote.value.trim();
+    if(decision === 'adjusted' && !overrideTask && overrideLevel == null && !note){
+      flash('try', 'Record the adjustment or add a note');
+      return;
+    }
+
+    const learner = currentLearnerRecord();
+    const previous = learner.reviews.filter(review => review.recommendation_id === proposal.recommendation_id).slice(-1)[0];
+    const finalTask = decision === 'adjusted' && overrideTask ? overrideTask : proposal.recommended_task_kind;
+    const finalLevel = decision === 'adjusted' && overrideLevel != null ? overrideLevel : proposal.recommended_level;
+    const review = {
+      review_id: uuid4(),
+      recommendation_id: proposal.recommendation_id,
+      recommendation_version: RECOMMENDATION_VERSION,
+      learner_name: name,
+      learner_alias: learner.alias || name,
+      reviewed_at_wall_ms: wallMs(),
+      reviewer: ui.staffMember.value.trim() || 'Not recorded',
+      decision,
+      note,
+      supersedes_review_id: previous ? previous.review_id : null,
+      proposal: {
+        action: proposal.action,
+        skill_id: proposal.skill_id,
+        skill_label: proposal.skill_label,
+        recommended_task_kind: proposal.recommended_task_kind,
+        recommended_level: proposal.recommended_level,
+        support_direction: proposal.support_direction,
+        rationale_codes: proposal.rationale_codes.slice(),
+        source_session_ids: proposal.source_session_ids.slice()
+      },
+      final_plan: {
+        task_kind: finalTask,
+        task_label: finalTask === 'auto' ? 'Auto level path' : taskLabel(finalTask),
+        level: finalLevel,
+        support_direction: proposal.support_direction
+      }
+    };
+    learner.reviews = learner.reviews.concat(review).slice(-100);
+    state.learners[name] = learner;
+    state.currentPupil = learner;
+    if(state.sessionSnapshot && state.sessionSnapshot.learner === name){
+      state.sessionSnapshot.learner_profile = clonePlain(learner);
+    }
+    saveLearners();
+    if(state.trials.length){
+      logEvent('recommendation_reviewed', {
+        recommendation_id: proposal.recommendation_id,
+        review_id: review.review_id,
+        decision,
+        final_task_kind: finalTask,
+        final_level: finalLevel
+      });
+    }
+    ui.recommendationReviewNote.value = '';
+    ui.recommendationOverrideTask.value = '';
+    ui.recommendationOverrideLevel.value = '';
+    renderResearchWorkspace();
+    flash('good', 'Teacher review saved locally');
+  }
+
   function renderResearchWorkspace(){
     if(!ui.researchScopeSelect) return;
     const sessions = researchSessionsInScope();
@@ -5596,6 +6122,40 @@
         item.mean_touch_distance_px == null ? null : `${item.mean_touch_distance_px} px`
       ]));
     } else renderResearchEmptyRow(ui.researchSkillBody, 10);
+
+    const practiceStates = skillPracticeStatesForSessions(sessions);
+    drawResearchBars(ui.researchPracticeChart, practiceStates.filter(item => item.recent_accuracy_pct != null).map(item => ({
+      label: item.label,
+      value: item.recent_accuracy_pct,
+      color: item.practice_status === 'consistent-current-sample'
+        ? themeToken('success')
+        : item.practice_status === 'needs-support'
+          ? themeToken('danger')
+          : themeToken('primary')
+    })), { maxValue: 100, suffix: '%', labelWidth: 190 });
+    if(practiceStates.length){
+      clearNode(ui.researchPracticeBody);
+      practiceStates.forEach(item => appendResearchRow(ui.researchPracticeBody, [
+        item.label,
+        item.practice_status_label,
+        item.sessions_observed,
+        item.opportunities,
+        item.recent_accuracy_pct == null ? 'Not scored' : `${item.recent_accuracy_pct}%`,
+        item.recent_independent_success_pct == null ? 'Not scored' : `${item.recent_independent_success_pct}%`,
+        item.last_practised_wall_ms ? `${researchDateLabel(item.last_practised_wall_ms)} (${item.days_since_last_practice}d ago)` : null,
+        item.trend_status_label,
+        item.retention_gap_days == null
+          ? item.retention_status_label
+          : `${item.retention_status_label} (${item.retention_gap_days}d gap)`,
+        item.support_direction_label
+      ]));
+    } else renderResearchEmptyRow(ui.researchPracticeBody, 10);
+
+    const currentAlias = currentPupilAlias();
+    const currentName = currentPupilName();
+    const currentLearnerSessions = sessions.filter(session => sessionMatchesLearner(session, currentName, currentAlias));
+    const proposal = recommendationForSessions(currentLearnerSessions, currentAlias);
+    renderRecommendationResearch(sessions, proposal);
 
     const supportOrder = ['independent', 'prompted', 'assisted', 'unknown'];
     const supportRows = supportOrder.map(status => {
@@ -5879,6 +6439,7 @@
     clearTimeout(state.timers.blank);
     clearTimeout(state.timers.session);
     state.sessionId = uuid4();
+    state.sessionSnapshot = null;
     state.lessonPlanId = null;
     state.lessonPlan = null;
     state.lessonSeed = null;
@@ -5942,6 +6503,7 @@
     clearTimeout(state.timers.blank);
     clearTimeout(state.timers.session);
     state.sessionId = uuid4();
+    state.sessionSnapshot = null;
     state.lessonPlanId = null;
     state.lessonPlan = null;
     state.lessonSeed = null;
@@ -5959,12 +6521,24 @@
     state.currentLevel = clamp(safeNumber(ui.startLevel.value, 1), 1, 10);
     state.sessionTaskType = ui.sessionTaskType.value === 'auto' ? 'auto' : ui.sessionTaskType.value;
     state.singleTargetRepetitions = clamp(safeNumber(ui.singleTargetReps.value, 3), 1, 10);
+    saveCurrentLearnerProfile();
+    state.sessionSnapshot = {
+      learner: currentPupilName(),
+      learner_alias: currentPupilAlias(),
+      learner_profile: clonePlain(currentLearnerRecord()),
+      settings: clonePlain(settingsSnapshot()),
+      context_notes: currentContextNotes(),
+      classroom_transfer_notes: ui.classroomTransferNotes.value || '',
+      theme_used: currentThemeChoice(),
+      sensory_preferences: clonePlain(sensoryPreferenceSnapshot()),
+      student_friendly_mode: studentFriendlyModeEnabled(),
+      photo_library_metadata: clonePlain(photoLibraryMetadata())
+    };
     initializeLessonPlan();
     state.sessionEndedEarly = false;
     state.blockPause = null;
     state.eeg.markers = [];
     clearBreakCountdown();
-    saveCurrentLearnerProfile();
     if(ui.sid) ui.sid.textContent = state.sessionId.slice(0, 8);
     createProgressTrack();
     logEvent('session_start', {
@@ -6014,6 +6588,7 @@
   async function exportLogs(){
     await persistCurrentSession();
     const summary = analyticsSummary();
+    const snapshot = state.sessionSnapshot;
     const payload = {
       app: APP_BUILD.app,
       build: buildExportMeta(),
@@ -6021,16 +6596,18 @@
       skill_graph_version: SKILL_GRAPH_VERSION,
       generator_version: GENERATOR_VERSION,
       research_summary_version: RESEARCH_SUMMARY_VERSION,
+      practice_status_version: PRACTICE_STATUS_VERSION,
+      recommendation_version: RECOMMENDATION_VERSION,
       lesson_plan_id: currentLessonPlanId(),
       lesson_seed: state.lessonSeed,
       lesson_plan: lessonPlanSnapshot(),
       skill_graph: skillGraphSnapshot(),
       exported_at_wall_ms: wallMs(),
       session_id: state.sessionId,
-      pupil: currentPupilName(),
-      pupil_alias: currentPupilAlias(),
+      pupil: sessionPupilName(),
+      pupil_alias: sessionPupilAlias(),
       session_overview: {
-        pupil_alias: currentPupilAlias(),
+        pupil_alias: sessionPupilAlias(),
         exported_date: schoolTimestampParts().date,
         exported_time: schoolTimestampParts().time,
         level: state.currentLevel,
@@ -6038,10 +6615,10 @@
         accuracy_pct: summary.accuracy_pct,
         mean_reaction_time_ms: summary.mean_rt_ms || null,
         mean_touch_distance_px: summary.mean_touch_distance_px == null ? null : Number(summary.mean_touch_distance_px.toFixed(1)),
-        context_notes: currentContextNotes(),
-        theme_used: currentThemeChoice(),
-        sensory_preferences: sensoryPreferenceSnapshot(),
-        student_friendly_mode: studentFriendlyModeEnabled(),
+        context_notes: snapshot ? snapshot.context_notes : currentContextNotes(),
+        theme_used: snapshot ? snapshot.theme_used : currentThemeChoice(),
+        sensory_preferences: snapshot ? clonePlain(snapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
+        student_friendly_mode: snapshot ? snapshot.student_friendly_mode : studentFriendlyModeEnabled(),
         blank_interval_enabled: blankIntervalEnabled(),
         blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
         support_level: state.promptState.highestLevel,
@@ -6051,19 +6628,19 @@
         lesson_plan_id: currentLessonPlanId(),
         lesson_seed: state.lessonSeed
       },
-      learner_profile: currentLearnerRecord(),
+      learner_profile: snapshot ? clonePlain(snapshot.learner_profile) : currentLearnerRecord(),
       summary,
       fidelity: fidelitySnapshot(),
       research_condition: researchCondition(),
       eeg_mode: eegModeEnabled(),
-      context_notes: currentContextNotes(),
-      theme_used: currentThemeChoice(),
-      sensory_preferences: sensoryPreferenceSnapshot(),
-      student_friendly_mode: studentFriendlyModeEnabled(),
+      context_notes: snapshot ? snapshot.context_notes : currentContextNotes(),
+      theme_used: snapshot ? snapshot.theme_used : currentThemeChoice(),
+      sensory_preferences: snapshot ? clonePlain(snapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
+      student_friendly_mode: snapshot ? snapshot.student_friendly_mode : studentFriendlyModeEnabled(),
       content_configuration: exportableContentConfiguration(),
       blank_interval_enabled: blankIntervalEnabled(),
       blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
-      photo_library_metadata: photoLibraryMetadata(),
+      photo_library_metadata: snapshot ? clonePlain(snapshot.photo_library_metadata) : photoLibraryMetadata(),
       local_recommendation_summary: buildLocalRecommendationSummary(summary),
       research_summary: researchSummaryForTrials(state.trials),
       eeg_marker_code_map: EEG_EVENT_CODES,
@@ -6088,11 +6665,12 @@
       app: APP_BUILD.app,
       build: buildExportMeta(),
       session_id: state.sessionId,
-      learner: currentPupilName(),
+      learner: sessionPupilName(),
+      learner_alias: sessionPupilAlias(),
       lesson_plan: lessonPlanSnapshot(),
       research_condition: researchCondition(),
       eeg_mode: eegModeEnabled(),
-      sensory_preferences: sensoryPreferenceSnapshot(),
+      sensory_preferences: state.sessionSnapshot ? clonePlain(state.sessionSnapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
       fidelity: fidelitySnapshot(),
       eeg_marker_code_map: EEG_EVENT_CODES,
       markers,
@@ -6223,6 +6801,7 @@
       await refreshStoredHistory();
       renderResearchWorkspace();
     });
+    bindAction(ui.saveRecommendationReviewBtn, saveRecommendationReview);
     bindAction(ui.copyBuildInfoBtn, async () => {
       if(await copyText(buildInfoClipboardText())){
         flash('good', 'Build copied');
@@ -6374,7 +6953,7 @@
       'moveSampleMs', 'dashboardRefreshMs', 'responseWindowSec', 'itiSec', 'useBlankInterval', 'blankIntervalSec',
       'eegResearchMode', 'autoBlockPauses',
       'allowLearnerHelp', 'allowLearnerBreak', 'allowLearnerStop', 'activeControlEnabled', 'eegBlockSize',
-      'eegAutoPauseSec', 'researchCondition', 'eegExportFormat', 'faceName', 'contextNotes', 'rewardChoice',
+      'eegAutoPauseSec', 'researchCondition', 'lessonSeedOverride', 'eegExportFormat', 'faceName', 'contextNotes', 'rewardChoice',
       'themeChoice', 'fontChoice', 'textScale', 'motionPreference', 'feedbackSoundMode', 'celebrationIntensity',
       'communicationSupportChoice', 'preSessionPreference',
       'communicationMode', 'motorAccessMode', 'adaptiveFunctioningBand', 'teacherAttentionRating',
@@ -6487,6 +7066,7 @@
   function initialSetup(){
     const persistedSettings = readJson(SETTINGS_KEY) || LEGACY_SETTINGS_KEYS.map(readJson).find(Boolean) || {};
     applyBuildInfo();
+    populateRecommendationTaskOptions();
     loadSettings();
     applyTheme();
     applySensoryPreferences();

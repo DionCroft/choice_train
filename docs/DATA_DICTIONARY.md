@@ -8,7 +8,29 @@ This dictionary documents the principal exported and locally stored fields used 
 - Ordinary session exports omit raw image bytes and retain labels or content metadata.
 - Context notes and pupil aliases can still be personal data.
 - No field is a diagnosis, medical finding, or validated measure unless a future protocol establishes that separately.
-- V1.7.0 uses export schema version 4.
+- V1.7.0 uses export schema version 4. The isolated V1.8 alpha uses schema version 5.
+
+## V1.8 Alpha Derived Planning Fields
+
+The alpha retains raw trial records and adds recomputable, versioned planning fields. The rules are product defaults for school evaluation, not validated mastery or clinical thresholds.
+
+| Field | Type | Meaning |
+| --- | --- | --- |
+| `practice_status_version` | string | Version of the transparent skill-state rules |
+| `recommendation_version` | string | Version of the deterministic proposal rules |
+| `local_recommendation_summary.practice_states` | array | Per-skill opportunity, recency, accuracy, independence, trend, retention, and support summaries |
+| `practice_status` | enum | `not-scored`, `insufficient-sample`, `needs-support`, `developing`, or `consistent-current-sample` |
+| `recent_window_sessions` | number | Number of latest observed sessions used, up to three |
+| `retention_status` | enum | Observed spaced comparison or an explicit no/small-sample state |
+| `retention_gap_days` | number or null | Whole-day gap between the two compared observations |
+| `suggested_next_session` | object | Local proposal, rationale codes, source sessions, task, level, support direction, and interpretation boundary |
+| `teacher_review_history` | array | Local approve/adjust/decline audit records for proposals |
+
+Current alpha rules label samples below five scored opportunities or two sessions as needing more observations. `consistent-current-sample` requires at least eight recent scored opportunities, 80% recent accuracy, and 70% independent success. A retention comparison requires a gap of at least seven days and at least three scored opportunities on both sides; otherwise the sample is labelled too small.
+
+Teacher review records preserve the proposal, decision, optional override, final task and level, note, reviewer label, timestamp, and any superseded review ID. A proposal never changes session settings automatically.
+
+V1.8 freezes the selected local pupil name, export alias, profile snapshot, context, presentation settings, and photo metadata when a session starts. Later profile selection cannot relabel that session. The export alias is a display/pseudonym field rather than the local identity key, so two profiles may share an alias without their longitudinal records being merged.
 
 ## Core Export Fields
 

@@ -117,6 +117,12 @@ Research scope can be set to the current session, current learner history, or al
 
 Procedural questions in V1.8 use a stored lesson seed. The session export records the frozen lesson constraints and a separate seed for each question, allowing an authorised researcher to audit or replay the same generated content. `Lesson replay seed` in Admin and research is optional and intended for controlled comparison or debugging; leave it blank for normal sessions so ChoiceTrain creates a seed automatically.
 
+`Practice status and spaced retention observations` groups raw skill opportunities into transparent planning descriptions. The table shows its sample size, recent accuracy, independent success, last practice, trend, retention observation, and support direction. `Consistent in current sample` does not mean mastered. A retention comparison only appears after an observed follow-up at least seven days later, and small follow-up samples are labelled as such.
+
+`Teacher-reviewed next-session planning` proposes one local, rule-based next step for the selected pupil. Review the evidence, then approve it, approve it with a different task or level, or decline it. Add a note explaining the decision. ChoiceTrain stores each revision in the pupil's local review history and exports the audit record, but never applies the proposal automatically.
+
+ChoiceTrain freezes the session's selected pupil and context when `Start learner session` is pressed. Staff can select another pupil afterward to review their history without changing who completed the earlier session. An export alias does not need to be unique, but schools should still use a consistent alias policy.
+
 The V1.8 research view is descriptive. It does not diagnose a learner, establish durable transfer, or prove neural plasticity.
 
 ---

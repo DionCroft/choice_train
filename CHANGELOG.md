@@ -13,12 +13,17 @@ All notable changes to ChoiceTrain are listed here.
 - corrected longitudinal trial grouping so question numbers from separate sessions are not collapsed together
 - deterministic, constraint-first procedural questions with exported lesson and question seeds, a frozen lesson-plan snapshot, and an optional Admin replay seed
 - browser coverage proving that a fixed seed reproduces the exact target, ordered options, and prompt wording while preserving the original level after progression
-- 7 focused V1.8 browser tests; the complete stable-plus-alpha matrix currently passes 84 tests
+- versioned per-skill practice states using recent accuracy, independent success, session count, recency, observed trend, and support direction without claiming mastery
+- spaced retention observations that require a gap of at least seven days and label follow-ups with small samples rather than treating missing evidence as retention
+- deterministic next-session proposals with human-readable rationale codes and mandatory teacher approve, adjust, or decline review
+- local recommendation audit history with proposal, final task and level, reviewer note, decision timestamp, and revision linkage
+- Research visualisations and accessible tables for practice status, retention observations, recommendation decisions, and review history
+- frozen session identity and contextual metadata so selecting another pupil after a session cannot relabel its history or export; duplicate display aliases remain isolated by local profile name
+- 10 focused V1.8 browser tests; the complete stable-plus-alpha matrix currently passes 87 tests
 
 ### Planned
 
-- longitudinal, interpretable learner-state and retention summaries
-- teacher-reviewed recommendations and privacy-preserving AI-training exports
+- privacy-preserving AI-training exports
 - additional EEG protocol and synchronization-diagnostic fields without claiming hardware-synchronised triggers
 
 See [the V1.8 research and personalisation plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md) for evidence boundaries, milestones, and promotion gates.

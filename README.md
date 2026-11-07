@@ -11,7 +11,7 @@ ChoiceTrain is a static, browser-based learning and research-support tool design
 
 Stable `V1.7.0` remains the live GitHub Pages application. Development continues separately on `feature/v1.8.0-research-personalisation` in `choice_train_V1.8.0-alpha.html`; the alpha is not loaded by `index.html`.
 
-The current alpha adds schema-versioned skill data, reproducible seeded lesson generation, and a dedicated local-only `Research` destination. It can visualise current-session, current-learner, or all-learner data across accuracy, independent responding, reaction time, outcomes, skills, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and classroom-transfer observations. Every chart has a table or text equivalent. Session exports retain the generator version, frozen constraints, lesson seed, and per-question seed so an authorised researcher can audit or replay a generated plan. These outputs are descriptive teaching and study-support data, not diagnostic results or evidence that neural change has occurred.
+The current alpha adds schema-versioned skill data, reproducible seeded lesson generation, and a dedicated local-only `Research` destination. It can visualise current-session, current-learner, or all-learner data across accuracy, independent responding, reaction time, outcomes, skills, descriptive practice status, spaced retention observations, teacher-reviewed planning decisions, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and classroom-transfer observations. Every chart has a table or text equivalent. Session exports retain the generator version, frozen constraints, lesson seed, per-question seed, derived-state versions, and recommendation review history so an authorised researcher can audit or replay the record. These outputs are descriptive teaching and study-support data, not diagnostic results or evidence that neural change has occurred.
 
 The current stable release is `V1.7.0`. Historical versioned builds and the reviewed V1.7 alpha candidate remain available for traceability.
 
@@ -413,7 +413,7 @@ The current `V1.7.0` build does not send session data to any external service.
 
 ## Future LLM-Assisted Recommendations
 
-The current build includes local structured summaries that could later support LLM-assisted recommendations. This is future-facing only.
+Stable V1.7 includes a local structured summary that could later support LLM-assisted recommendations. The isolated V1.8 alpha now adds deterministic, rule-based next-session proposals and teacher approve/adjust/decline records. These are inspectable local planning aids, not an LLM and not autonomous teaching decisions.
 
 Planned purpose:
 
@@ -425,7 +425,7 @@ Current position:
 - no cloud LLM calls are made
 - no session data is currently transmitted externally
 
-The local summary structure now includes fields such as learner level, recent accuracy, recent reaction time, support used, preferred content, and a suggested next session summary.
+The V1.8 local summary includes learner level, recent accuracy, recent reaction time, support used, preferred content, per-skill practice states, an explainable suggested next session, and teacher review history. No proposal changes a level, task, or support plan automatically.
 
 ## Exports
 

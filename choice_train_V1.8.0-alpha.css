@@ -1157,10 +1157,55 @@ body.panel-view-admin .tableWrap {
   margin-top: 10px;
 }
 
+.recommendationProposal {
+  margin: 10px 0;
+  padding: 14px;
+  border: 1px solid var(--shell-primary-border);
+  border-left: 5px solid var(--shell-primary);
+  border-radius: var(--shell-radius-md);
+  background: var(--shell-primary-soft);
+  color: var(--shell-text);
+  line-height: 1.55;
+}
+
+.recommendationRationale {
+  margin: 8px 0 14px;
+}
+
+.recommendationReviewGrid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.recommendationReviewGrid .span2 {
+  grid-column: 1 / -1;
+}
+
+.recommendationReviewActions {
+  align-items: center;
+  margin-bottom: 12px;
+}
+
+.recommendationReviewActions .tiny {
+  flex: 1 1 260px;
+}
+
 .researchCurrentSessionHeading {
   margin-top: 24px;
   padding-top: 20px;
   border-top: 2px solid var(--shell-border);
+}
+
+@media (max-width: 900px) {
+  .recommendationReviewGrid {
+    grid-template-columns: 1fr;
+  }
+
+  .recommendationReviewGrid .span2 {
+    grid-column: auto;
+  }
 }
 
 .adminAnchor {
