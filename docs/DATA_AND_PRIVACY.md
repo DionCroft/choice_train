@@ -15,7 +15,7 @@ The browser may store:
 
 This information remains on the device unless a user deliberately downloads an export. ChoiceTrain currently makes no external analytics, LLM, pupil-account, or cloud-storage request.
 
-`V1.7.0-alpha` also stores presentation preferences: font choice, text scale, motion level, feedback-sound level, and celebration intensity. These settings may be associated with a local pupil profile because presentation needs can differ between learners. They are included in session exports so the conditions under which a result was collected can be interpreted.
+`V1.7.0` also stores presentation preferences: font choice, text scale, motion level, feedback-sound level, and celebration intensity. These settings may be associated with a local pupil profile because presentation needs can differ between learners. They are included in session exports so the conditions under which a result was collected can be interpreted.
 
 The V1.7 semantic colour refactor changes presentation only. It does not add a data category, remote service, tracking request, or colour-based learner classification. Theme names and selections are access preferences and must not be interpreted as a diagnosis or sensory profile.
 

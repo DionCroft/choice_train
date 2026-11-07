@@ -1,8 +1,6 @@
 # ChoiceTrain User Guide
 
-**Published version:** `V1.6.0`
-
-**Preview version:** `V1.7.0-alpha` (not the live GitHub Pages build)
+**Published version:** `V1.7.0`
 **Project:** ChoiceTrain for ShowMe  
 **Repository:** https://github.com/DionCroft/choice_train  
 **Live site:** https://dioncroft.github.io/choice_train/
@@ -32,15 +30,15 @@ ChoiceTrain is designed to:
 
 ChoiceTrain is a **teaching and research-support tool**. It is **not** a diagnostic, medical, or clinical system.
 
-### About the V1.7.0-alpha Preview
+### About V1.7.0
 
-The alpha preview is available only from its versioned local file or feature branch. The public live link still opens V1.6.0. Use:
+V1.7.0 is the published GitHub Pages build. To open the same version locally after starting a server from the repository root, use:
 
-`http://localhost:8000/choice_train_V1.7.0-alpha.html`
+`http://localhost:8000/choice_train_V1.7.0.html`
 
-after starting a local server from the repository root. Do not use the alpha as the school's record of production sessions until its usability and data process have been approved.
+The release passed the automated engineering gate, but schools should still approve their own usability, safeguarding, consent, privacy, retention, and device processes before using identifiable pupil data.
 
-The automated repository matrix currently contains 71 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
+The automated repository matrix contains 77 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
 
 ---
 
@@ -102,7 +100,7 @@ The Admin Panel is hidden by default and is intended for advanced users rather t
 
 ### V1.7 Workspace Navigation
 
-The alpha keeps the same capabilities but gives each role a focused workspace:
+V1.7.0 gives each role a focused workspace:
 
 - `Today` contains pupil selection, session readiness, daily settings, context and the primary start action.
 - `Personalise` contains pupil baseline preferences, images, categories and content choices.
@@ -141,25 +139,20 @@ Older iPads and Kindle-based devices may work more reliably with the hosted GitH
 
 ## 4. Teacher Panel and Admin Panel
 
-At the top of the side panel you will see two buttons:
+At the top of the workspace you will see two buttons:
 
-- `Teacher Panel`
-- `Admin Panel`
+- `Teacher workspace`
+- `Admin & research`
 
 Use these to switch between the two panel groups.
 
 ### Teacher Panel
 
-This is the default panel for normal classroom use. The first section includes expandable instructions for a pupil's first session and each later session.
+This is the default workspace for normal classroom use. Use `Today`, `Personalise`, and `Results` to move between daily setup, pupil content, and classroom summaries. The Today page includes expandable instructions for a pupil's first session and each later session.
 
 ### Admin Panel
 
-This opens the advanced settings sections:
-
-- `Advanced Admin Settings`
-- `Research / Debug Settings`
-
-In `V1.7.0-alpha`, select `Admin & research` instead. Then use:
+Select `Admin & research`, then use:
 
 - `Overview` for export and the current analytics summary
 - `Sessions` for stored history and session exports
@@ -169,13 +162,13 @@ In `V1.7.0-alpha`, select `Admin & research` instead. Then use:
 
 ### During Learner Mode
 
-If the app is currently showing the learner activity, use the floating `Admin` button to return to teacher view and open the Admin Panel directly.
+If the app is currently showing the learner activity, press and hold the small lock control for about 1.2 seconds to return to the teacher workspace. A normal tap does not exit. Keyboard activation remains immediate for staff using keyboard access.
 
 ---
 
 ## 5. Creating a Pupil
 
-1. Open the `Teacher Panel`.
+1. Open `Teacher workspace`, then select `Today`.
 2. In `Daily Teacher Setup`, enter a pupil name or alias.
 3. Select `Add Pupil`.
 4. Choose the pupil from the pupil selector.
@@ -450,7 +443,7 @@ If browser speech support is unavailable, the app should continue working withou
 
 The current theme options are:
 
-- Calm Light (`V1.7.0-alpha` default)
+- Calm Light (`V1.7.0` default)
 - Calm Blue
 - Soft Green
 - Warm Neutral
@@ -463,11 +456,11 @@ Themes are intended as configurable classroom presentation options. Teachers sho
 
 Theme choice is stored locally and may also follow the selected pupil profile on that device.
 
-In the alpha, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
+In V1.7.0, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
 
 ### Alpha Display and Sensory Preferences
 
-V1.7.0-alpha adds:
+V1.7.0 adds:
 
 - high-legibility or familiar sans-serif font
 - 90%, 100%, 115% or 130% text size
@@ -481,7 +474,7 @@ Atkinson Hyperlegible Next is bundled locally as the high-legibility option. It 
 
 ### Reward and Sound
 
-The alpha uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
+V1.7.0 uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
 
 Feedback cues are generated locally on the device. They can be muted, do not use a microphone and are not recordings. ChoiceTrain stops active tones before speaking a prompt to reduce overlap. In a research session, audio and reward onset are logged so presentation conditions can be interpreted.
 
@@ -618,11 +611,11 @@ Use the hosted GitHub Pages version if possible:
 
 ### I cannot find the Admin Panel
 
-Use the `Teacher Panel` and `Admin Panel` buttons at the top of the side panel.
+Use `Teacher workspace` and `Admin & research` at the top of the workspace.
 
-If you are currently in learner mode, press the floating `Admin` button first to return to teacher view and open the Admin Panel.
+If you are currently in learner mode, press and hold the small lock control for about 1.2 seconds to return to the teacher workspace.
 
-In `V1.7.0-alpha`, select `Admin & research` at the top of the teacher workspace, then choose Overview, Sessions, Learners, EEG, or System. Advanced settings and debug controls are under `System`.
+Choose Overview, Sessions, Learners, EEG, or System. Advanced settings, debug controls, documentation, and build metadata are under `System`.
 
 ### Speech does not work
 

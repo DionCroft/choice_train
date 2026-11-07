@@ -1,19 +1,19 @@
 # ChoiceTrain School-Readiness Audit
 
-**Audit date:** 6 November 2026
+**Audit date:** 7 November 2026
 
-**Published baseline:** `V1.6.0`
+**Published release:** `V1.7.0`
 
-**Candidate under review:** `V1.7.0-alpha`
+**Reviewed candidate:** `V1.7.0-alpha`, promoted to stable V1.7.0
 **Purpose:** Prepare ChoiceTrain for initial teacher-led pupil testing at Brackensfield while preserving the existing learner, research, EEG, analytics, personalisation, and export features.
 
 ## Implementation Status
 
 The immediate usability scope was implemented in `V1.5.0`. `V1.6.0` adds teacher-controlled category catalogues and per-session content filters without changing the established level meanings. A broader automatic progression hierarchy remains deliberately deferred for practitioner design.
 
-`V1.7.0-alpha` is an isolated product-readiness candidate. It separates teacher, learner, and admin/research workspaces; adds configurable legibility and sensory presentation; introduces an original train progress reward and local generated sounds; and now applies a consistent semantic colour system across all workspaces, themes, states, and runtime visuals. It does not change the live `index.html` or the established learning pathway.
+`V1.7.0` promotes the reviewed product-readiness candidate. It separates teacher, learner, and admin/research workspaces; adds configurable legibility and sensory presentation; introduces an original train progress reward and local generated sounds; and applies a consistent semantic colour system across all workspaces, themes, states, and runtime visuals. It changes the live `index.html` without changing the established learning pathway.
 
-### V1.7 Candidate Status
+### V1.7 Release Status
 
 Implemented and automatically covered:
 
@@ -25,9 +25,9 @@ Implemented and automatically covered:
 - learner dynamic-viewport containment and tablet target sizing
 - mobile containment for prompt, progress, Help, Break, and Stop controls
 - schema 4 sensory-preference exports and audio/reward EEG markers
-- preservation of the stable runtime and local-only data boundary
+- preservation of the local-only data boundary and historical release files
 
-Still required before stable promotion:
+Still required for school rollout and research use:
 
 - structured teacher/TA usability sessions at Brackensfield
 - appropriately consented learner observation across different access and sensory preferences
@@ -35,23 +35,18 @@ Still required before stable promotion:
 - keyboard and assistive-technology review beyond automated Chromium coverage
 - school data-protection review of profiles, photographs, context notes and downloaded exports
 - research-team review of browser marker semantics and a separate timing-validation plan before EEG synchronisation
-- explicit product-owner approval to update `index.html`
+- local school approval before identifiable pupil data is entered
 
 The detailed protocol and acceptance criteria are in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md). The colour baseline, semantic contract, remediation, and evidence limits are in [V1.7.0_COLOUR_SYSTEM_AUDIT.md](V1.7.0_COLOUR_SYSTEM_AUDIT.md).
 
-Validation completed:
+Stable release validation completed:
 
-- JavaScript syntax check passed for `choice_train_V1.6.0.js`
-- no duplicate HTML element IDs were found in the versioned build
-- all 56 Playwright tests passed, including V1.6.0 category, image, filter, export, theme, archived-release, and visual-review coverage
-- the tested version retains the static GitHub Pages deployment model
-
-Alpha branch validation completed:
-
-- all 77 Playwright tests passed together: 56 stable/archive checks and 21 alpha-specific checks
-- the alpha checks include focused workspace navigation, staff and learner contrast, semantic-token completeness, runtime theme colours, local-only requests, sensory persistence, reduced motion, learner containment, reward and reward-disabled flows, export metadata, and tablet/mobile sizing
+- JavaScript syntax check passed for `choice_train_V1.7.0.js`
+- `index.html` is byte-identical to `choice_train_V1.7.0.html`
+- all 77 Playwright tests passed together: 56 broad regression/archive checks and 21 V1.7-specific checks
+- the V1.7 checks include focused workspace navigation, staff and learner contrast, semantic-token completeness, runtime theme colours, local-only requests, sensory persistence, reduced motion, learner containment, reward and reward-disabled flows, export metadata, and tablet/mobile sizing
 - the repeatable visual audit produced 17 synthetic-data captures spanning teacher, Admin, active learner, reward, reward-disabled feedback, break, tablet, mobile, and every theme
-- syntax checks passed for both V1.6.0 and V1.7.0-alpha, and the stable entry/versioned files have no alpha diff
+- the tested version retains the static GitHub Pages deployment model
 
 ## Feedback Outcomes
 
@@ -74,8 +69,8 @@ Alpha branch validation completed:
 
 - Resolved in `V1.5.0`: the Playwright setup no longer depends on hidden panel controls being visibly clickable, while dedicated tests still verify the actual Teacher/Admin navigation.
 - Resolved in `V1.5.0`: modern browsers use Pointer Events only, while older browsers receive separate touch and mouse fallbacks. This prevents dual Pointer/Touch emission from inflating raw research logs.
-- Resolved in `V1.7.0-alpha`: disabling both rewards and auto advance no longer traps the learner; the feedback surface keeps `Next` and `Repeat` available.
-- Resolved in `V1.7.0-alpha`: Admin history hydration no longer shifts the selected destination into a large blank area, and a 390-pixel mobile learner viewport retains the regulation controls.
+- Resolved in `V1.7.0`: disabling both rewards and auto advance no longer traps the learner; the feedback surface keeps `Next` and `Repeat` available.
+- Resolved in `V1.7.0`: Admin history hydration no longer shifts the selected destination into a large blank area, and a 390-pixel mobile learner viewport retains the regulation controls.
 
 ### Medium priority
 

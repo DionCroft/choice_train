@@ -2,6 +2,27 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.7.0] - 2026-11-07
+
+### Promoted
+
+- promoted the reviewed V1.7 candidate to the stable versioned HTML, JavaScript, and CSS files
+- updated `index.html` to the byte-identical V1.7.0 stable interface for GitHub Pages
+- retained the alpha files and review documents for release traceability
+- stamped the public interface as the stable V1.7.0 workspace rather than an alpha candidate
+
+### Validated
+
+- migrated the complete browser regression suite to the focused Today, Personalise, Results, Overview, Sessions, Learners, EEG, and System navigation paths
+- verified the real full-screen learner flow for repeated Help escalation, deliberate teacher return, session history, EEG export, and photo-management workflows
+- passed all 77 Playwright tests across the stable entry, archived release, Levels 1-10, Attention Training, EEG, exports, semantic themes, personalisation, responsive layouts, and local-only operation
+- passed `node --check choice_train_V1.7.0.js`, whitespace validation, and exact `index.html`/versioned-HTML parity
+
+### Release boundaries
+
+- this promotion is an engineering and product-release milestone, not evidence of clinical efficacy, diagnosis, or universal SEND suitability
+- physical Windows touchscreen, iPad Safari, Android Chrome, intended Kindle Silk, assistive-technology, teacher/TA, learner, privacy, and EEG timing checks remain ongoing school and study-readiness work
+
 ## [1.7.0-alpha] - 2026-11-06
 
 This is an isolated candidate build. The published GitHub Pages entry remains `V1.6.0` until school usability, device, accessibility, privacy, and regression checks support promotion.

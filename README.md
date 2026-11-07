@@ -3,13 +3,13 @@
 [![Browser tests](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml)
 
-**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.7 alpha decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Colour-system audit](docs/V1.7.0_COLOUR_SYSTEM_AUDIT.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
+**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.7 design decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Colour-system audit](docs/V1.7.0_COLOUR_SYSTEM_AUDIT.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
-The current stable release is `V1.6.0`. Historical versioned builds remain in `releases/` for traceability.
+The current stable release is `V1.7.0`. Historical versioned builds and the reviewed V1.7 alpha candidate remain available for traceability.
 
-`V1.7.0-alpha` is an isolated product-experience candidate on the `feature/v1.7.0-alpha-ui-ux` branch. It is not the GitHub Pages release and does not replace `index.html`. The candidate introduces focused teacher, learner, and admin/research workspaces; one semantic colour system across staff and learner views; configurable presentation and sensory preferences; an original train-journey reward; and locally generated feedback sounds. See the [design decision record](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md), [colour-system audit](docs/V1.7.0_COLOUR_SYSTEM_AUDIT.md), [data dictionary](docs/DATA_DICTIONARY.md), and [school usability plan](docs/V1.7.0_USABILITY_TEST_PLAN.md).
+`V1.7.0` promotes the reviewed product-experience candidate into the GitHub Pages entry point. It introduces focused teacher, learner, and admin/research workspaces; one semantic colour system across staff and learner views; configurable presentation and sensory preferences; an original train-journey reward; and locally generated feedback sounds. See the [design decision record](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md), [colour-system audit](docs/V1.7.0_COLOUR_SYSTEM_AUDIT.md), [data dictionary](docs/DATA_DICTIONARY.md), and [school usability plan](docs/V1.7.0_USABILITY_TEST_PLAN.md). Promotion confirms the engineering release gate, not clinical efficacy or universal suitability for SEND learners.
 
 Live site:
 `https://dioncroft.github.io/choice_train/`
@@ -61,19 +61,20 @@ It also notes the client-provided internal `ChoiceTrain.docx` project paper draf
 Published files:
 
 - `index.html`
-- `choice_train_V1.6.0.html`
-- `choice_train_V1.6.0.js`
+- `choice_train_V1.7.0.html`
+- `choice_train_V1.7.0.js`
+- `choice_train_V1.7.0.css`
 - `assets/showme-logo.png`
 
 The runtime is versioned so experimental builds can be tested locally before a stable snapshot is promoted into the GitHub Pages copy.
 
-### V1.7.0-alpha Candidate
+### V1.7.0 Stable Release
 
-The alpha candidate is available locally at:
+The published versioned release is available locally at:
 
-- `choice_train_V1.7.0-alpha.html`
-- `choice_train_V1.7.0-alpha.js`
-- `choice_train_V1.7.0-alpha.css`
+- `choice_train_V1.7.0.html`
+- `choice_train_V1.7.0.js`
+- `choice_train_V1.7.0.css`
 
 Its main product decisions are:
 
@@ -87,11 +88,11 @@ Its main product decisions are:
 - original train-progress feedback and locally synthesised audio cues, with quiet and off settings
 - retained local-first storage, Attention Training, touch logging, heatmaps, EEG markers, pupil profiles, exports, and personalisation
 
-These decisions are candidates for school testing, not claims that one visual or sensory configuration suits every learner. The alpha must pass staff usability, learner observation, accessibility, device, privacy, and regression gates before promotion.
+These decisions remain subject to school testing and are not claims that one visual or sensory configuration suits every learner. Automated regression, accessibility-token, local-only runtime, and responsive-layout gates passed before promotion. Staff usability, learner observation, physical-device, assistive-technology, privacy, and EEG timing validation remain ongoing.
 
 ## Teacher Panel and Admin Panel
 
-`V1.6.0` separates the interface into two clear layers and keeps the settings teachers need during ordinary sessions in the Teacher Panel.
+`V1.7.0` separates the interface into focused Teacher and Admin workspaces and keeps ordinary classroom settings away from research and debug controls.
 
 ### Teacher Panel
 
@@ -132,13 +133,14 @@ The Admin Panel is collapsed by default and keeps advanced options out of the wa
 - build and version metadata
 - research and fidelity settings
 
-This split is intended to make the app usable in real classrooms without asking teachers to work through technical settings every time. In `V1.7.0-alpha`, Admin is a full-width workspace with focused `Overview`, `Sessions`, `Learners`, `EEG`, and `System` destinations rather than one very long mixed settings page.
+This split is intended to make the app usable in real classrooms without asking teachers to work through technical settings every time. Admin is a full-width workspace with focused `Overview`, `Sessions`, `Learners`, `EEG`, and `System` destinations rather than one very long mixed settings page.
 
 How to open it:
 
-- use the `Teacher Panel` and `Admin Panel` buttons at the top of the side panel to switch between the two panel groups
-- in teacher view, the Admin tab reveals `Advanced Admin Settings` and `Research / Debug Settings`
-- in learner mode, tap the floating `Admin` button to return to teacher view and open the Admin Panel directly
+- use `Teacher workspace` and `Admin & research` at the top of the panel
+- use `Today`, `Personalise`, and `Results` for focused teacher workflows
+- use `Overview`, `Sessions`, `Learners`, `EEG`, and `System` inside Admin
+- in learner mode, press and hold the small lock control for about 1.2 seconds to return to the teacher workspace; keyboard activation is immediate
 
 ## Teacher Quick Start
 
@@ -153,7 +155,7 @@ Settings save locally as they are changed. `Save pupil preferences` additionally
 
 `Reset session` clears only the current unsaved attempt and returns to the welcome screen. It does not delete the pupil profile, saved settings, or stored session history.
 
-### V1.6.0 Content Walkthrough
+### V1.7.0 Content Walkthrough
 
 1. In `Pupil Personalisation`, enter a name under `Create new category`, then select `Save category`.
 2. Choose that category under `Destination category` and use `Bulk photo import` to add one or more images.
@@ -206,7 +208,7 @@ The default view is intentionally calmer and more teacher-friendly than earlier 
 
 ## Context Notes
 
-`V1.6.0` retains the classroom-friendly `context notes` wording introduced in the previous release.
+`V1.7.0` retains the classroom-friendly `context notes` wording introduced in the previous release.
 
 Context notes are for daily classroom observations such as:
 
@@ -274,7 +276,7 @@ or replace it with a final approved logo file while keeping accessible alt text 
 
 ChoiceTrain provides a teacher-facing theme selector with the following preset options:
 
-- Calm Light (`V1.7.0-alpha` default)
+- Calm Light (`V1.7.0` default)
 - Calm Blue
 - Soft Green
 - Warm Neutral
@@ -296,7 +298,7 @@ Themes are implemented through CSS variables and can change:
 - error colour
 - card background
 
-In `V1.7.0-alpha`, each learner theme supplies the same semantic roles for canvas, surfaces, text, controls, primary actions, focus, success, warning, errors, rewards, overlays, and task-stimulus colours. Teacher/Admin components use a separate but equivalent product-shell token set. Runtime effects such as cue rings, pointer trails, heatmaps, and charts read the active tokens instead of introducing a second fixed palette.
+In `V1.7.0`, each learner theme supplies the same semantic roles for canvas, surfaces, text, controls, primary actions, focus, success, warning, errors, rewards, overlays, and task-stimulus colours. Teacher/Admin components use a separate but equivalent product-shell token set. Runtime effects such as cue rings, pointer trails, heatmaps, and charts read the active tokens instead of introducing a second fixed palette.
 
 Correct, incorrect, selected, current, and completed states use a symbol, wording, shape, or border treatment as well as colour. This helps preserve meaning when hue is difficult to distinguish.
 
@@ -401,7 +403,7 @@ This local data can include:
 - heatmap data
 - research markers
 
-The current `V1.6.0` build does not send session data to any external service.
+The current `V1.7.0` build does not send session data to any external service.
 
 ## Future LLM-Assisted Recommendations
 
@@ -462,19 +464,16 @@ Then open:
 
 `http://localhost:8000/`
 
-To review the isolated alpha without changing the live site, open:
-
-`http://localhost:8000/choice_train_V1.7.0-alpha.html`
-
 ### Versioned snapshot
 
 If you want the published snapshot directly, open:
 
-- `choice_train_V1.6.0.html`
+- `choice_train_V1.7.0.html`
 
-Keep the paired script beside it:
+Keep the paired script and stylesheet beside it:
 
-- `choice_train_V1.6.0.js`
+- `choice_train_V1.7.0.js`
+- `choice_train_V1.7.0.css`
 
 ## GitHub Pages Deployment
 
@@ -502,12 +501,12 @@ npm run test:browser
 npm run audit:visual:v170
 ```
 
-The `V1.6.0` work is validated with:
+The `V1.7.0` release is validated with:
 
-- `node --check choice_train_V1.6.0.js`
-- 56 passing Playwright browser tests covering the live entry point, archived-release loading, levels 1-10, AT and EEG flows, Teacher/Admin switching, Student-friendly mode, prompt wording, blank intervals, reset behavior, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, theme persistence, photo personalisation, and desktop/tablet visual review
+- `node --check choice_train_V1.7.0.js`
+- 77 passing Playwright browser tests covering the live entry point, archived-release loading, levels 1-10, AT and EEG flows, focused Teacher/Admin navigation, Student-friendly mode, prompt wording, blank intervals, reset behavior, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, all semantic themes, local-only operation, reward and no-reward flows, and desktop/tablet/mobile layout
 
-The isolated `V1.7.0-alpha` suite contains 21 checks for workspace separation and focused navigation, high-legibility font loading, staff and learner contrast, semantic-token completeness, runtime-drawn theme colours, learner viewport containment, deliberate teacher return, per-pupil sensory settings, reward progression, reward-disabled manual navigation, zero external runtime requests, reduced motion, local audio/EEG metadata, alpha exports, and tablet/mobile sizing. The complete stable-and-alpha matrix contains 77 passing Playwright tests: 56 stable/archive checks and 21 alpha checks.
+The V1.7-specific suite contains 21 checks for workspace separation and focused navigation, high-legibility font loading, staff and learner contrast, semantic-token completeness, runtime-drawn theme colours, learner viewport containment, deliberate teacher return, per-pupil sensory settings, reward progression, reward-disabled manual navigation, zero external runtime requests, reduced motion, local audio/EEG metadata, exports, and tablet/mobile sizing. The broader regression suite contributes the remaining 56 checks.
 
 `npm run audit:visual:v170` creates a repeatable local visual-review set with 17 synthetic-data captures covering teacher and Admin workspaces, active learner tasks, reward and reward-disabled feedback, break mode, tablet, mobile, and every theme. The generated screenshots are ignored by Git because they are review evidence rather than product assets.
 
@@ -525,6 +524,7 @@ The isolated `V1.7.0-alpha` suite contains 21 checks for workspace separation an
 
 Planned or likely next steps include:
 
+- a comprehensive Research workspace for attention-family performance, accuracy and latency, omissions and commissions, touch behaviour, support and independence, learning slopes, retention, category exposure, transfer, fidelity, artifacts, EEG marker quality, and recommendation history
 - deeper EEG workflow integration
 - additional AT variants that preserve the research-informed attention rules
 - stronger classroom transfer and maintenance measures
@@ -537,13 +537,12 @@ Planned or likely next steps include:
 Key files and folders:
 
 - `index.html` - current live entry file
-- `choice_train_V1.6.0.html` - current versioned HTML build
-- `choice_train_V1.6.0.js` - paired current runtime
-- `choice_train_V1.7.0-alpha.html` - isolated alpha interface candidate, not the published entry
-- `choice_train_V1.7.0-alpha.js` - alpha runtime and data schema
-- `choice_train_V1.7.0-alpha.css` - alpha-only workspace and learner presentation layer
+- `choice_train_V1.7.0.html` - current versioned HTML build
+- `choice_train_V1.7.0.js` - paired current runtime and schema
+- `choice_train_V1.7.0.css` - current workspace and learner presentation layer
+- `choice_train_V1.7.0-alpha.*` - preserved reviewed candidate files for release traceability
 - `assets/` - branding and static assets
-- `assets/fonts/` - locally bundled, licensed interface fonts used by the alpha
+- `assets/fonts/` - locally bundled, licensed interface fonts used by V1.7
 - `LICENSES/` - third-party asset licences
 - `docs/` - user, privacy, architecture, evidence, and school-readiness documentation
 - `releases/` - preserved historical builds and their shared archive assets
