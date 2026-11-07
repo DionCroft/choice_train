@@ -1469,6 +1469,23 @@
               </div>
               <div id="researchRetentionNote" class="compactNote">Practice status is a transparent planning aid, not a mastery judgement. A retention comparison requires a later observed session after the configured gap; ChoiceTrain does not infer learning between observations.</div>
             </div>
+            <div class="chartCard span2">
+              <h4>Category-by-skill learner state</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Observed combinations</div><div class="v" id="researchCategorySkillCombinationCount">0</div></div>
+                <div class="dashCard"><div class="k">Categories represented</div><div class="v" id="researchCategorySkillCategoryCount">0</div></div>
+                <div class="dashCard"><div class="k">Skills represented</div><div class="v" id="researchCategorySkillSkillCount">0</div></div>
+                <div class="dashCard"><div class="k">Scored opportunities</div><div class="v" id="researchCategorySkillScoredCount">0</div></div>
+              </div>
+              <canvas id="researchCategorySkillMatrixChart" class="researchCanvas" width="760" height="300" role="img" aria-label="Accuracy matrix for observed category and skill combinations" aria-describedby="researchCategorySkillTable researchCategorySkillNote"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table id="researchCategorySkillTable">
+                  <thead><tr><th>Category</th><th>Skill</th><th>Status</th><th>Sessions</th><th>Opportunities</th><th>Scored</th><th>Accuracy</th><th>Recent accuracy</th><th>Independent success</th><th>Omissions</th><th>Commissions</th><th>Median RT</th><th>Observed direction</th><th>Last observed</th></tr></thead>
+                  <tbody id="researchCategorySkillBody"></tbody>
+                </table>
+              </div>
+              <div id="researchCategorySkillNote" class="compactNote">The compact matrix shows the most-observed combinations and the table retains every row. Category-by-skill observations do not establish mastery, classroom generalisation, diagnosis, causation, or neural change.</div>
+            </div>
             <div class="chartCard span2 recommendationReviewCard">
               <h4>Teacher-reviewed next-session planning</h4>
               <div id="researchRecommendationSummary" class="recommendationProposal">Run a session to create a local planning proposal.</div>

@@ -36,11 +36,12 @@
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const DATA_QUALITY_SCHEMA_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.1.0';
+  const CATEGORY_SKILL_STATE_VERSION = '1.0.0';
   const RETENTION_PLANNING_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.3.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.8.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.9.0';
   const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
   const PRIVACY_EXPORT_VERSION = '1.1.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
@@ -1600,6 +1601,7 @@
     const learnerAlias = state.trials.length ? sessionPupilAlias() : currentPupilAlias();
     const sessions = planningSessionsForLearner(learnerName, learnerAlias);
     const practiceStates = skillPracticeStatesForSessions(sessions);
+    const categorySkillStates = categorySkillStateProfile(sessions, wallMs(), true);
     const proposal = recommendationForSessions(sessions, learnerAlias);
     const learner = normalizeLearner(learnerName, state.learners[learnerName] || (state.sessionSnapshot && state.sessionSnapshot.learner_profile) || {});
     const photoMetadata = state.trials.length && state.sessionSnapshot
@@ -1610,6 +1612,7 @@
       external_transmission: false,
       recommendation_version: RECOMMENDATION_VERSION,
       practice_status_version: PRACTICE_STATUS_VERSION,
+      category_skill_state_version: CATEGORY_SKILL_STATE_VERSION,
       retention_planning: retentionPlanningSnapshot(),
       learner_level: state.currentLevel,
       recent_accuracy_pct: summary.accuracy_pct,
@@ -1619,6 +1622,7 @@
       recent_theme: state.trials.length && state.sessionSnapshot ? state.sessionSnapshot.theme_used : currentThemeChoice(),
       recent_context_notes: state.trials.length && state.sessionSnapshot ? state.sessionSnapshot.context_notes : currentContextNotes(),
       practice_states: practiceStates,
+      category_skill_states: exportableCategorySkillStateProfile(categorySkillStates),
       suggested_next_session: proposal,
       teacher_review_history: learner.reviews.slice(-20),
       interpretation_boundary: 'Local planning structure only. Teacher review is required and no data is sent to an external model.'
@@ -5985,6 +5989,7 @@
   function practiceStatusLabel(status){
     const labels = {
       'not-scored': 'Not scored',
+      'pooled-coverage': 'Pooled coverage only',
       'insufficient-sample': 'More observations needed',
       'needs-support': 'Needs additional support',
       developing: 'Developing in current sample',
@@ -6019,6 +6024,7 @@
   function trendStatusLabel(status){
     const labels = {
       'not-enough-data': 'Not enough data',
+      'pooled-not-sequenced': 'Pooled; not sequenced',
       lower: 'Lower in latest observation',
       similar: 'Broadly similar',
       higher: 'Higher in latest observation'
@@ -6182,6 +6188,217 @@
         observations
       };
     }).sort((a, b) => a.skill_id.localeCompare(b.skill_id));
+  }
+
+  function categoryDescriptorForSkillTrial(trial, skillId){
+    const usesReferenceCategory = skillId === 'categorisation.category_exclusion';
+    const rawId = String((usesReferenceCategory ? trial.reference_category : trial.target_category) || '').trim();
+    const rawLabel = String((usesReferenceCategory ? trial.reference_category_label : trial.target_category_label) || '').trim();
+    if(!rawId && !rawLabel) return null;
+    const categoryId = canonicalCategoryId(rawId || rawLabel);
+    const meta = rawId ? categoryMeta(rawId) : null;
+    const categoryLabel = rawLabel
+      || (meta && (meta.id === categoryId || categoryId === 'custom') ? meta.label : '')
+      || normalizeCategoryLabel(rawId || rawLabel);
+    return { category_id: categoryId, category_label: categoryLabel };
+  }
+
+  function categorySkillStateProfile(sessions, generatedAtWallMs=wallMs(), allowLongitudinal=true){
+    const ordered = (Array.isArray(sessions) ? sessions : [])
+      .map(session => ({ session, observedAt: sessionObservedAt(session) }))
+      .filter(item => Number.isFinite(item.observedAt))
+      .sort((a, b) => a.observedAt - b.observedAt);
+    const byPair = new Map();
+
+    ordered.forEach(({ session, observedAt }) => {
+      const sessionPairs = new Map();
+      latestTrialsByQuestion(session.trials || []).forEach(trial => {
+        const assigned = Array.isArray(trial.skill_ids) && trial.skill_ids.length
+          ? trial.skill_ids.filter(skillId => SKILL_GRAPH[skillId])
+          : skillIdsForTask(trial.task_kind);
+        assigned.forEach(skillId => {
+          const category = categoryDescriptorForSkillTrial(trial, skillId);
+          if(!category) return;
+          const key = `${category.category_id}|${skillId}`;
+          if(!sessionPairs.has(key)){
+            sessionPairs.set(key, {
+              ...category,
+              skill_id: skillId,
+              skill_label: SKILL_GRAPH[skillId].label,
+              opportunities: 0,
+              scored_opportunities: 0,
+              correct: 0,
+              independent_correct: 0,
+              support_observed: 0,
+              omissions: 0,
+              commissions: 0,
+              response_times: []
+            });
+          }
+          const item = sessionPairs.get(key);
+          const scored = skillId !== 'choice.preference' && trial.scored_response !== false;
+          item.opportunities += 1;
+          if(scored){
+            item.scored_opportunities += 1;
+            if(trial.correct) item.correct += 1;
+            if(trial.correct && trial.independence_status === 'independent') item.independent_correct += 1;
+          }
+          if(['independent', 'prompted', 'assisted'].includes(trial.independence_status)) item.support_observed += 1;
+          if(trial.omission) item.omissions += 1;
+          if(trial.commission) item.commissions += 1;
+          if(Number.isFinite(trial.response_time_ms)) item.response_times.push(trial.response_time_ms);
+        });
+      });
+
+      sessionPairs.forEach((sessionItem, key) => {
+        if(!byPair.has(key)){
+          byPair.set(key, {
+            category_id: sessionItem.category_id,
+            category_label: sessionItem.category_label,
+            skill_id: sessionItem.skill_id,
+            skill_label: sessionItem.skill_label,
+            observations: []
+          });
+        }
+        byPair.get(key).observations.push({
+          session_id: session.session_id || '',
+          observed_at_wall_ms: observedAt,
+          opportunities: sessionItem.opportunities,
+          scored_opportunities: sessionItem.scored_opportunities,
+          correct: sessionItem.correct,
+          independent_correct: sessionItem.independent_correct,
+          support_observed: sessionItem.support_observed,
+          omissions: sessionItem.omissions,
+          commissions: sessionItem.commissions,
+          response_times: sessionItem.response_times.slice(),
+          median_reaction_time_ms: sessionItem.response_times.length ? Math.round(median(sessionItem.response_times)) : null
+        });
+      });
+    });
+
+    const rows = Array.from(byPair.values()).map(item => {
+      const observations = item.observations;
+      const recent = allowLongitudinal ? observations.slice(-3) : observations;
+      const totalOpportunities = observations.reduce((sum, entry) => sum + entry.opportunities, 0);
+      const totalScored = observations.reduce((sum, entry) => sum + entry.scored_opportunities, 0);
+      const totalCorrect = observations.reduce((sum, entry) => sum + entry.correct, 0);
+      const totalIndependentCorrect = observations.reduce((sum, entry) => sum + entry.independent_correct, 0);
+      const totalSupportObserved = observations.reduce((sum, entry) => sum + entry.support_observed, 0);
+      const totalOmissions = observations.reduce((sum, entry) => sum + entry.omissions, 0);
+      const totalCommissions = observations.reduce((sum, entry) => sum + entry.commissions, 0);
+      const recentScored = recent.reduce((sum, entry) => sum + entry.scored_opportunities, 0);
+      const recentCorrect = recent.reduce((sum, entry) => sum + entry.correct, 0);
+      const recentIndependentCorrect = recent.reduce((sum, entry) => sum + entry.independent_correct, 0);
+      const recentAccuracy = percentage(recentCorrect, recentScored);
+      const recentIndependent = percentage(recentIndependentCorrect, recentScored);
+      const responseTimes = observations.flatMap(entry => Array.isArray(entry.response_times) ? entry.response_times : []);
+      const first = observations[0];
+      const latest = observations[observations.length - 1];
+      const daysSinceLastObservation = Number.isFinite(latest.observed_at_wall_ms)
+        ? Math.max(0, Math.floor((generatedAtWallMs - latest.observed_at_wall_ms) / 86400000))
+        : null;
+
+      let practiceStatus = allowLongitudinal ? 'not-scored' : 'pooled-coverage';
+      if(allowLongitudinal && totalScored > 0){
+        if(totalScored < 5 || observations.length < 2) practiceStatus = 'insufficient-sample';
+        else if(recentAccuracy != null && recentAccuracy < 60) practiceStatus = 'needs-support';
+        else if(recentScored >= 8 && recentAccuracy >= 80 && recentIndependent >= 70) practiceStatus = 'consistent-current-sample';
+        else practiceStatus = 'developing';
+      }
+
+      let trendStatus = allowLongitudinal ? 'not-enough-data' : 'pooled-not-sequenced';
+      if(allowLongitudinal && observations.length >= 2){
+        const firstAccuracy = percentage(first.correct, first.scored_opportunities);
+        const latestAccuracy = percentage(latest.correct, latest.scored_opportunities);
+        if(firstAccuracy != null && latestAccuracy != null && first.scored_opportunities >= 2 && latest.scored_opportunities >= 2){
+          const difference = latestAccuracy - firstAccuracy;
+          trendStatus = difference >= 10 ? 'higher' : difference <= -10 ? 'lower' : 'similar';
+        }
+      }
+
+      return {
+        version: CATEGORY_SKILL_STATE_VERSION,
+        scope_mode: allowLongitudinal ? 'single-learner' : 'pooled',
+        category_id: item.category_id,
+        category_label: item.category_label,
+        skill_id: item.skill_id,
+        skill_label: item.skill_label,
+        practice_status: practiceStatus,
+        practice_status_label: practiceStatusLabel(practiceStatus),
+        trend_status: trendStatus,
+        trend_status_label: trendStatusLabel(trendStatus),
+        sessions_observed: observations.length,
+        opportunities: totalOpportunities,
+        scored_opportunities: totalScored,
+        correct: totalCorrect,
+        accuracy_pct: percentage(totalCorrect, totalScored),
+        independent_correct: totalIndependentCorrect,
+        independent_success_pct: percentage(totalIndependentCorrect, totalScored),
+        support_status_observed: totalSupportObserved,
+        recent_window_sessions: allowLongitudinal ? recent.length : null,
+        recent_accuracy_pct: allowLongitudinal ? recentAccuracy : null,
+        recent_independent_success_pct: allowLongitudinal ? recentIndependent : null,
+        omissions: totalOmissions,
+        commissions: totalCommissions,
+        median_reaction_time_ms: responseTimes.length ? Math.round(median(responseTimes)) : null,
+        first_observed_wall_ms: first.observed_at_wall_ms,
+        last_observed_wall_ms: latest.observed_at_wall_ms,
+        days_since_last_observation: daysSinceLastObservation,
+        observations
+      };
+    }).sort((a, b) => b.opportunities - a.opportunities
+      || a.category_label.localeCompare(b.category_label)
+      || a.skill_id.localeCompare(b.skill_id));
+
+    return {
+      version: CATEGORY_SKILL_STATE_VERSION,
+      scope_mode: allowLongitudinal ? 'single-learner' : 'pooled',
+      combination_count: rows.length,
+      category_count: new Set(rows.map(item => item.category_id)).size,
+      skill_count: new Set(rows.map(item => item.skill_id)).size,
+      scored_opportunity_count: rows.reduce((sum, item) => sum + item.scored_opportunities, 0),
+      rows,
+      interpretation_boundary: allowLongitudinal
+        ? 'Descriptive in-app category-by-skill observations for one learner. Status thresholds are planning aids, not mastery, generalisation, diagnosis, causation, or evidence of neural change.'
+        : 'Pooled category-by-skill coverage only. Learner trajectories, recent-window status, and trends are intentionally not calculated across people.'
+    };
+  }
+
+  function exportableCategorySkillStateProfile(profile){
+    return {
+      version: profile.version,
+      scope_mode: profile.scope_mode,
+      combination_count: profile.combination_count,
+      category_count: profile.category_count,
+      skill_count: profile.skill_count,
+      scored_opportunity_count: profile.scored_opportunity_count,
+      rows: profile.rows.map(item => ({
+        category_id: item.category_id,
+        category_label: item.category_label,
+        skill_id: item.skill_id,
+        skill_label: item.skill_label,
+        practice_status: item.practice_status,
+        trend_status: item.trend_status,
+        sessions_observed: item.sessions_observed,
+        opportunities: item.opportunities,
+        scored_opportunities: item.scored_opportunities,
+        correct: item.correct,
+        accuracy_pct: item.accuracy_pct,
+        independent_correct: item.independent_correct,
+        independent_success_pct: item.independent_success_pct,
+        support_status_observed: item.support_status_observed,
+        recent_window_sessions: item.recent_window_sessions,
+        recent_accuracy_pct: item.recent_accuracy_pct,
+        recent_independent_success_pct: item.recent_independent_success_pct,
+        omissions: item.omissions,
+        commissions: item.commissions,
+        median_reaction_time_ms: item.median_reaction_time_ms,
+        days_since_last_observation: item.days_since_last_observation,
+        first_observed_date: Number.isFinite(item.first_observed_wall_ms) ? researchDateLabel(item.first_observed_wall_ms) : null,
+        last_observed_date: Number.isFinite(item.last_observed_wall_ms) ? researchDateLabel(item.last_observed_wall_ms) : null
+      })),
+      interpretation_boundary: profile.interpretation_boundary
+    };
   }
 
   function preferredTaskKindForSkill(skillId){
@@ -6659,6 +6876,7 @@
       generator_version: GENERATOR_VERSION,
       research_summary_version: RESEARCH_SUMMARY_VERSION,
       practice_status_version: PRACTICE_STATUS_VERSION,
+      category_skill_state_version: CATEGORY_SKILL_STATE_VERSION,
       recommendation_version: RECOMMENDATION_VERSION,
       retention_planning: snapshot && snapshot.retention_planning
         ? clonePlain(snapshot.retention_planning)
@@ -7752,6 +7970,94 @@
       ctx.fillStyle = themeToken('text', '#172b35');
       ctx.textAlign = 'left';
       ctx.fillText(entry.label, legendX + 18, canvas.height - 20);
+    });
+  }
+
+  function drawResearchCategorySkillMatrix(canvas, rows){
+    const observedRows = (Array.isArray(rows) ? rows : []).filter(item => item.accuracy_pct != null);
+    const categoryTotals = new Map();
+    const skillTotals = new Map();
+    observedRows.forEach(item => {
+      categoryTotals.set(item.category_id, {
+        id: item.category_id,
+        label: item.category_label,
+        opportunities: (categoryTotals.get(item.category_id) || {}).opportunities || 0
+      });
+      categoryTotals.get(item.category_id).opportunities += item.scored_opportunities;
+      skillTotals.set(item.skill_id, {
+        id: item.skill_id,
+        label: item.skill_label,
+        opportunities: (skillTotals.get(item.skill_id) || {}).opportunities || 0
+      });
+      skillTotals.get(item.skill_id).opportunities += item.scored_opportunities;
+    });
+    const categories = Array.from(categoryTotals.values())
+      .sort((a, b) => b.opportunities - a.opportunities || a.label.localeCompare(b.label))
+      .slice(0, 10);
+    const skills = Array.from(skillTotals.values())
+      .sort((a, b) => b.opportunities - a.opportunities || a.label.localeCompare(b.label))
+      .slice(0, 6);
+    canvas.height = Math.max(220, 132 + (categories.length * 34));
+    const ctx = prepareResearchCanvas(canvas);
+    if(!categories.length || !skills.length){
+      ctx.fillStyle = themeToken('text-muted', '#52656d');
+      ctx.fillText('No scored category-by-skill observations in this scope', 20, canvas.height / 2);
+      return;
+    }
+
+    const lookup = new Map(observedRows.map(item => [`${item.category_id}|${item.skill_id}`, item]));
+    const left = 176;
+    const top = 92;
+    const right = canvas.width - 18;
+    const cellWidth = (right - left) / skills.length;
+    const cellHeight = 34;
+    ctx.textAlign = 'left';
+    ctx.fillStyle = themeToken('text-muted', '#52656d');
+    ctx.fillText('Accuracy for observed scored opportunities', 12, 18);
+
+    skills.forEach((skill, index) => {
+      const x = left + (index * cellWidth) + (cellWidth / 2);
+      ctx.save();
+      ctx.translate(x, top - 10);
+      ctx.rotate(-Math.PI / 5);
+      ctx.textAlign = 'left';
+      ctx.fillStyle = themeToken('text', '#172b35');
+      const label = skill.label.length > 19 ? `${skill.label.slice(0, 18)}…` : skill.label;
+      ctx.fillText(label, 0, 0);
+      ctx.restore();
+    });
+
+    categories.forEach((category, rowIndex) => {
+      const y = top + (rowIndex * cellHeight);
+      ctx.fillStyle = themeToken('text', '#172b35');
+      ctx.textAlign = 'left';
+      const categoryLabel = category.label.length > 24 ? `${category.label.slice(0, 23)}…` : category.label;
+      ctx.fillText(categoryLabel, 10, y + (cellHeight / 2));
+      skills.forEach((skill, columnIndex) => {
+        const x = left + (columnIndex * cellWidth);
+        const item = lookup.get(`${category.id}|${skill.id}`);
+        ctx.fillStyle = themeToken('surface-subtle', '#e7f1f0');
+        ctx.fillRect(x + 2, y + 2, Math.max(10, cellWidth - 4), cellHeight - 4);
+        if(item){
+          const semanticColor = item.accuracy_pct >= 80
+            ? themeToken('success')
+            : item.accuracy_pct < 60
+              ? themeToken('danger')
+              : themeToken('primary');
+          ctx.save();
+          ctx.globalAlpha = 0.28;
+          ctx.fillStyle = semanticColor;
+          ctx.fillRect(x + 2, y + 2, Math.max(10, cellWidth - 4), cellHeight - 4);
+          ctx.restore();
+          ctx.fillStyle = themeToken('text', '#172b35');
+          ctx.textAlign = 'center';
+          ctx.fillText(`${item.accuracy_pct}%`, x + (cellWidth / 2), y + (cellHeight / 2));
+        } else {
+          ctx.fillStyle = themeToken('text-muted', '#52656d');
+          ctx.textAlign = 'center';
+          ctx.fillText('—', x + (cellWidth / 2), y + (cellHeight / 2));
+        }
+      });
     });
   }
 
@@ -9275,6 +9581,39 @@
     } else renderResearchEmptyRow(ui.researchPracticeBody, 12);
     ui.researchRetentionNote.textContent = `The current Research view uses a ${configuredRetentionGapDays}-day planning interval. Due status is calculated from the latest observed practice date. A retention comparison requires two observed sessions at least ${configuredRetentionGapDays} day(s) apart and three scored opportunities on each side; no learning is inferred between observations.`;
 
+    const categorySkillProfile = categorySkillStateProfile(sessions, wallMs(), scope !== 'all-learners');
+    ui.researchCategorySkillCombinationCount.textContent = String(categorySkillProfile.combination_count);
+    ui.researchCategorySkillCategoryCount.textContent = String(categorySkillProfile.category_count);
+    ui.researchCategorySkillSkillCount.textContent = String(categorySkillProfile.skill_count);
+    ui.researchCategorySkillScoredCount.textContent = String(categorySkillProfile.scored_opportunity_count);
+    drawResearchCategorySkillMatrix(ui.researchCategorySkillMatrixChart, categorySkillProfile.rows);
+    if(categorySkillProfile.rows.length){
+      clearNode(ui.researchCategorySkillBody);
+      categorySkillProfile.rows.forEach(item => appendResearchRow(ui.researchCategorySkillBody, [
+        item.category_label,
+        item.skill_label,
+        item.practice_status_label,
+        item.sessions_observed,
+        item.opportunities,
+        item.scored_opportunities,
+        item.accuracy_pct == null ? 'Not scored' : `${item.accuracy_pct}%`,
+        item.recent_accuracy_pct == null
+          ? (categorySkillProfile.scope_mode === 'pooled' ? 'Suppressed for pooled scope' : 'Not scored')
+          : `${item.recent_accuracy_pct}%`,
+        item.independent_success_pct == null ? 'Not scored' : `${item.independent_success_pct}%`,
+        item.omissions,
+        item.commissions,
+        item.median_reaction_time_ms == null ? null : `${item.median_reaction_time_ms} ms`,
+        item.trend_status_label,
+        Number.isFinite(item.last_observed_wall_ms)
+          ? `${researchDateLabel(item.last_observed_wall_ms)} (${item.days_since_last_observation}d ago)`
+          : null
+      ]));
+    } else renderResearchEmptyRow(ui.researchCategorySkillBody, 14, 'No category-linked skill observations in this scope yet.');
+    ui.researchCategorySkillNote.textContent = categorySkillProfile.scope_mode === 'pooled'
+      ? 'Rows pool exposure across learners. Recent-window status and trajectories are intentionally suppressed because sessions from different people are not one learning sequence. The matrix shows up to the ten most-observed categories and six most-observed skills; the table retains every row. This is descriptive and does not establish mastery, generalisation, causation, diagnosis, or neural change.'
+      : 'Rows combine the selected learner’s observed category and versioned skill. Status needs at least five scored opportunities across two sessions, while the consistent-current-sample label also requires at least eight recent scored opportunities, 80% accuracy, and 70% independent success. The matrix shows up to the ten most-observed categories and six most-observed skills; the table retains every row. These are transparent planning rules, not mastery, generalisation, diagnosis, causation, or neural-change claims.';
+
     const currentAlias = currentPupilAlias();
     const currentName = currentPupilName();
     const currentLearnerSessions = sessions.filter(session => sessionMatchesLearner(session, currentName, currentAlias));
@@ -10691,6 +11030,7 @@
       generator_version: GENERATOR_VERSION,
       research_summary_version: RESEARCH_SUMMARY_VERSION,
       practice_status_version: PRACTICE_STATUS_VERSION,
+      category_skill_state_version: CATEGORY_SKILL_STATE_VERSION,
       recommendation_version: RECOMMENDATION_VERSION,
       retention_planning: snapshot && snapshot.retention_planning
         ? clonePlain(snapshot.retention_planning)
@@ -10889,6 +11229,7 @@
     }));
     const practiceStateRecords = skillPracticeStatesForSessions(sessions, wallMs(), retentionGapDays());
     const retentionPlanning = retentionScheduleSummary(practiceStateRecords, retentionGapDays());
+    const categorySkillStates = categorySkillStateProfile(sessions, wallMs(), scope !== 'all-learners');
     const practiceStates = practiceStateRecords.map(item => ({
       skill_id: item.skill_id,
       label: item.label,
@@ -11011,6 +11352,7 @@
         mean_touch_distance_px: item.mean_touch_distance_px
       })),
       practice_states: practiceStates,
+      category_skill_states: exportableCategorySkillStateProfile(categorySkillStates),
       retention_planning: {
         version: retentionPlanning.version,
         configured_gap_days: retentionPlanning.configured_gap_days,

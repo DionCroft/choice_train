@@ -149,6 +149,8 @@ These papers inform design choices, classroom workflow decisions, ChoiceTrain At
   Link: https://doi.org/10.1007/s10803-018-3551-8
   Why it matters: benefits from multiple examples and structural alignment were not uniform. This supports learner-specific review of exemplar breadth and careful interpretation rather than assuming that varied examples automatically produce generalisation.
 
+ChoiceTrain's category-by-skill state combines these two evidence strands cautiously: Corbett and Anderson motivate an explicit skill-specific state structure, while Wimmer et al., Ellawadi et al., and Snape et al. support recording category performance through repeated, multi-signal observations and avoiding uniform generalisation assumptions. The implemented thresholds are transparent product rules for planning and have not been validated as a knowledge-tracing, mastery, diagnostic, transfer, or neural-plasticity measure.
+
 ## Standards and Design Sources
 
 The following sources guide implementation but are not peer-reviewed evidence that ChoiceTrain improves an educational or clinical outcome:

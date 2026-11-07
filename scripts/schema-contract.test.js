@@ -35,9 +35,9 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
 });
 
 test('Research summary schema matches its runtime export version and category/AI composition sections', () => {
-  const contract = schema('choice-train-research-summary-v1.8.schema.json');
+  const contract = schema('choice-train-research-summary-v1.9.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('RESEARCH_WORKSPACE_EXPORT_VERSION'));
-  ['retention_planning', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition']
+  ['retention_planning', 'category_skill_states', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition']
     .forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
   assert.equal(contract.properties.data_quality.$ref, 'choice-train-data-quality-v1.schema.json');
   const profile = contract.properties.model_dataset_composition;
@@ -54,6 +54,21 @@ test('Research summary schema matches its runtime export version and category/AI
   const datePattern = new RegExp(retention.properties.rows.items.properties.next_retention_check_date.pattern);
   assert.equal(datePattern.test('2026-11-07'), true);
   assert.equal(datePattern.test('07-11-2026'), false);
+  const categoryStates = contract.properties.category_skill_states;
+  assert.equal(categoryStates.properties.version.const, runtimeConstant('CATEGORY_SKILL_STATE_VERSION'));
+  assert.deepEqual(new Set(categoryStates.properties.scope_mode.enum), new Set(['single-learner', 'pooled']));
+  assert.deepEqual(new Set(categoryStates.properties.rows.items.properties.practice_status.enum), new Set([
+    'not-scored',
+    'pooled-coverage',
+    'insufficient-sample',
+    'needs-support',
+    'developing',
+    'consistent-current-sample'
+  ]));
+  assert.equal(categoryStates.properties.rows.items.properties.days_since_last_observation.minimum, 0);
+  const categoryDatePattern = new RegExp(categoryStates.properties.rows.items.properties.last_observed_date.pattern);
+  assert.equal(categoryDatePattern.test('2026-11-07'), true);
+  assert.equal(categoryDatePattern.test('07-11-2026'), false);
 });
 
 test('data-quality schema locks recording-completeness fields and flags', () => {

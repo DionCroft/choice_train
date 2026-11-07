@@ -10,7 +10,8 @@ const EXPECTED_CONTRACTS = Object.freeze({
   dataSchema: '8',
   skillGraph: '1.4.0',
   generator: '1.6.0',
-  researchWorkspaceExport: '1.8.0',
+  researchWorkspaceExport: '1.9.0',
+  categorySkillState: '1.0.0',
   dataQuality: '1.0.0'
 });
 
@@ -88,13 +89,14 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
   assert(new RegExp(`const SKILL_GRAPH_VERSION = ['"]${EXPECTED_CONTRACTS.skillGraph.replaceAll('.', '\\.')}['"];`).test(source), 'skill graph version drifted');
   assert(new RegExp(`const GENERATOR_VERSION = ['"]${EXPECTED_CONTRACTS.generator.replaceAll('.', '\\.')}['"];`).test(source), 'generator version drifted');
   assert(new RegExp(`const RESEARCH_WORKSPACE_EXPORT_VERSION = ['"]${EXPECTED_CONTRACTS.researchWorkspaceExport.replaceAll('.', '\\.')}['"];`).test(source), 'research export version drifted');
+  assert(new RegExp(`const CATEGORY_SKILL_STATE_VERSION = ['"]${EXPECTED_CONTRACTS.categorySkillState.replaceAll('.', '\\.')}['"];`).test(source), 'category-skill state version drifted');
   assert(new RegExp(`const DATA_QUALITY_SCHEMA_VERSION = ['"]${EXPECTED_CONTRACTS.dataQuality.replaceAll('.', '\\.')}['"];`).test(source), 'data-quality schema version drifted');
 });
 
 check('machine-readable research contracts are present and parseable', () => {
   [
     'schemas/choice-train-trial-v8.schema.json',
-    'schemas/choice-train-research-summary-v1.8.schema.json',
+    'schemas/choice-train-research-summary-v1.9.schema.json',
     'schemas/choice-train-data-quality-v1.schema.json',
     'schemas/choice-train-model-dataset-v1.schema.json'
   ].forEach((file) => {
