@@ -1143,6 +1143,48 @@ body.panel-view-admin .tableWrap {
   margin-top: 18px;
 }
 
+.researchSectionNav {
+  position: sticky;
+  top: 8px;
+  z-index: 20;
+  display: flex;
+  gap: 8px;
+  margin: 14px 0 4px;
+  padding: 10px;
+  overflow-x: auto;
+  border: 1px solid var(--shell-border);
+  border-radius: var(--shell-radius-lg);
+  background: var(--shell-surface);
+  box-shadow: var(--shell-shadow-soft);
+  scrollbar-width: thin;
+}
+
+.researchSectionNav a {
+  flex: 0 0 auto;
+  min-height: 40px;
+  display: inline-flex;
+  align-items: center;
+  padding: 8px 12px;
+  border: 1px solid var(--shell-border);
+  border-radius: 999px;
+  background: var(--shell-surface-raised);
+  color: var(--shell-text);
+  font-size: 0.82rem;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.researchSectionNav a:hover,
+.researchSectionNav a:focus-visible {
+  border-color: var(--shell-primary-border);
+  background: var(--shell-primary-soft);
+  color: var(--shell-primary-text);
+}
+
+.researchAnchorTarget {
+  scroll-margin-top: 82px;
+}
+
 .panel .researchCanvas {
   display: block;
   width: 100%;
@@ -1256,6 +1298,12 @@ body.panel-view-admin .tableWrap {
 }
 
 @media (max-width: 720px) {
+  .researchSectionNav {
+    top: 4px;
+    margin-inline: -4px;
+    border-radius: var(--shell-radius-md);
+  }
+
   .researchMetricPair {
     grid-template-columns: 1fr;
   }

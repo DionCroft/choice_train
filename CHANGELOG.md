@@ -47,6 +47,8 @@ All notable changes to ChoiceTrain are listed here.
 - aggregate EEG-readiness bars now preserve missing values instead of drawing unavailable checks as zero
 - task/variant/condition profiles with trials, scored opportunities, accuracy, observed independence, omissions, commissions, and median RT
 - session-context visualisations and tables for practitioner-recorded readiness/fatigue, sensory state, sleep, breaks, and pre-session choice alongside descriptive outcomes
+- sticky, keyboard-accessible Research section navigation plus a per-session domain-coverage chart and table for behaviour, support, context, content, EEG/protocol, and transfer fields
+- explicit `Not expected` handling for non-EEG sessions so absent research-mode data is not displayed as zero or treated as missing learner performance
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary

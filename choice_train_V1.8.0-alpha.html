@@ -1202,16 +1202,38 @@
             <label class="toggle"><input id="researchIncludeArchived" type="checkbox" /> Include archived sessions</label>
             <button id="refreshResearchBtn" type="button">Refresh research view</button>
           </div>
-          <div class="analyticsGrid researchOverviewGrid">
+          <div id="researchSummarySection" class="analyticsGrid researchOverviewGrid researchAnchorTarget">
             <div class="dashCard"><div class="k">Sessions in scope</div><div class="v" id="researchSessionCount">0</div></div>
             <div class="dashCard"><div class="k">Final trials in scope</div><div class="v" id="researchTrialCount">0</div></div>
             <div class="dashCard"><div class="k">Date range</div><div class="v researchCompactValue" id="researchDateRange">No data</div></div>
-            <div class="dashCard"><div class="k">Core data completeness</div><div class="v" id="researchCompleteness">&mdash;</div></div>
+            <div class="dashCard"><div class="k">Behavioural core coverage</div><div class="v" id="researchCompleteness">&mdash;</div></div>
           </div>
           <div id="researchSourceNote" class="compactNote">Showing current learner history from local storage.</div>
 
+          <nav id="researchSectionNav" class="researchSectionNav" aria-label="Research workspace sections">
+            <a href="#researchSummarySection">Summary</a>
+            <a href="#researchDataQualitySection">Data quality</a>
+            <a href="#researchPerformanceSection">Performance</a>
+            <a href="#researchSkillsSection">Skills &amp; planning</a>
+            <a href="#researchSupportContentSection">Support &amp; content</a>
+            <a href="#researchEegReadinessSection">EEG readiness</a>
+            <a href="#researchContextTransferSection">Context &amp; transfer</a>
+            <a href="#researchCurrentSessionSection">Current session</a>
+          </nav>
+
           <div class="analyticsPanel researchVisualGrid">
-            <div class="chartCard span2">
+            <div id="researchDataQualitySection" class="chartCard span2 researchAnchorTarget">
+              <h4>Dataset coverage by session and domain</h4>
+              <canvas id="researchCoverageChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Observed research fields as a percentage of expected fields by data domain"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Behaviour</th><th>Support</th><th>Context</th><th>Content</th><th>EEG / protocol</th><th>Transfer</th></tr></thead>
+                  <tbody id="researchCoverageBody"></tbody>
+                </table>
+              </div>
+              <div id="researchCoverageNote" class="compactNote">Coverage reports whether planned fields were recorded. It does not score the learner or assess data validity.</div>
+            </div>
+            <div id="researchPerformanceSection" class="chartCard span2 researchAnchorTarget">
               <h4>Accuracy and independent responding over time</h4>
               <canvas id="researchAccuracyChart" class="researchCanvas" width="760" height="240" role="img" aria-label="Accuracy and independent response percentages across sessions"></canvas>
               <div class="tableWrap researchTableWrap">
@@ -1264,7 +1286,7 @@
               </div>
               <div id="researchBehaviourNote" class="compactNote">Missing timing and touch values remain missing. Rates use final trial outcomes in each session.</div>
             </div>
-            <div class="chartCard span2">
+            <div id="researchSkillsSection" class="chartCard span2 researchAnchorTarget">
               <h4>Versioned skill profile</h4>
               <canvas id="researchSkillChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Accuracy by ChoiceTrain skill"></canvas>
               <div class="tableWrap researchTableWrap">
@@ -1340,7 +1362,7 @@
               </div>
               <div class="compactNote">ChoiceTrain never applies a proposal automatically. Reviews remain local and are exported for audit; no external AI service is used.</div>
             </div>
-            <div class="chartCard">
+            <div id="researchSupportContentSection" class="chartCard researchAnchorTarget">
               <h4>Support and independence</h4>
               <canvas id="researchSupportChart" class="researchCanvas" width="420" height="240" role="img" aria-label="Response counts by independence status"></canvas>
               <div class="tableWrap researchTableWrap">
@@ -1423,7 +1445,7 @@
               </div>
               <div class="compactNote">Selections are context-specific observations. They are not accuracy scores, stable preference claims, or a formal reinforcer assessment.</div>
             </div>
-            <div class="chartCard span2">
+            <div id="researchEegReadinessSection" class="chartCard span2 researchAnchorTarget">
               <h4>Fidelity, artifacts, and EEG marker readiness</h4>
               <div class="dashboard">
                 <div class="dashCard"><div class="k">Mean fidelity</div><div class="v" id="researchFidelity">&mdash;</div></div>
@@ -1460,7 +1482,7 @@
               </div>
               <div id="researchEegQualityNote" class="compactNote">Marker checks use browser event logs only. The block-quality score is a transparent logging heuristic, not EEG signal quality, and browser markers are not hardware-synchronised triggers.</div>
             </div>
-            <div class="chartCard span2">
+            <div id="researchContextTransferSection" class="chartCard span2 researchAnchorTarget">
               <h4>Maintenance, generalisation, and classroom transfer observations</h4>
               <div class="researchMetricPair">
                 <div>
@@ -1502,7 +1524,7 @@
             </div>
           </div>
 
-          <div class="sub researchCurrentSessionHeading">Current-session detailed analytics</div>
+          <div id="researchCurrentSessionSection" class="sub researchCurrentSessionHeading researchAnchorTarget">Current-session detailed analytics</div>
           <div class="analyticsGrid">
             <div class="dashCard"><div class="k">Session task lock</div><div class="v" id="dashTaskLock">Auto</div></div>
             <div class="dashCard"><div class="k">Single-target repetitions</div><div class="v" id="dashSingleTarget">3</div></div>

@@ -369,9 +369,16 @@ test('Research is a separate admin destination with accessible visual equivalent
   await expect(page.locator('body')).toHaveClass(/admin-page-research/);
   await expect(page.locator('#adminNavResearch')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('#adminAnalyticsSection')).toBeVisible();
+  await expect(page.locator('#researchSectionNav')).toBeVisible();
+  await expect(page.locator('#researchSectionNav a')).toHaveCount(8);
+  await expect(page.locator('#researchCoverageChart')).toHaveAttribute('role', 'img');
+  await expect(page.locator('#researchCoverageBody')).toContainText('No sessions');
   await expect(page.locator('#researchAccuracyChart')).toHaveAttribute('role', 'img');
   await expect(page.locator('#researchSessionTrendBody')).toContainText('No data');
   await expect(page.locator('#researchSourceNote')).toContainText('Missing values stay missing');
+  await page.locator('#researchSectionNav a[href="#researchDataQualitySection"]').click();
+  await expect(page.locator('#researchDataQualitySection')).toBeVisible();
+  expect(await page.evaluate(() => location.hash)).toBe('#researchDataQualitySection');
 });
 
 test('Research workspace contains wide data tables on a tablet viewport', async ({ page }) => {
@@ -419,6 +426,9 @@ test('Research separates Attention Training families and avoids unsupported slop
   await expect(page.locator('#researchTaskVariantBody tr')).toHaveCount(1);
   await expect(page.locator('#researchTaskVariantBody')).toContainText('AT selective');
   await expect(page.locator('#researchTaskVariantBody')).toContainText('Training condition');
+  await expect(page.locator('#researchCoverageBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchCoverageBody')).toContainText('Not expected');
+  await expect(page.locator('#researchCoverageNote')).toContainText('EEG/protocol is not expected');
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchAttentionFamilyBody')).toContainText('Use learner scope');
@@ -772,6 +782,9 @@ test('EEG protocol metadata and browser timing diagnostics are exported and visu
   await expect(page.locator('#researchArtifactTypeBody')).toContainText('Movement');
   await expect(page.locator('#researchArtifactTypeBody')).toContainText('Speech');
   await expect(page.locator('#researchEegQualityNote')).toContainText('logging heuristic');
+  await expect(page.locator('#researchCoverageBody tr').first().locator('td').nth(6)).toContainText('%');
+  await expect(page.locator('#researchCoverageBody tr').first().locator('td').nth(6)).not.toContainText('Not expected');
+  await expect(page.locator('#researchCoverageNote')).toContainText('EEG/protocol coverage applies to 1 session');
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchEegQualityNote')).toContainText('unconnected points');

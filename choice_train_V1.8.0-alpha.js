@@ -6562,6 +6562,134 @@
     flash('good', 'Teacher review saved locally');
   }
 
+  function isRecordedResearchValue(value){
+    if(value == null) return false;
+    if(typeof value !== 'string') return true;
+    const normalized = value.trim().toLowerCase();
+    return !!normalized && !['unknown', 'not-recorded', 'not recorded', 'not-run', 'not run'].includes(normalized);
+  }
+
+  function researchCoverageMetric(checks, applicable=true){
+    if(!applicable) return { observed: 0, expected: 0, percent: null, applicable: false };
+    const expected = checks.length;
+    const observed = checks.filter(Boolean).length;
+    return {
+      observed,
+      expected,
+      percent: expected ? Math.round((observed / expected) * 100) : null,
+      applicable: expected > 0
+    };
+  }
+
+  function researchCoverageForSession(session){
+    const finalTrials = latestTrialsByQuestion(session.trials || []);
+    const behaviourChecks = finalTrials.flatMap(trial => [
+      !!trial.trial_id,
+      !!trial.task_kind,
+      typeof trial.correct === 'boolean',
+      Number.isFinite(trial.cue_onset_wall_ms) || Number.isFinite(trial.stimulus_onset_wall_ms)
+    ]);
+    const responded = finalTrials.filter(trial => !trial.omission);
+    const supportChecks = responded.flatMap(trial => [
+      ['independent', 'prompted', 'assisted'].includes(trial.independence_status),
+      Number.isFinite(trial.highest_prompt_level),
+      isRecordedResearchValue(trial.support_code)
+    ]);
+    const contentChecks = finalTrials.flatMap(trial => {
+      const checks = [
+        isRecordedResearchValue(trial.prompt_wording),
+        isRecordedResearchValue(trial.generator_version)
+      ];
+      const hasOptions = (Array.isArray(trial.option_metadata) && trial.option_metadata.length)
+        || (Array.isArray(trial.option_labels) && trial.option_labels.length);
+      if(hasOptions) checks.push(Array.isArray(trial.option_labels) && trial.option_labels.length > 0);
+      if(trial.scored_response !== false && !trial.correct_rejection && !trial.touch_anywhere_accepted){
+        checks.push(isRecordedResearchValue(trial.target_label));
+      }
+      return checks;
+    });
+
+    const contextTrial = finalTrials.find(trial => trial.session_context && typeof trial.session_context === 'object');
+    const baselineTrial = finalTrials.find(trial => trial.learner_baseline && typeof trial.learner_baseline === 'object');
+    const context = contextTrial ? contextTrial.session_context : {};
+    const trialBaseline = baselineTrial ? baselineTrial.learner_baseline : {};
+    const profileBaseline = session.learner_snapshot && session.learner_snapshot.baseline
+      ? session.learner_snapshot.baseline
+      : {};
+    const breakCount = Number.isFinite(context.breaks_used)
+      ? context.breaks_used
+      : profileBaseline.breakCount;
+    const contextChecks = [
+      isRecordedResearchValue(context.fatigue_level || profileBaseline.fatigueLevel),
+      isRecordedResearchValue(context.sensory_state || profileBaseline.sensoryState),
+      isRecordedResearchValue(trialBaseline.sleep_quality || profileBaseline.sleepQuality || profileBaseline.sleep_quality),
+      Number.isFinite(breakCount),
+      isRecordedResearchValue(context.pre_session_preference || profileBaseline.preSessionPreference),
+      isRecordedResearchValue(session.context_notes || profileBaseline.contextNotes)
+    ];
+
+    const protocol = session.study_protocol || {};
+    const eegExpected = !!(
+      (session.settings && session.settings.eegResearchMode)
+      || finalTrials.some(trial => trial.eeg_research_mode)
+    );
+    const markerSet = coreMarkerCompleteness(session);
+    const protocolChecks = [
+      isRecordedResearchValue(protocol.study_protocol_id),
+      isRecordedResearchValue(protocol.visit_id),
+      protocol.run_number != null,
+      isRecordedResearchValue(protocol.acquisition_system),
+      isRecordedResearchValue(protocol.declared_sync_method)
+    ];
+    const eegChecks = eegExpected
+      ? Array(markerSet.expected).fill(false).map((_, index) => index < markerSet.complete).concat(protocolChecks)
+      : [];
+
+    const attentionRating = Number.isFinite(profileBaseline.teacherAttentionRating)
+      ? profileBaseline.teacherAttentionRating
+      : profileBaseline.teacher_attention_rating;
+    const independenceRating = Number.isFinite(profileBaseline.teacherIndependenceRating)
+      ? profileBaseline.teacherIndependenceRating
+      : profileBaseline.teacher_independence_rating;
+    const transferChecks = [
+      Number.isFinite(attentionRating),
+      Number.isFinite(independenceRating),
+      isRecordedResearchValue(profileBaseline.maintenanceStatus || context.maintenance_status),
+      isRecordedResearchValue(profileBaseline.generalisationStatus || context.generalisation_status),
+      isRecordedResearchValue(session.classroom_transfer_notes || profileBaseline.classroomTransferNotes)
+    ];
+
+    return {
+      date: researchDateLabel(Number(session.updated_at_wall_ms)),
+      learner: session.learner_alias || session.learner || 'Unknown',
+      domains: {
+        behaviour: researchCoverageMetric(behaviourChecks),
+        support: researchCoverageMetric(supportChecks),
+        context: researchCoverageMetric(contextChecks),
+        content: researchCoverageMetric(contentChecks),
+        eeg: researchCoverageMetric(eegChecks, eegExpected),
+        transfer: researchCoverageMetric(transferChecks)
+      }
+    };
+  }
+
+  function aggregateResearchCoverage(rows, key){
+    const applicable = rows.map(row => row.domains[key]).filter(metric => metric.applicable);
+    const observed = applicable.reduce((sum, metric) => sum + metric.observed, 0);
+    const expected = applicable.reduce((sum, metric) => sum + metric.expected, 0);
+    return {
+      observed,
+      expected,
+      applicable_sessions: applicable.length,
+      percent: expected ? Math.round((observed / expected) * 100) : null
+    };
+  }
+
+  function researchCoverageCell(metric){
+    if(!metric.applicable) return 'Not expected';
+    return `${metric.observed}/${metric.expected} (${metric.percent}%)`;
+  }
+
   function renderResearchWorkspace(){
     if(!ui.researchScopeSelect) return;
     const sessions = researchSessionsInScope();
@@ -6576,13 +6704,19 @@
     };
     const scope = ui.researchScopeSelect.value;
     const timestamps = sessions.map(session => Number(session.updated_at_wall_ms)).filter(Number.isFinite);
-    const coreChecks = finalTrials.flatMap(trial => [
-      !!trial.task_kind,
-      (Array.isArray(trial.skill_ids) && trial.skill_ids.length > 0) || skillIdsForTask(trial.task_kind).length > 0,
-      typeof trial.correct === 'boolean',
-      Number.isFinite(trial.cue_onset_wall_ms) || Number.isFinite(trial.stimulus_onset_wall_ms)
-    ]);
-    const completeness = coreChecks.length ? Math.round((coreChecks.filter(Boolean).length / coreChecks.length) * 100) : null;
+    const coverageRows = sessions.map(researchCoverageForSession);
+    const coverageDomains = [
+      { key: 'behaviour', label: 'Behaviour', color: themeToken('primary') },
+      { key: 'support', label: 'Support', color: themeToken('success') },
+      { key: 'context', label: 'Context', color: themeToken('secondary', themeToken('primary')) },
+      { key: 'content', label: 'Content', color: themeToken('reward') },
+      { key: 'eeg', label: 'EEG / protocol', color: themeToken('warning') },
+      { key: 'transfer', label: 'Transfer', color: themeToken('danger') }
+    ].map(domain => ({ ...domain, ...aggregateResearchCoverage(coverageRows, domain.key) }));
+    const behaviourCoverage = coverageDomains.find(domain => domain.key === 'behaviour');
+    const completeness = behaviourCoverage && Number.isFinite(behaviourCoverage.percent)
+      ? behaviourCoverage.percent
+      : null;
 
     ui.researchSessionCount.textContent = String(sessions.length);
     ui.researchTrialCount.textContent = String(finalTrials.length);
@@ -6591,6 +6725,29 @@
       : 'No data';
     ui.researchCompleteness.textContent = completeness == null ? '--' : `${completeness}%`;
     ui.researchSourceNote.textContent = `Showing ${scopeLabels[scope] || scope}. ${ui.researchIncludeArchived.checked ? 'Archived sessions included.' : 'Archived sessions excluded.'} Missing values stay missing rather than being treated as zero.`;
+
+    drawResearchBars(ui.researchCoverageChart, coverageDomains
+      .filter(domain => Number.isFinite(domain.percent))
+      .map(domain => ({
+        label: domain.label,
+        value: domain.percent,
+        color: domain.color
+      })), { maxValue: 100, suffix: '%', labelWidth: 145 });
+    if(coverageRows.length){
+      clearNode(ui.researchCoverageBody);
+      coverageRows.forEach(row => appendResearchRow(ui.researchCoverageBody, [
+        row.date,
+        row.learner,
+        researchCoverageCell(row.domains.behaviour),
+        researchCoverageCell(row.domains.support),
+        researchCoverageCell(row.domains.context),
+        researchCoverageCell(row.domains.content),
+        researchCoverageCell(row.domains.eeg),
+        researchCoverageCell(row.domains.transfer)
+      ]));
+    } else renderResearchEmptyRow(ui.researchCoverageBody, 8, 'No sessions in this scope yet.');
+    const eegCoverage = coverageDomains.find(domain => domain.key === 'eeg');
+    ui.researchCoverageNote.textContent = `Coverage shows recorded fields, not learner performance or data validity. Optional context and transfer fields may remain missing. ${eegCoverage && eegCoverage.applicable_sessions ? `EEG/protocol coverage applies to ${eegCoverage.applicable_sessions} session(s).` : 'EEG/protocol is not expected for the sessions in this scope.'}`;
 
     drawResearchTrend(ui.researchAccuracyChart, sessionRows);
     drawResearchScatter(ui.researchSpeedAccuracyChart, sessionRows);
