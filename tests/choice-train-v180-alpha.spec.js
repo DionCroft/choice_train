@@ -428,6 +428,54 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await expect(page.locator('#researchBehaviourNote')).toContainText('not connected');
 });
 
+test('Research visualises support fading, dosage, and teacher-rated transfer observations', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 2);
+  await setValue(page, 'teacherAttentionRating', 4);
+  await setValue(page, 'teacherIndependenceRating', 2);
+  await setValue(page, 'maintenanceStatus', 'maintained');
+  await setValue(page, 'generalisationStatus', 'generalised');
+  await setValue(page, 'dosageMinutesTarget', 12);
+  await setCheckbox(page, 'fidelityEnvironmentReady', true);
+  await setCheckbox(page, 'fidelityRuleShown', true);
+  await setCheckbox(page, 'fidelityPromptPlan', true);
+
+  await completeSessionAndExport(page, 2);
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-learner');
+
+  await expect(page.locator('#researchSupportTrendChart')).toBeVisible();
+  await expect(page.locator('#researchDosageChart')).toBeVisible();
+  await expect(page.locator('#researchTeacherRatingChart')).toBeVisible();
+  await expect(page.locator('#researchTransferStatusChart')).toBeVisible();
+  await expect(page.locator('#researchSupportTrendBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchSupportTrendBody')).toContainText('100%');
+  await expect(page.locator('#researchSupportTrendBody')).toContainText('12 min');
+  await expect(page.locator('#researchSupportTrendBody')).toContainText('50%');
+  await expect(page.locator('#researchTransferBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchTransferBody')).toContainText('4/5');
+  await expect(page.locator('#researchTransferBody')).toContainText('2/5');
+  await expect(page.locator('#researchTransferBody')).toContainText('maintained');
+  await expect(page.locator('#researchTransferBody')).toContainText('generalised');
+
+  await setValue(page, 'researchScopeSelect', 'all-learners');
+  await expect(page.locator('#researchSupportTrendNote')).toContainText('unconnected points');
+  await expect(page.locator('#researchTransferNote')).toContainText('not connected');
+
+  await page.reload();
+  await expect(page.locator('#beginFlow')).toBeVisible();
+  await expect(page.locator('#teacherAttentionRating')).toHaveValue('4');
+  await expect(page.locator('#teacherIndependenceRating')).toHaveValue('2');
+});
+
 test('teacher-reviewed recommendations persist locally and export an audit record', async ({ page }) => {
   await gotoAlpha(page);
   await setCheckbox(page, 'ttsToggle', false);

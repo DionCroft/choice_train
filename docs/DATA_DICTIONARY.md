@@ -44,6 +44,12 @@ The response-quality card derives session-level `omission_pct`, `commission_pct`
 
 Current-learner points may be connected in chronological order. All-learner points are deliberately unconnected because records from different learners are not one longitudinal series.
 
+### Research implementation and transfer-observation views
+
+The support-fading table derives per-session response counts, observed support-status counts, independent percentage, prompted/assisted/unknown counts, mean highest prompt level, actual and target dosage minutes, and implementation-fidelity percentage. Independent percentage uses only responses whose support status was explicitly observed; an absent status remains unknown rather than being treated as independent.
+
+The teacher-observation view displays the session-start 1-5 attention and independence ratings and counts recorded maintenance/generalisation statuses. `not-run` and missing statuses are excluded from status bars but remain visible in the table. These are practitioner-entered observations, not validated task scores or evidence of transfer. Current-learner points may be connected by session date; all-learner points are unconnected.
+
 ## V1.8 Procedural Lesson Provenance
 
 Generator version `1.2.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Discriminate object`, and `Choice preference`.

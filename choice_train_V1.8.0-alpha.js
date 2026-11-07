@@ -5629,6 +5629,13 @@
     learner.baseline = {
       ...learner.baseline,
       ...learnerBaselineSnapshot(),
+      communicationMode: ui.communicationMode.value,
+      motorAccessMode: ui.motorAccessMode.value,
+      adaptiveFunctioningBand: ui.adaptiveFunctioningBand.value,
+      teacherAttentionRating: safeNumber(ui.teacherAttentionRating.value, 3),
+      teacherIndependenceRating: safeNumber(ui.teacherIndependenceRating.value, 3),
+      eegParticipation: ui.eegParticipation.value,
+      aacPreference: ui.aacPreference.value,
       dataUseStatus: ui.dataUseStatus ? ui.dataUseStatus.value : 'not-recorded',
       researchAnalysisApproved: !!(ui.researchAnalysisApproved && ui.researchAnalysisApproved.checked),
       eegLinkageApproved: !!(ui.eegLinkageApproved && ui.eegLinkageApproved.checked),
@@ -5721,19 +5728,19 @@
 
   function applyLearnerFields(learner){
     const baseline = learner.baseline || SESSION_CONTEXT_DEFAULTS;
-    ui.communicationMode.value = baseline.communicationMode || SESSION_CONTEXT_DEFAULTS.communicationMode;
-    ui.motorAccessMode.value = baseline.motorAccessMode || SESSION_CONTEXT_DEFAULTS.motorAccessMode;
-    ui.adaptiveFunctioningBand.value = baseline.adaptiveFunctioningBand || SESSION_CONTEXT_DEFAULTS.adaptiveFunctioningBand;
-    ui.teacherAttentionRating.value = baseline.teacherAttentionRating || SESSION_CONTEXT_DEFAULTS.teacherAttentionRating;
-    ui.teacherIndependenceRating.value = baseline.teacherIndependenceRating || SESSION_CONTEXT_DEFAULTS.teacherIndependenceRating;
-    ui.eegParticipation.value = baseline.eegParticipation || SESSION_CONTEXT_DEFAULTS.eegParticipation;
+    ui.communicationMode.value = baseline.communicationMode || baseline.communication_mode || SESSION_CONTEXT_DEFAULTS.communicationMode;
+    ui.motorAccessMode.value = baseline.motorAccessMode || baseline.motor_access_mode || SESSION_CONTEXT_DEFAULTS.motorAccessMode;
+    ui.adaptiveFunctioningBand.value = baseline.adaptiveFunctioningBand || baseline.adaptive_functioning_band || SESSION_CONTEXT_DEFAULTS.adaptiveFunctioningBand;
+    ui.teacherAttentionRating.value = baseline.teacherAttentionRating || baseline.teacher_attention_rating || SESSION_CONTEXT_DEFAULTS.teacherAttentionRating;
+    ui.teacherIndependenceRating.value = baseline.teacherIndependenceRating || baseline.teacher_independence_rating || SESSION_CONTEXT_DEFAULTS.teacherIndependenceRating;
+    ui.eegParticipation.value = baseline.eegParticipation || baseline.eeg_participation || SESSION_CONTEXT_DEFAULTS.eegParticipation;
     if(ui.dataUseStatus) ui.dataUseStatus.value = baseline.dataUseStatus || SESSION_CONTEXT_DEFAULTS.dataUseStatus;
     if(ui.researchAnalysisApproved) ui.researchAnalysisApproved.checked = baseline.researchAnalysisApproved === true;
     if(ui.eegLinkageApproved) ui.eegLinkageApproved.checked = baseline.eegLinkageApproved === true;
     if(ui.modelDevelopmentApproved) ui.modelDevelopmentApproved.checked = baseline.modelDevelopmentApproved === true;
     if(ui.governanceReference) ui.governanceReference.value = baseline.governanceReference || '';
     if(ui.governanceReviewDate) ui.governanceReviewDate.value = baseline.governanceReviewDate || '';
-    ui.aacPreference.value = baseline.aacPreference || SESSION_CONTEXT_DEFAULTS.aacPreference;
+    ui.aacPreference.value = baseline.aacPreference || baseline.aac_preference || SESSION_CONTEXT_DEFAULTS.aacPreference;
     ui.staffMember.value = baseline.staffMember || '';
     ui.fatigueLevel.value = baseline.fatigueLevel || SESSION_CONTEXT_DEFAULTS.fatigueLevel;
     ui.sensoryState.value = baseline.sensoryState || SESSION_CONTEXT_DEFAULTS.sensoryState;
@@ -5962,7 +5969,8 @@
     const finalTrials = latestTrialsByQuestion(session.trials || []);
     const scored = finalTrials.filter(trial => !skillIdsForTask(trial.task_kind).includes('choice.preference'));
     const responded = finalTrials.filter(trial => !trial.omission);
-    const independent = responded.filter(trial => !trial.independence_status || trial.independence_status === 'independent');
+    const supportObserved = responded.filter(trial => ['independent', 'prompted', 'assisted'].includes(trial.independence_status));
+    const independent = supportObserved.filter(trial => trial.independence_status === 'independent');
     const responseTimes = finiteTrialValues(finalTrials, 'response_time_ms');
     const touchDistances = finiteTrialValues(finalTrials, 'distance_to_target_px');
     const accuracy = scored.length ? Math.round((scored.filter(trial => trial.correct).length / scored.length) * 100) : null;
@@ -5975,7 +5983,7 @@
         : (finalTrials[0] && finalTrials[0].level) || null,
       trials: finalTrials.length,
       accuracy_pct: accuracy,
-      independent_pct: responded.length ? Math.round((independent.length / responded.length) * 100) : null,
+      independent_pct: supportObserved.length ? Math.round((independent.length / supportObserved.length) * 100) : null,
       median_rt_ms: responseTimes.length ? Math.round(median(responseTimes)) : null,
       rt_observed_count: responseTimes.length,
       rt_variability_ms: responseTimes.length > 1 ? Math.round(standardDeviation(responseTimes)) : null,
@@ -6748,6 +6756,65 @@
       supportRows.forEach(item => appendResearchRow(ui.researchSupportBody, [item.status, item.responses, item.correct]));
     } else renderResearchEmptyRow(ui.researchSupportBody, 3);
 
+    const connectLongitudinalPoints = scope !== 'all-learners';
+    const supportTrendRows = sessions.map(session => {
+      const sessionTrials = latestTrialsByQuestion(session.trials || []);
+      const responded = sessionTrials.filter(trial => !trial.omission);
+      const independenceStatus = trial => ['independent', 'prompted', 'assisted'].includes(trial.independence_status)
+        ? trial.independence_status
+        : 'unknown';
+      const independent = responded.filter(trial => independenceStatus(trial) === 'independent').length;
+      const prompted = responded.filter(trial => independenceStatus(trial) === 'prompted').length;
+      const assisted = responded.filter(trial => independenceStatus(trial) === 'assisted').length;
+      const unknown = responded.filter(trial => independenceStatus(trial) === 'unknown').length;
+      const supportObserved = independent + prompted + assisted;
+      const promptLevels = responded.map(trial => trial.highest_prompt_level).filter(Number.isFinite);
+      const fidelity = session.fidelity || {};
+      return {
+        date: researchDateLabel(Number(session.updated_at_wall_ms)),
+        learner: session.learner_alias || session.learner || 'Unknown',
+        responses: responded.length,
+        support_observed: supportObserved,
+        independent,
+        prompted,
+        assisted,
+        unknown,
+        independent_pct: supportObserved ? Math.round((independent / supportObserved) * 100) : null,
+        mean_prompt_level: promptLevels.length ? Number(mean(promptLevels).toFixed(1)) : null,
+        dosage_actual_minutes: Number.isFinite(fidelity.dosage_minutes_actual) ? fidelity.dosage_minutes_actual : null,
+        dosage_target_minutes: Number.isFinite(fidelity.dosage_minutes_target) ? fidelity.dosage_minutes_target : null,
+        fidelity_pct: Number.isFinite(fidelity.score_pct) ? fidelity.score_pct : null
+      };
+    });
+    drawResearchMetricTrend(ui.researchSupportTrendChart, supportTrendRows, [
+      { key: 'independent_pct', label: 'Independent', color: themeToken('success') },
+      { key: 'fidelity_pct', label: 'Fidelity', color: themeToken('primary') }
+    ], { maxValue: 100, suffix: '%', connectPoints: connectLongitudinalPoints });
+    drawResearchMetricTrend(ui.researchDosageChart, supportTrendRows, [
+      { key: 'dosage_actual_minutes', label: 'Actual', color: themeToken('primary') },
+      { key: 'dosage_target_minutes', label: 'Target', color: themeToken('warning') }
+    ], { suffix: 'm', connectPoints: connectLongitudinalPoints });
+    if(supportTrendRows.length){
+      clearNode(ui.researchSupportTrendBody);
+      supportTrendRows.forEach(item => appendResearchRow(ui.researchSupportTrendBody, [
+        item.date,
+        item.learner,
+        item.responses,
+        item.support_observed,
+        item.independent_pct == null ? null : `${item.independent_pct}%`,
+        item.prompted,
+        item.assisted,
+        item.unknown,
+        item.mean_prompt_level,
+        item.dosage_actual_minutes == null ? null : `${item.dosage_actual_minutes} min`,
+        item.dosage_target_minutes == null ? null : `${item.dosage_target_minutes} min`,
+        item.fidelity_pct == null ? null : `${item.fidelity_pct}%`
+      ]));
+    } else renderResearchEmptyRow(ui.researchSupportTrendBody, 12);
+    ui.researchSupportTrendNote.textContent = scope === 'all-learners'
+      ? 'Pooled learners are shown as unconnected points. Independent percentage uses responses with an observed support status; missing statuses remain unknown. These implementation observations do not establish transfer or neural change.'
+      : 'Connected points follow sessions in date order. Independent percentage uses responses with an observed support status; missing statuses remain unknown. These implementation observations do not establish transfer or neural change.';
+
     const categoryMap = new Map();
     finalTrials.forEach(trial => {
       const key = trial.target_category_label || trial.target_category || 'Uncategorised';
@@ -6873,21 +6940,62 @@
 
     const transferRows = sessions.map(session => {
       const baseline = session.learner_snapshot && session.learner_snapshot.baseline ? session.learner_snapshot.baseline : {};
+      const sessionTrials = latestTrialsByQuestion(session.trials || []);
+      const context = sessionTrials.find(trial => trial.session_context && typeof trial.session_context === 'object');
+      const sessionContext = context ? context.session_context : {};
+      const attentionRating = Number.isFinite(baseline.teacherAttentionRating)
+        ? baseline.teacherAttentionRating
+        : (Number.isFinite(baseline.teacher_attention_rating) ? baseline.teacher_attention_rating : null);
+      const independenceRating = Number.isFinite(baseline.teacherIndependenceRating)
+        ? baseline.teacherIndependenceRating
+        : (Number.isFinite(baseline.teacher_independence_rating) ? baseline.teacher_independence_rating : null);
       return {
         date: researchDateLabel(Number(session.updated_at_wall_ms)),
         learner: session.learner_alias || session.learner || 'Unknown',
-        maintenance: baseline.maintenanceStatus || 'not recorded',
-        generalisation: baseline.generalisationStatus || 'not recorded',
+        attention_rating: attentionRating,
+        independence_rating: independenceRating,
+        maintenance: baseline.maintenanceStatus || sessionContext.maintenance_status || 'not-recorded',
+        generalisation: baseline.generalisationStatus || sessionContext.generalisation_status || 'not-recorded',
         transfer: session.classroom_transfer_notes || baseline.classroomTransferNotes || '',
         context: !!String(session.context_notes || baseline.contextNotes || '').trim()
       };
     });
+    drawResearchMetricTrend(ui.researchTeacherRatingChart, transferRows, [
+      { key: 'attention_rating', label: 'Attention', color: themeToken('primary') },
+      { key: 'independence_rating', label: 'Independence', color: themeToken('success') }
+    ], { maxValue: 5, connectPoints: connectLongitudinalPoints, emptyText: 'No teacher ratings observed in this scope' });
+    const transferStatusCounts = new Map();
+    transferRows.forEach(item => {
+      [
+        { family: 'Maintenance', value: item.maintenance },
+        { family: 'Generalisation', value: item.generalisation }
+      ].forEach(entry => {
+        if(!entry.value || ['not-run', 'not-recorded'].includes(entry.value)) return;
+        const label = `${entry.family}: ${String(entry.value).replace(/-/g, ' ')}`;
+        transferStatusCounts.set(label, (transferStatusCounts.get(label) || 0) + 1);
+      });
+    });
+    drawResearchBars(ui.researchTransferStatusChart, Array.from(transferStatusCounts.entries()).map(([label, value]) => ({
+      label,
+      value,
+      color: label.startsWith('Maintenance') ? themeToken('primary') : themeToken('secondary', themeToken('success'))
+    })), { labelWidth: 190 });
     if(transferRows.length){
       clearNode(ui.researchTransferBody);
       transferRows.forEach(item => appendResearchRow(ui.researchTransferBody, [
-        item.date, item.learner, item.maintenance, item.generalisation, item.transfer || 'Not recorded', item.context ? 'Yes' : 'No'
+        item.date,
+        item.learner,
+        item.attention_rating == null ? null : `${item.attention_rating}/5`,
+        item.independence_rating == null ? null : `${item.independence_rating}/5`,
+        String(item.maintenance).replace(/-/g, ' '),
+        String(item.generalisation).replace(/-/g, ' '),
+        item.transfer || 'Not recorded',
+        item.context ? 'Yes' : 'No'
       ]));
-    } else renderResearchEmptyRow(ui.researchTransferBody, 6);
+    } else renderResearchEmptyRow(ui.researchTransferBody, 8);
+    ui.researchTransferNote.textContent = scope === 'all-learners'
+      ? 'Teacher-rating points from different learners are not connected. Status bars count recorded observations only; not-run and missing statuses are excluded. These observations do not establish transfer or causation.'
+      : 'Connected teacher-rating points follow sessions in date order. These practitioner observations should be analysed separately from task accuracy and EEG outcomes.';
   }
 
   function redrawThemeVisuals(){

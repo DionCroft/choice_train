@@ -1331,6 +1331,26 @@
                 <table><thead><tr><th>Status</th><th>Responses</th><th>Correct</th></tr></thead><tbody id="researchSupportBody"></tbody></table>
               </div>
             </div>
+            <div class="chartCard span2">
+              <h4>Support fading and session dosage over time</h4>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Independent responses and fidelity (%)</div>
+                  <canvas id="researchSupportTrendChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Independent response and implementation fidelity percentages across sessions"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Actual and target dosage (minutes)</div>
+                  <canvas id="researchDosageChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Actual and target session dosage in minutes across sessions"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Responses</th><th>Support observed</th><th>Independent</th><th>Prompted</th><th>Assisted</th><th>Unknown</th><th>Mean prompt level</th><th>Actual dose</th><th>Target dose</th><th>Fidelity</th></tr></thead>
+                  <tbody id="researchSupportTrendBody"></tbody>
+                </table>
+              </div>
+              <div id="researchSupportTrendNote" class="compactNote">Support and dosage are descriptive implementation observations, not evidence of transfer or neural change.</div>
+            </div>
             <div class="chartCard">
               <h4>Category and personalised-content exposure</h4>
               <canvas id="researchCategoryChart" class="researchCanvas" width="420" height="240" role="img" aria-label="Trial exposure by content category"></canvas>
@@ -1372,13 +1392,23 @@
             </div>
             <div class="chartCard span2">
               <h4>Maintenance, generalisation, and classroom transfer observations</h4>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Teacher ratings (1-5)</div>
+                  <canvas id="researchTeacherRatingChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Teacher attention and independence ratings across sessions"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Recorded observation statuses</div>
+                  <canvas id="researchTransferStatusChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Counts of recorded maintenance and generalisation statuses"></canvas>
+                </div>
+              </div>
               <div class="tableWrap researchTableWrap">
                 <table>
-                  <thead><tr><th>Date</th><th>Learner</th><th>Maintenance</th><th>Generalisation</th><th>Transfer note</th><th>Context recorded</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Attention rating</th><th>Independence rating</th><th>Maintenance</th><th>Generalisation</th><th>Transfer note</th><th>Context recorded</th></tr></thead>
                   <tbody id="researchTransferBody"></tbody>
                 </table>
               </div>
-              <div class="compactNote">These are practitioner observations. They should be analysed separately from task accuracy and EEG outcomes.</div>
+              <div id="researchTransferNote" class="compactNote">These are practitioner observations. They should be analysed separately from task accuracy and EEG outcomes.</div>
             </div>
           </div>
 
