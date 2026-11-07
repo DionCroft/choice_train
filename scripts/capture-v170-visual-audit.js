@@ -5,7 +5,7 @@ const { spawn } = require('child_process');
 const { chromium } = require('@playwright/test');
 
 const rootDir = path.resolve(__dirname, '..');
-const baseUrl = 'http://127.0.0.1:4173/choice_train_V1.7.0-alpha.html';
+const baseUrl = 'http://127.0.0.1:4173/choice_train_V1.7.0.html';
 const outputDir = path.join(rootDir, 'test-results', 'v170-visual-audit');
 let serverProcess = null;
 

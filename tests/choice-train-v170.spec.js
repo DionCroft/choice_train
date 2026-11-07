@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
 
-const APP_PATH = '/choice_train_V1.7.0-alpha.html';
+const APP_PATH = '/choice_train_V1.7.0.html';
 
 function trackErrors(page) {
   const errors = [];
@@ -40,18 +40,18 @@ async function exportJson(page) {
   return JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
 }
 
-test('V1.7.0 alpha loads its isolated product shell without browser errors', async ({ page }) => {
+test('V1.7.0 stable loads its product shell without browser errors', async ({ page }) => {
   const errors = trackErrors(page);
   await gotoAlpha(page);
-  await expect(page).toHaveTitle(/V1\.7\.0-alpha/);
-  await expect(page.locator('#versionInfo')).toContainText('V1.7.0-alpha');
-  await expect(page.locator('.alphaRibbon')).toContainText('V1.7.0 alpha');
-  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.0-alpha.html');
+  await expect(page).toHaveTitle(/V1\.7\.0(?: \(Offline\))?$/);
+  await expect(page.locator('#versionInfo')).toContainText('V1.7.0');
+  await expect(page.locator('.releaseRibbon')).toContainText('V1.7.0 stable');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.0.html');
   await expect(page.locator('body')).toHaveClass(/panel-view-teacher/);
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
-test('alpha loads without making external runtime requests', async ({ page }) => {
+test('stable build loads without making external runtime requests', async ({ page }) => {
   const requests = [];
   page.on('request', request => requests.push(request.url()));
   await gotoAlpha(page);
@@ -127,7 +127,7 @@ test('staff workspace uses one semantic product palette', async ({ page }) => {
         field: background('#pupilAlias'),
         fieldBorder: border('#pupilAlias'),
         teacherTab: background('#teacherPanelTab'),
-        warning: background('.alphaRibbon')
+        warning: background('.releaseRibbon')
       },
       expected: {
         primary: token('primary'),
@@ -166,8 +166,8 @@ test('staff workspace uses one semantic product palette', async ({ page }) => {
   expect(adminNav.actual).toBe(adminNav.expected);
 });
 
-test('alpha component styles do not bypass semantic colour tokens', () => {
-  const css = fs.readFileSync('choice_train_V1.7.0-alpha.css', 'utf8');
+test('V1.7 component styles do not bypass semantic colour tokens', () => {
+  const css = fs.readFileSync('choice_train_V1.7.0.css', 'utf8');
   const componentCss = css.slice(css.indexOf('html {'));
   expect(componentCss).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
 });
@@ -428,7 +428,7 @@ test('admin export centre provides a complete local session export', async ({ pa
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_.+_session\.json$/);
   const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
-  expect(payload.build.version).toBe('1.7.0-alpha');
+  expect(payload.build.version).toBe('1.7.0');
   expect(payload).toHaveProperty('trials');
   expect(payload).toHaveProperty('eeg_markers');
   expect(payload).toHaveProperty('sensory_preferences');
@@ -609,7 +609,7 @@ test('manual feedback remains navigable when reward and auto advance are off', a
   await expect(page.locator('#screenChoice.active')).toBeVisible();
 });
 
-test('alpha exports include sensory preferences and sound metadata', async ({ page }) => {
+test('V1.7 exports include sensory preferences and sound metadata', async ({ page }) => {
   await gotoAlpha(page);
   await setValue(page, 'themeChoice', 'calm-light');
   await setValue(page, 'fontChoice', 'high-legibility');
@@ -619,7 +619,7 @@ test('alpha exports include sensory preferences and sound metadata', async ({ pa
   await setValue(page, 'celebrationIntensity', 'lively');
   await page.locator('#soundPreviewBtn').click();
   const payload = await exportJson(page);
-  expect(payload.build.version).toBe('1.7.0-alpha');
+  expect(payload.build.version).toBe('1.7.0');
   expect(payload.schema_version).toBe(4);
   expect(payload.session_overview.theme_used).toBe('calm-light');
   expect(payload.session_overview.sensory_preferences).toEqual({

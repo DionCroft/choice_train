@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>ChoiceTrain for ShowMe (Offline)</title>
+  <title>ChoiceTrain for ShowMe V1.7.0</title>
   <style>
     :root{
       --bg:#0a1019; --panel:#121a27; --panel2:#0f1724; --text:#e8eefb; --muted:#9fb0d0;
@@ -136,23 +136,6 @@
     .editorPreview img{display:block;max-width:100%;max-height:54vh;object-fit:contain;transform-origin:center}
     .editorControls{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:12px}
     :focus-visible{outline:3px solid var(--accent);outline-offset:3px}
-    body.theme-plain-white,body.theme-plain-white .panel,body.theme-plain-white .main,body.theme-plain-white .stage,body.theme-plain-white .playArea{background:#fff!important}
-    body.theme-plain-white .section,body.theme-plain-white .menuSection,body.theme-plain-white .promptBox,body.theme-plain-white .choice,body.theme-plain-white .bigCard,body.theme-plain-white .dashCard,body.theme-plain-white .photoCard,body.theme-plain-white .taskConfig,body.theme-plain-white .editorPanel{background:#fff!important;border-color:#cbd2d8!important;box-shadow:none!important}
-    body.theme-plain-white .topBar,body.theme-plain-white .footerBar,body.theme-plain-white .controlGroup,body.theme-plain-white .categoryCheck,body.theme-plain-white .configSummary,body.theme-plain-white .photoThumb,body.theme-plain-white .editorPreview{background:#f7f7f5!important;border-color:#cbd2d8!important}
-    body.theme-plain-white .blankScreen{background:#fff!important}
-    body.theme-plain-white button,body.theme-plain-white .primary,body.theme-plain-white .ghostBtn,body.theme-plain-white .panelSwitchBtn,body.theme-plain-white .adminFab{background:#eef1f3!important;color:#17202a!important;border-color:#aeb8c0!important;box-shadow:none!important}
-    body.theme-plain-white .primary,body.theme-plain-white .panelSwitchBtn.active{background:#d9e9f5!important;border-color:#1264a3!important}
-    body.theme-plain-white .panelSwitchBtn.adminActive{background:#f3ead6!important;border-color:#8a5a00!important}
-    body.theme-plain-white .trackWrap,body.theme-plain-white .badge,body.theme-plain-white .pillTag,body.theme-plain-white .panelBadge,body.theme-plain-white .learnerBanner,body.theme-plain-white .faceCircle,body.theme-plain-white .imgCircle,body.theme-plain-white .choiceMedia{background:#f5f6f7!important;color:#17202a!important;border-color:#cbd2d8!important}
-    body.theme-plain-white .station{background:#edf0f2;color:#17202a;border-color:#aeb8c0}
-    body.theme-plain-white .station.done{background:#dff2e6;color:#174d2e;border-color:#207a45}
-    body.theme-plain-white .station.current{background:#d9e9f5;color:#123f63;border-color:#1264a3}
-    body.theme-plain-white .choice.correct{background:#e8f5ed!important;border-color:#207a45!important}
-    body.theme-plain-white .choice.incorrect{background:#faece9!important;border-color:#a2352a!important}
-    body.theme-plain-white .promptVariant,body.theme-plain-white .sectionTag,body.theme-plain-white .sectionTag.admin,body.theme-plain-white .countdownPill{color:#17202a!important}
-    body.theme-plain-white .bigBadge{background:#fff;color:#17202a;border-color:#aeb8c0}
-    body.theme-plain-white th{background:#f1f3f4}
-    body.theme-plain-white .heatmapCanvas,body.theme-plain-white .miniCanvas{background:#fff!important;border-color:#cbd2d8!important}
     .photoThumb{width:100%;font-size:44px}
     .photoMetaTitle{font-size:13px;font-weight:700}
     .photoMetaTiny{font-size:11px;color:var(--muted);line-height:1.4}
@@ -301,8 +284,10 @@
       .editorPreview{min-height:220px;padding:10px}
     }
   </style>
+  <link rel="stylesheet" href="choice_train_V1.7.0.css" />
 </head>
 <body>
+<a class="skipLink" href="#playArea">Skip to learner activity</a>
 <div class="wrap">
   <aside class="panel">
     <div class="section">
@@ -311,20 +296,34 @@
         <div class="brandCopy">
           <div class="brandEyebrow">Developed for ShowMe</div>
           <div class="title">ChoiceTrain for ShowMe</div>
-          <div class="sub">Offline, touch-first classroom learning with learner mode, teacher setup, Attention Training (AT), exports, and GitHub Pages deployment.</div>
+          <div class="sub">A local-first classroom workspace for personalised learning, Attention Training, progress review, and research-ready exports.</div>
+          <div class="releaseRibbon"><span aria-hidden="true">&#9679;</span> V1.7.0 stable workspace</div>
         </div>
       </div>
       <div class="panelSwitch">
-        <button id="teacherPanelTab" class="panelSwitchBtn active" type="button" aria-pressed="true">Teacher Panel</button>
-        <button id="adminPanelTab" class="panelSwitchBtn" type="button" aria-pressed="false">Admin Panel</button>
+        <button id="teacherPanelTab" class="panelSwitchBtn active" type="button" aria-pressed="true">Teacher workspace</button>
+        <button id="adminPanelTab" class="panelSwitchBtn" type="button" aria-pressed="false">Admin &amp; research</button>
       </div>
       <div class="tiny" id="versionInfo" style="margin-top:8px">Active build: loading...</div>
       <div class="modeBar" style="margin-top:10px">
-        <button id="learnerModeBtn" class="primary">Open learner mode</button>
+        <button id="quickStartSessionBtn" class="primary">Start learner session</button>
+        <button id="learnerModeBtn">Preview learner view</button>
       </div>
+      <nav class="teacherWorkspaceNav" aria-label="Teacher workspace pages">
+        <button id="teacherNavToday" class="teacherNavBtn active" type="button" aria-pressed="true">Today</button>
+        <button id="teacherNavPersonalise" class="teacherNavBtn" type="button" aria-pressed="false">Personalise</button>
+        <button id="teacherNavResults" class="teacherNavBtn" type="button" aria-pressed="false">Results</button>
+      </nav>
+      <nav class="adminWorkspaceNav" aria-label="Admin and research workspace pages">
+        <button id="adminNavOverview" class="adminNavBtn active" type="button" aria-pressed="true">Overview</button>
+        <button id="adminNavSessions" class="adminNavBtn" type="button" aria-pressed="false">Sessions</button>
+        <button id="adminNavLearners" class="adminNavBtn" type="button" aria-pressed="false">Learners</button>
+        <button id="adminNavEeg" class="adminNavBtn" type="button" aria-pressed="false">EEG</button>
+        <button id="adminNavSystem" class="adminNavBtn" type="button" aria-pressed="false">System</button>
+      </nav>
     </div>
 
-    <details class="section menuSection teacherSection" open>
+    <details class="section menuSection teacherSection" data-teacher-view="today" open>
       <summary>Daily Teacher Setup</summary>
       <div class="menuBody">
         <div class="sectionIntro">
@@ -333,7 +332,7 @@
         </div>
         <div class="quickStart" aria-label="Teacher quick start instructions">
           <h3>Teacher quick start</h3>
-          <details open>
+          <details>
             <summary>First session with a pupil</summary>
             <ol class="stepList">
               <li>Add or select the pupil and use an alias where appropriate.</li>
@@ -385,6 +384,7 @@
           <div>
             <label for="themeChoice">Theme</label>
             <select id="themeChoice">
+              <option value="calm-light">Calm Light</option>
               <option value="calm-blue">Calm Blue</option>
               <option value="soft-green">Soft Green</option>
               <option value="warm-neutral">Warm Neutral</option>
@@ -402,6 +402,80 @@
           <label class="toggle"><input id="studentFriendlyMode" type="checkbox" checked /> Student-friendly mode</label>
         </div>
         <div class="helperText">Speech reads prompts aloud. Student-friendly mode hides technical controls and keeps the learner view calm and simple.</div>
+
+        <div class="controlGroup">
+          <div class="controlGroupTitle">Sensory and display preferences</div>
+          <div class="sensoryGrid">
+            <div>
+              <label for="fontChoice">Text style</label>
+              <select id="fontChoice">
+                <option value="high-legibility">High legibility</option>
+                <option value="familiar">Familiar system font</option>
+              </select>
+              <div class="helperText">Changes the letter style without changing the task.</div>
+            </div>
+            <div>
+              <label for="textScale">Text size</label>
+              <select id="textScale">
+                <option value="0.9">Compact</option>
+                <option value="1" selected>Standard</option>
+                <option value="1.15">Large</option>
+                <option value="1.3">Extra large</option>
+              </select>
+              <div class="helperText">Increases prompts and controls across the learner view.</div>
+            </div>
+            <div>
+              <label for="motionPreference">Motion</label>
+              <select id="motionPreference">
+                <option value="reduced">Reduced</option>
+                <option value="gentle" selected>Gentle</option>
+                <option value="full">Full</option>
+              </select>
+              <div class="helperText">Reduced motion removes decorative movement and fast transitions.</div>
+            </div>
+            <div>
+              <label for="feedbackSoundMode">Feedback sounds</label>
+              <select id="feedbackSoundMode">
+                <option value="off">Off</option>
+                <option value="low" selected>Low</option>
+                <option value="standard">Standard</option>
+              </select>
+              <div class="helperText">Controls short local feedback sounds separately from speech.</div>
+            </div>
+            <div>
+              <label for="celebrationIntensity">Celebrations</label>
+              <select id="celebrationIntensity">
+                <option value="quiet">Quiet</option>
+                <option value="gentle" selected>Gentle</option>
+                <option value="lively">Lively</option>
+              </select>
+              <div class="helperText">Adjusts reward movement and sound without changing scores.</div>
+            </div>
+            <div style="align-self:end">
+              <button id="soundPreviewBtn" type="button">Preview sound</button>
+            </div>
+          </div>
+          <div id="preferencePreview" class="preferencePreview" aria-live="polite">
+            <strong>Clear, calm and ready</strong>
+            <span>This preview uses the selected text size, motion and feedback preferences.</span>
+          </div>
+        </div>
+
+        <div class="sessionReadiness" aria-live="polite">
+          <div class="sessionReadinessHeader">
+            <div>
+              <div class="sessionReadinessTitle">Today&rsquo;s session</div>
+              <div class="helperText">A quick check before opening the learner view.</div>
+            </div>
+            <span id="sessionReadinessState" class="sessionReadinessState">Ready</span>
+          </div>
+          <div class="sessionReadinessGrid">
+            <div class="sessionReadinessItem">Pupil<b id="readinessPupil">Not selected</b></div>
+            <div class="sessionReadinessItem">Activity<b id="readinessTask">Current level</b></div>
+            <div class="sessionReadinessItem">Length<b id="readinessLength">3 minutes</b></div>
+            <div class="sessionReadinessItem">Questions<b id="readinessQuestions">8</b></div>
+          </div>
+        </div>
 
         <div class="controlGroup">
           <div class="controlGroupTitle">Questions and timing</div>
@@ -450,7 +524,7 @@
       </div>
     </details>
 
-    <details class="section menuSection teacherSection" open>
+    <details class="section menuSection teacherSection" data-teacher-view="personalise" open>
       <summary>Pupil Personalisation</summary>
       <div class="menuBody">
         <div class="sectionIntro">
@@ -568,7 +642,7 @@
       </div>
     </details>
 
-    <details class="section menuSection teacherSection" open>
+    <details class="section menuSection teacherSection" data-teacher-view="today" open>
       <summary>Session Controls</summary>
       <div class="menuBody">
         <div class="sectionIntro">
@@ -646,7 +720,7 @@
       </div>
     </details>
 
-    <details class="section menuSection teacherSection" open>
+    <details class="section menuSection teacherSection" data-teacher-view="today" open>
       <summary>Context Notes</summary>
       <div class="menuBody">
         <div class="sectionIntro">
@@ -658,7 +732,7 @@
       </div>
     </details>
 
-    <details class="section menuSection teacherSection student-hide-panel" open>
+    <details class="section menuSection teacherSection student-hide-panel" data-teacher-view="results" open>
       <summary>Basic Results</summary>
       <div class="menuBody">
         <div class="sectionIntro">
@@ -728,9 +802,10 @@
       </div>
     </details>
 
-    <details class="section menuSection adminSection student-hide-panel">
+    <details id="adminResearchWorkspace" class="section menuSection adminSection student-hide-panel">
       <summary>Research / Debug Settings</summary>
       <div class="menuBody">
+        <div class="adminPageGroup" data-admin-pages="overview eeg">
         <div class="sectionIntro">
           <span class="sectionTag admin">Admin Panel</span>
           <div class="helperText">Research, fidelity, EEG, detailed analytics, advanced exports, and build metadata. Leave this collapsed for everyday classroom use.</div>
@@ -796,8 +871,9 @@
             </select>
           </div>
         </div>
+        </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminPromptSection" class="section adminAnchor" data-admin-pages="learners" style="padding-top:14px">
           <div class="sub">Prompting and support</div>
           <div class="dashboard">
             <div class="dashCard"><div class="k">Current prompt level</div><div class="v" id="currentPromptLabel">Independent</div></div>
@@ -816,7 +892,7 @@
           <div class="compactNote">Structured prompt levels help teachers and researchers interpret whether a response was independent, prompted, or assisted.</div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminLearnerProfileSection" class="section adminAnchor" data-admin-pages="learners" style="padding-top:14px">
           <div class="sub">Learner profile and research foundation</div>
           <div class="adminGrid">
             <div>
@@ -943,7 +1019,7 @@
           <textarea id="classroomTransferNotes" placeholder="Teacher-rated attention, work completion, classroom transfer, confidence, reading, writing, maths, or independence observations..."></textarea>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminEegSection" class="section adminAnchor" data-admin-pages="eeg" style="padding-top:14px">
           <div class="sub">EEG and observational data quality</div>
           <div class="dashboard">
             <div class="dashCard"><div class="k">Current block</div><div class="v" id="eegCurrentBlock">1</div></div>
@@ -961,7 +1037,7 @@
           <div class="compactNote">Artifact logs are observational quality markers for later EEG interpretation. They do not change the learner score.</div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminFidelitySection" class="section adminAnchor" data-admin-pages="learners" style="padding-top:14px">
           <div class="sub">Fidelity and coaching</div>
           <div class="dashboard">
             <div class="dashCard"><div class="k">Fidelity score</div><div class="v" id="fidelityScore">0%</div></div>
@@ -989,7 +1065,7 @@
           <textarea id="coachingReviewNotes" placeholder="What worked, what support was needed, what to try next session, and any teacher or TA coaching reflections..."></textarea>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminHistorySection" class="section adminAnchor" data-admin-pages="sessions" style="padding-top:14px">
           <div class="sub">Session History Manager</div>
           <div class="dashboard">
             <div class="dashCard"><div class="k">Active sessions</div><div class="v" id="historyActiveCount">0</div></div>
@@ -1019,7 +1095,26 @@
           <div class="compactNote" id="historyStatus">History is loaded from IndexedDB to keep long-term session records out of synchronous browser storage.</div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminExportSection" class="section adminAnchor exportCentre" data-admin-pages="overview sessions eeg" style="padding-top:14px">
+          <div class="sub">Export centre</div>
+          <div class="exportCentreGrid">
+            <button id="adminExportSessionBtn" class="primary" type="button">
+              <b>Session JSON</b>
+              <span>School-friendly session, pupil context, sensory preferences, trials, and events.</span>
+            </button>
+            <button id="adminExportResearchBtn" type="button">
+              <b>EEG / research data</b>
+              <span>Markers, blocks, artifacts, trial timing, and selected research format.</span>
+            </button>
+            <button id="adminExportHistoryBtn" type="button">
+              <b>Stored history</b>
+              <span>Filtered longitudinal sessions from local IndexedDB storage.</span>
+            </button>
+          </div>
+          <div class="compactNote">Exports are created locally. ChoiceTrain does not upload pupil, image, touch, or research data to an external service.</div>
+        </div>
+
+        <div id="adminAnalyticsSection" class="section adminAnchor" data-admin-pages="overview" style="padding-top:14px">
           <div class="sub">Detailed analytics</div>
           <div class="analyticsGrid">
             <div class="dashCard"><div class="k">Session task lock</div><div class="v" id="dashTaskLock">Auto</div></div>
@@ -1103,16 +1198,16 @@
           </div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div id="adminBuildSection" class="section adminAnchor" data-admin-pages="system" style="padding-top:14px">
           <div class="sub">About / Build Info</div>
           <div class="aboutGrid">
-            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.6.0</div></div>
+            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.7.0</div></div>
             <div class="dashCard"><div class="k">Status</div><div class="v" id="aboutChannel">Experimental</div></div>
             <div class="dashCard"><div class="k">Base commit</div><div class="v mono" id="aboutCommit">loading</div></div>
             <div class="dashCard"><div class="k">Build date</div><div class="v" id="aboutBuildDate">loading</div></div>
           </div>
           <div class="metaList">
-            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.6.0.html</b></div>
+            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.7.0.html</b></div>
             <div class="metaItem"><span>Published entry</span><b class="mono" id="aboutPublishedEntry">index.html</b></div>
             <div class="metaItem"><span>Live URL</span><b class="mono" id="aboutLiveUrl">https://dioncroft.github.io/choice_train/</b></div>
             <div class="metaItem"><span>Repository</span><b class="mono" id="aboutRepoUrl">https://github.com/DionCroft/choice_train</b></div>
@@ -1124,7 +1219,7 @@
           </div>
         </div>
 
-        <div class="section" style="padding-top:14px">
+        <div class="section adminPageGroup" data-admin-pages="system" style="padding-top:14px">
           <div class="sub">Documentation and terminology</div>
       <details class="docsDetails">
         <summary>EEG research mode and active control condition</summary>
@@ -1180,12 +1275,13 @@
         </div>
       </details>
       <details class="docsDetails">
-        <summary>V1.6.0 teacher, learner, and research guide</summary>
+        <summary>V1.7.0 teacher, learner, and research guide</summary>
         <div class="docsBody">
           <p><b>Teacher Panel</b> is designed for everyday classroom setup. Use it to select a pupil, choose a theme, add context notes, personalise content, and start or export a session quickly.</p>
           <p><b>Admin Panel</b> stays collapsed by default. Open it only when you need advanced analytics, Attention Training tuning, touch debugging, EEG preparation, or fidelity and research settings.</p>
           <p><b>Student-friendly mode</b> keeps the learner view simple by hiding technical labels, analytics, build text, debug panels, and research wording. The learner sees calm prompts, images, progress, and navigation only.</p>
           <p><b>Context notes</b> are daily classroom observations such as mood, attention, tiredness, sensory environment, or support used. They help teachers interpret a session without using medical wording.</p>
+          <p><b>V1.7 presentation choices</b> let staff adjust font, text size, motion, feedback sound, and celebration for the individual pupil. They are access preferences, not diagnoses. The train reward and short sounds are original ChoiceTrain feedback and can be reduced or switched off.</p>
           <p><b>Personalised photos</b> can be labelled as Mum, Dad, Teacher, favourite toy, favourite food, classroom object, or preferred activity. These labels can be reused in question generation while exports keep the label metadata lightweight.</p>
           <p><b>Signal Station</b>, <b>Ticket Hunt</b>, <b>Platform Pointer</b>, and <b>Traffic Lights</b> keep the AT families playful while preserving the underlying sustained, selective-spatial, orienting, and executive learning goals.</p>
           <p><b>Future recommendations</b> are prepared through a local structured summary only. No session data is currently sent outside this static build.</p>
@@ -1248,6 +1344,14 @@
         <section class="screen" id="screenReward">
           <div class="hero" id="rewardTitle">Well Done!</div>
           <div class="stars" id="rewardStars"><span>&#9733;</span><span>&#9733;</span><span>&#9733;</span></div>
+          <div class="rewardJourney" aria-live="polite">
+            <div class="rewardJourneyLabel" id="rewardJourneyLabel">Your train is moving to the next station</div>
+            <div class="rewardRail" aria-hidden="true">
+              <div class="rewardRailFill" id="rewardRailFill"></div>
+              <div class="rewardTrain" id="rewardTrain">&#128646;</div>
+            </div>
+            <div class="rewardCollection" id="rewardCollection">Keep going. Every try moves the journey forward.</div>
+          </div>
           <div class="heroSub" id="rewardSub">Next or repeat.</div>
           <div class="navBtns">
             <button id="rewardNext" class="primary">Next</button>
@@ -1278,6 +1382,7 @@
           </div>
         </section>
 
+        <button id="teacherExitHold" class="teacherExitHint" type="button" aria-label="Press and hold to return to the teacher workspace" title="Press and hold to return to the teacher workspace">&#128274;</button>
         <button id="adminModeFab" class="adminFab">Admin</button>
         <div class="fx" id="fx">
           <div class="pulseGood" id="pulseGood"></div>
@@ -1332,6 +1437,6 @@
   </div>
 </div>
 
-<script src="choice_train_V1.6.0.js"></script>
+<script src="choice_train_V1.7.0.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const APP_PATH = '/choice_train_V1.6.0.html';
+const APP_PATH = '/choice_train_V1.7.0.html';
 
 async function gotoApp(page) {
   await page.goto(APP_PATH);
@@ -85,12 +85,12 @@ function attachErrorTracking(page) {
   return errors;
 }
 
-test('live index loads the V1.6.0 stable build', async ({ page }) => {
+test('live index loads the V1.7.0 stable build', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await page.goto('/');
   await expect(page.locator('#beginFlow')).toBeVisible();
-  await expect(page.locator('#versionInfo')).toContainText('V1.6.0');
-  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.6.0.html');
+  await expect(page.locator('#versionInfo')).toContainText('V1.7.0');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.0.html');
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
@@ -125,6 +125,7 @@ async function configureSession(page, overrides = {}) {
 
   await page.locator('#studentFriendlyMode').uncheck();
   await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavSystem').click();
   await expect(page.locator('#adminPanelDetails')).toBeVisible();
   const adminDetails = page.locator('#adminPanelDetails');
   if (!(await adminDetails.evaluate(node => node.hasAttribute('open')))) {
@@ -148,7 +149,36 @@ async function configureSession(page, overrides = {}) {
 
 async function startConfiguredSession(page, overrides = {}) {
   await configureSession(page, overrides);
+  await page.locator('#teacherPanelTab').click();
+  await page.locator('#learnerModeBtn').click();
   await page.locator('#beginFlow').click();
+}
+
+async function openAdminDestination(page, destination) {
+  const navIds = {
+    overview: 'adminNavOverview',
+    sessions: 'adminNavSessions',
+    learners: 'adminNavLearners',
+    eeg: 'adminNavEeg',
+    system: 'adminNavSystem'
+  };
+  await page.locator('#adminPanelTab').click();
+  await page.locator(`#${navIds[destination]}`).click();
+}
+
+async function openTeacherDestination(page, destination) {
+  const navIds = {
+    today: 'teacherNavToday',
+    personalise: 'teacherNavPersonalise',
+    results: 'teacherNavResults'
+  };
+  await page.locator(`#${navIds[destination]}`).click();
+}
+
+async function returnToTeacherWorkspace(page) {
+  await page.locator('#teacherExitHold').dispatchEvent('pointerdown', { button: 0 });
+  await page.waitForTimeout(1_300);
+  await expect(page.locator('.panel')).toBeVisible();
 }
 
 const friendlyFindPattern = /Find |Can you find |Where is |Show me |Let's find /;
@@ -236,7 +266,7 @@ test('auto advance moves from reward to the next question', async ({ page }) => 
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
-  await configureSession(page, {
+  await startConfiguredSession(page, {
     startLevel: 2,
     sessionMax: 2,
     itiSec: 0.4,
@@ -246,7 +276,6 @@ test('auto advance moves from reward to the next question', async ({ page }) => 
     sessionTaskType: 'touch-object'
   });
 
-  await page.locator('#beginFlow').click();
   await clickCorrectChoice(page);
 
   await expect(page.locator('#screenReward.active')).toBeVisible();
@@ -442,7 +471,9 @@ test('full-support prompt is logged in exported trial data', async ({ page }) =>
   });
 
   await waitForChoiceScreen(page);
-  await page.locator('#promptFullSupportBtn').click();
+  for (let promptLevel = 1; promptLevel <= 5; promptLevel += 1) {
+    await page.locator('#learnerHelpBtn').click();
+  }
   await waitForSummaryScreen(page);
 
   const payload = await exportJsonAfter(page, async () => {
@@ -603,9 +634,9 @@ test('session history persists across reload and exports from the history manage
   await expect(page.locator('#historyTableBody')).toContainText(sessionId);
 
   await gotoApp(page);
+  await returnToTeacherWorkspace(page);
   await page.locator('#studentFriendlyMode').uncheck();
-  await page.locator('#adminPanelTab').click();
-  await page.locator('summary:has-text("Research / Debug Settings")').click();
+  await openAdminDestination(page, 'sessions');
   await expect(page.locator('#historyTableBody')).toContainText(sessionId);
 
   const historyPayload = await exportJsonAfter(page, async () => {
@@ -655,7 +686,7 @@ test('EEG export includes markers, codes, and block summaries', async ({ page })
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
-  await configureSession(page, {
+  await startConfiguredSession(page, {
     startLevel: 7,
     sessionMax: 1,
     autoAdvance: true,
@@ -666,13 +697,13 @@ test('EEG export includes markers, codes, and block summaries', async ({ page })
     responseWindowSec: 2
   });
 
-  await page.locator('#eegExportFormat').selectOption('json');
-  await page.locator('#beginFlow').click();
   await clickCorrectChoice(page);
   await waitForSummaryScreen(page);
+  await returnToTeacherWorkspace(page);
+  await openAdminDestination(page, 'eeg');
 
   const payload = await exportJsonAfter(page, async () => {
-    await page.locator('#exportEegBtn').click();
+    await page.locator('#adminExportResearchBtn').click();
   });
 
   expect(payload.eeg_marker_code_map).toBeTruthy();
@@ -733,12 +764,11 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await gotoApp(page);
 
   await page.locator('#studentFriendlyMode').uncheck();
-  await page.locator('#adminPanelTab').click();
-  await page.locator('summary:has-text("Research / Debug Settings")').click();
+  await openAdminDestination(page, 'system');
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("Attention Training terms")').click();
   await expect(page.getByText('Exploratory engagement is an in-app practice metric', { exact: false })).toBeVisible();
-  await page.locator('summary:has-text("V1.6.0 teacher, learner, and research guide")').click();
+  await page.locator('summary:has-text("V1.7.0 teacher, learner, and research guide")').click();
   await expect(page.locator('text=Traffic Lights')).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -749,9 +779,10 @@ test('teacher panel is simple on first load and admin settings are collapsed by 
   await gotoApp(page);
 
   await expect(page.locator('summary:has-text("Daily Teacher Setup")')).toBeVisible();
-  await expect(page.locator('summary:has-text("Pupil Personalisation")')).toBeVisible();
+  await expect(page.locator('summary:has-text("Pupil Personalisation")')).toBeHidden();
   await expect(page.locator('summary:has-text("Session Controls")')).toBeVisible();
   await expect(page.locator('summary:has-text("Context Notes")')).toBeVisible();
+  await expect(page.locator('summary:has-text("Basic Results")')).toBeHidden();
   await expect(page.locator('#teacherPanelTab')).toHaveAttribute('aria-pressed', 'true');
   await expect(page.locator('summary:has-text("Advanced Admin Settings")')).toBeHidden();
 
@@ -799,6 +830,7 @@ test('saving pupil preferences clearly confirms the applied prompt style', async
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
+  await openTeacherDestination(page, 'personalise');
   await page.locator('#communicationSupportChoice').selectOption('image-first');
   await page.locator('#applyPreferencesBtn').click();
   await expect(page.locator('#preferenceSaveStatus')).toContainText('saved on this device');
@@ -815,7 +847,7 @@ test('student-friendly mode can be switched off and remains off in learner mode'
   await page.locator('#studentFriendlyMode').uncheck();
   await page.locator('#learnerModeBtn').click();
   await expect(page.locator('body')).not.toHaveClass(/student-friendly-on/);
-  await page.locator('#adminModeFab').click();
+  await returnToTeacherWorkspace(page);
   await expect(page.locator('#studentFriendlyMode')).not.toBeChecked();
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -825,7 +857,7 @@ test('optional blank interval appears between questions and is exported', async 
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
-  await configureSession(page, {
+  await startConfiguredSession(page, {
     startLevel: 2,
     sessionMax: 2,
     useReward: false,
@@ -836,7 +868,6 @@ test('optional blank interval appears between questions and is exported', async 
     useBlankInterval: true,
     blankIntervalSec: 1
   });
-  await page.locator('#beginFlow').click();
   await clickCorrectChoice(page);
   await expect(page.locator('#screenBlank.active')).toBeVisible({ timeout: 3_000 });
   await waitForChoiceScreen(page);
@@ -857,16 +888,15 @@ test('reset returns to welcome without changing saved session settings', async (
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
-  await configureSession(page, {
+  await startConfiguredSession(page, {
     startLevel: 4,
     sessionMax: 3,
     autoAdvance: false,
     autoLevelPath: false,
     sessionTaskType: 'find-object'
   });
-  await page.locator('#beginFlow').click();
   await waitForChoiceScreen(page);
-  await page.locator('#teacherPanelTab').click();
+  await returnToTeacherWorkspace(page);
   await page.locator('#resetBtn').click();
   await expect(page.locator('#screenWelcome.active')).toBeVisible();
   await expect(page.locator('#startLevel')).toHaveValue('4');
@@ -883,8 +913,13 @@ test('teacher and admin panel tabs switch between separate panel groups', async 
 
   await page.locator('#adminPanelTab').click();
   await expect(page.locator('#adminPanelTab')).toHaveAttribute('aria-pressed', 'true');
-  await expect(page.locator('summary:has-text("Advanced Admin Settings")')).toBeVisible();
+  await expect(page.locator('#adminResearchWorkspace')).toBeVisible();
+  await expect(page.locator('#adminAnalyticsSection')).toBeVisible();
+  await expect(page.locator('#adminPanelDetails')).toBeHidden();
   await expect(page.locator('summary:has-text("Daily Teacher Setup")')).toBeHidden();
+
+  await page.locator('#adminNavSystem').click();
+  await expect(page.locator('#adminPanelDetails')).toBeVisible();
   expect(await page.locator('#adminPanelDetails').evaluate(node => node.open)).toBeTruthy();
 
   await page.locator('#teacherPanelTab').click();
@@ -895,16 +930,17 @@ test('teacher and admin panel tabs switch between separate panel groups', async 
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
-test('floating admin button returns to teacher view and opens admin settings from learner mode', async ({ page }) => {
+test('deliberate teacher return restores access to the Admin workspace', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
   await page.locator('#learnerModeBtn').click();
   await expect(page.locator('aside.panel')).toBeHidden();
-  await page.locator('#adminModeFab').click();
+  await returnToTeacherWorkspace(page);
+  await page.locator('#adminPanelTab').click();
   await expect(page.locator('aside.panel')).toBeVisible();
-  await expect(page.locator('#adminPanelDetails')).toBeVisible();
-  expect(await page.locator('#adminPanelDetails').evaluate(node => node.open)).toBeTruthy();
+  await expect(page.locator('#adminResearchWorkspace')).toBeVisible();
+  await expect(page.locator('#adminNavOverview')).toHaveAttribute('aria-pressed', 'true');
 
   expect(errors, errors.join('\n')).toEqual([]);
 });
@@ -988,6 +1024,7 @@ test('photo upload adds a labelled personalised photo and records its metadata i
   await gotoApp(page);
 
   await page.locator('#studentFriendlyMode').uncheck();
+  await openTeacherDestination(page, 'personalise');
   await page.locator('#photoLabel').fill('Favourite toy');
   await page.locator('#photoCategory').selectOption('toy');
   await page.locator('#photoType').fill('Toy');
@@ -1020,6 +1057,7 @@ test('teacher-created categories reject duplicates and persist across reloads', 
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
+  await openTeacherDestination(page, 'personalise');
   await page.locator('#createCategoryName').fill('Musical instruments');
   await page.locator('#createCategoryBtn').click();
   await expect(page.locator('#categoryCreateStatus')).toContainText('ready to use');
@@ -1030,6 +1068,7 @@ test('teacher-created categories reject duplicates and persist across reloads', 
   await expect(page.locator('#categoryCreateStatus')).toContainText('already exists');
   await page.waitForTimeout(300);
   await page.reload();
+  await openTeacherDestination(page, 'personalise');
   await expect(page.locator('#photoCategory option[value="custom-musical-instruments"]')).toHaveText('Musical instruments');
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -1040,6 +1079,7 @@ test('bulk import keeps its starting pupil and category while reporting per-file
   await gotoApp(page);
 
   const originalPupil = await page.locator('#pupilSelect').inputValue();
+  await openTeacherDestination(page, 'personalise');
   await page.locator('#bulkPhotoCategory').selectOption('animals');
   await page.locator('#customUpload').setInputFiles([
     {
@@ -1058,12 +1098,16 @@ test('bulk import keeps its starting pupil and category while reporting per-file
       buffer: Buffer.from('not an image')
     }
   ]);
+  await openTeacherDestination(page, 'today');
   await page.locator('#newPupilName').fill('Pupil B');
   await page.locator('#addPupil').click();
   await expect(page.locator('#bulkUploadStatus')).toContainText('2 imported, 1 failed', { timeout: 15_000 });
+  await openTeacherDestination(page, 'personalise');
   await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(0);
 
+  await openTeacherDestination(page, 'today');
   await page.locator('#pupilSelect').selectOption(originalPupil);
+  await openTeacherDestination(page, 'personalise');
   await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(2);
   await expect(page.locator('#photoLibraryList')).toContainText('Animals');
   await expect(page.locator('#photoLibraryList .sourceBadge.personalised')).toHaveCount(2);
@@ -1075,6 +1119,7 @@ test('selected photos can be reassigned without losing identity or source', asyn
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
+  await openTeacherDestination(page, 'personalise');
   await page.locator('#bulkPhotoCategory').selectOption('toy');
   await page.locator('#customUpload').setInputFiles([
     {
@@ -1105,6 +1150,7 @@ test('photo crop and rotation are non-destructive and persist after reload', asy
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
+  await openTeacherDestination(page, 'personalise');
   await page.locator('#photoLabel').fill('Landscape scene');
   await page.locator('#photoCategory').selectOption('classroom');
   await page.locator('#photoUpload').setInputFiles({
@@ -1123,6 +1169,7 @@ test('photo crop and rotation are non-destructive and persist after reload', asy
   await page.locator('#imageEditorApply').click();
   await expect(page.locator('#imageEditor')).toBeHidden({ timeout: 15_000 });
   await page.reload();
+  await openTeacherDestination(page, 'personalise');
   await page.locator('#photoLibraryList button:has-text("Crop / rotate")').click();
   await expect(page.locator('#imageEditorSquare')).toBeChecked();
   await expect(page.locator('#imageEditorRotation')).toHaveValue('90');
@@ -1203,7 +1250,16 @@ test('Plain White is readable, persists, and is included in exports', async ({ p
   await gotoApp(page);
   await page.locator('#themeChoice').selectOption('plain-white');
   await expect(page.locator('body')).toHaveClass(/theme-plain-white/);
-  await expect(page.locator('.playArea')).toHaveCSS('background-color', 'rgb(255, 255, 255)');
+  const stageSurface = await page.locator('.playArea').evaluate(node => {
+    const token = getComputedStyle(document.body).getPropertyValue('--surface-subtle').trim();
+    const probe = document.createElement('span');
+    probe.style.backgroundColor = token;
+    document.body.appendChild(probe);
+    const expected = getComputedStyle(probe).backgroundColor;
+    probe.remove();
+    return { actual: getComputedStyle(node).backgroundColor, expected };
+  });
+  expect(stageSurface.actual).toBe(stageSurface.expected);
   await page.waitForTimeout(300);
   await page.reload();
   await expect(page.locator('#themeChoice')).toHaveValue('plain-white');
@@ -1225,6 +1281,7 @@ test('visual review captures Plain White, mixed image framing, and tablet learne
   await page.locator('#themeChoice').selectOption('plain-white');
   await page.screenshot({ path: `${visualDir}/plain-white-desktop.png`, fullPage: true });
 
+  await openTeacherDestination(page, 'personalise');
   await page.locator('#bulkPhotoCategory').selectOption('people');
   await page.locator('#customUpload').setInputFiles([
     {
@@ -1245,6 +1302,7 @@ test('visual review captures Plain White, mixed image framing, and tablet learne
   await page.locator('#imageEditorCancel').click();
 
   await page.setViewportSize({ width: 1024, height: 768 });
+  await openTeacherDestination(page, 'today');
   await page.locator('#sessionTaskType').selectOption('find-object');
   await setCategorySelection(page, 'findObjectCategoryList', ['animals']);
   await page.locator('#findObjectSourceMode').selectOption('stock');
