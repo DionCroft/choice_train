@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-model-dataset-v1.schema.json",
+  "title": "ChoiceTrain privacy-minimised model-development dataset core contract v1",
+  "type": "object",
+  "required": ["app", "export_schema_version", "purpose", "privacy_status", "governance", "privacy_manifest", "participant_count", "session_count", "sessions", "teacher_decisions", "interpretation_boundary"],
+  "properties": {
+    "app": { "const": "ChoiceTrain for ShowMe" },
+    "export_schema_version": { "const": "1.0.0" },
+    "purpose": { "type": "string", "minLength": 1 },
+    "privacy_status": { "const": "pseudonymised-not-anonymous" },
+    "governance": {
+      "type": "object",
+      "required": ["human_review_required", "automated_decision_making_enabled", "model_training_performed_by_application"],
+      "properties": {
+        "human_review_required": { "const": true },
+        "automated_decision_making_enabled": { "const": false },
+        "model_training_performed_by_application": { "const": false }
+      },
+      "additionalProperties": true
+    },
+    "privacy_manifest": {
+      "type": "object",
+      "required": ["names_included", "aliases_included", "free_text_included", "image_data_included", "photo_labels_included", "exact_timestamps_included", "raw_touch_coordinates_included", "prompt_wording_included", "source_session_ids_included", "external_transmission"],
+      "properties": {
+        "names_included": { "const": false },
+        "aliases_included": { "const": false },
+        "free_text_included": { "const": false },
+        "image_data_included": { "const": false },
+        "photo_labels_included": { "const": false },
+        "exact_timestamps_included": { "const": false },
+        "raw_touch_coordinates_included": { "const": false },
+        "prompt_wording_included": { "const": false },
+        "source_session_ids_included": { "const": false },
+        "external_transmission": { "const": false }
+      },
+      "additionalProperties": true
+    },
+    "participant_count": { "type": "integer", "minimum": 0 },
+    "session_count": { "type": "integer", "minimum": 0 },
+    "sessions": { "type": "array", "items": { "type": "object" } },
+    "teacher_decisions": { "type": "array", "items": { "type": "object" } },
+    "interpretation_boundary": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}

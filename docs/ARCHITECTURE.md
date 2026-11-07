@@ -55,6 +55,7 @@ V1.7 exports include a `sensory_preferences` object containing the selected font
 - `scripts/capture-v170-visual-audit.js` creates 17 ignored, synthetic-data screenshots and a bounds manifest for repeatable desktop, tablet, mobile, state, and theme review.
 - `scripts/stamp-build.js` is the cross-platform release metadata source of truth; `scripts/stamp-build.ps1` is a Windows compatibility wrapper.
 - `scripts/stamp-build.test.js` validates replacement safety, explicit targeting, and dry-run argument handling with the built-in Node test runner.
+- `schemas/` contains JSON Schema 2020-12 core contracts, and `scripts/schema-contract.test.js` keeps their versions, task/skill enums, and privacy invariants aligned with the V1.8 runtime.
 - `.github/workflows/ci.yml` validates branches and pull requests.
 - `.github/workflows/pages.yml` reruns release-tool and browser suites before deploying `main` to GitHub Pages.
 

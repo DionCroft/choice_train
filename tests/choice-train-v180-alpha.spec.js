@@ -2,6 +2,30 @@ const fs = require('fs');
 const { test, expect } = require('@playwright/test');
 
 const APP_PATH = '/choice_train_V1.8.0-alpha.html';
+const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.schema.json', 'utf8'));
+const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v1.5.schema.json', 'utf8'));
+const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
+
+function expectCoreSchema(value, schema, path='payload') {
+  expect(value, `${path} must be an object`).toBeTruthy();
+  expect(typeof value, `${path} must be an object`).toBe('object');
+  (schema.required || []).forEach(field => expect(value, `${path}.${field} is required`).toHaveProperty(field));
+  Object.entries(schema.properties || {}).forEach(([field, definition]) => {
+    if(!Object.prototype.hasOwnProperty.call(value, field)) return;
+    const observed = value[field];
+    if(Object.prototype.hasOwnProperty.call(definition, 'const')) expect(observed, `${path}.${field}`).toEqual(definition.const);
+    if(definition.enum) expect(definition.enum, `${path}.${field} enum`).toContain(observed);
+    if(definition.type === 'object') {
+      expectCoreSchema(observed, definition, `${path}.${field}`);
+    } else if(definition.type === 'array') {
+      expect(Array.isArray(observed), `${path}.${field} must be an array`).toBe(true);
+    } else if(definition.type === 'integer') {
+      expect(Number.isInteger(observed), `${path}.${field} must be an integer`).toBe(true);
+    } else if(typeof definition.type === 'string') {
+      expect(typeof observed, `${path}.${field} type`).toBe(definition.type);
+    }
+  });
+}
 
 async function gotoAlpha(page) {
   await page.goto(APP_PATH);
@@ -103,6 +127,7 @@ test('a learner trial exports skill, generator, and descriptive research metadat
 
   const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
   const trial = payload.trials[0];
+  expectCoreSchema(trial, TRIAL_SCHEMA, 'trial');
   expect(trial.schema_version).toBe(8);
   expect(trial.skill_graph_version).toBe('1.3.0');
   expect(trial.skill_ids).toEqual(['recognition.named_object']);
@@ -373,6 +398,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
   await expect(page.locator('#researchCategoryLessonNote')).toContainText('exposure');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
   expect(researchPayload.export_schema_version).toBe('1.5.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
@@ -1398,6 +1424,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   await page.locator('#adminExportAiDatasetBtn').evaluate(node => node.click());
   const download = await downloadPromise;
   const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  expectCoreSchema(payload, MODEL_DATASET_SCHEMA, 'model_dataset');
   const exportedText = JSON.stringify(payload);
   const exportedKeys = [];
   const collectKeys = value => {

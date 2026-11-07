@@ -34,6 +34,7 @@ All notable changes to ChoiceTrain are listed here.
 - an accessible category-matching Research profile for trials, categories, distinct cues, targets and cue-target pairs, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
 - Research workspace summary export version 1.5.0 with category-level matching, group-completion, category-difference, and consolidated category-by-task coverage aggregates, fixed-condition adherence rows, and no cue or target item labels
 - a consolidated category lesson coverage chart and accessible table for task-family exposure, distinct targets, cues and displayed items, personalised-content use, accuracy, independence, and omissions
+- JSON Schema 2020-12 core contracts for trial schema 8, Research summary 1.5, and privacy-minimised model dataset 1.0, with dependency-free version/task/skill/privacy drift tests in branch and Pages CI
 - an accessible complete-the-group Research profile for cue, cue-set and target breadth, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
 - an accessible category-difference Research profile for reference categories, group-exemplar and outside-target breadth, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
 - local fixed-condition manifests with non-identifying condition IDs, deterministic settings fingerprints, required replay seeds, protected non-overwrite behaviour, and save/apply controls under Admin and research

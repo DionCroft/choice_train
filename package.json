@@ -4,6 +4,7 @@
   "description": "Playwright regression and visual smoke tests for ChoiceTrain for ShowMe.",
   "scripts": {
     "test:release": "node --test scripts/stamp-build.test.js",
+    "test:schema": "node --test scripts/schema-contract.test.js",
     "test:browser": "node scripts/run-browser-tests.js",
     "test:browser:headed": "node scripts/run-browser-tests.js --headed",
     "test:browser:ui": "node scripts/run-browser-tests.js --ui",

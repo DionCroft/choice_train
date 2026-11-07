@@ -28,6 +28,9 @@ jobs:
       - name: Test release tooling
         run: npm run test:release
 
+      - name: Validate research data contracts
+        run: npm run test:schema
+
       - name: Install Playwright browser
         run: npx playwright install --with-deps chromium
 

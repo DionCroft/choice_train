@@ -9,6 +9,7 @@ This dictionary documents the principal exported and locally stored fields used 
 - Context notes and pupil aliases can still be personal data.
 - No field is a diagnosis, medical finding, or validated measure unless a future protocol establishes that separately.
 - V1.7.0 uses export schema version 4. The isolated V1.8 alpha uses schema version 8.
+- Machine-readable core contracts are published under `schemas/`; they intentionally allow documented optional audit fields and do not replace the full dictionary below.
 
 ## V1.8 Alpha Derived Planning Fields
 
