@@ -11,6 +11,21 @@
     "schema_version": { "const": 8 },
     "skill_graph_version": { "const": "1.4.0" },
     "generator_version": { "const": "1.6.0" },
+    "recommendation_id": { "type": ["string", "null"] },
+    "recommendation_review_id": { "type": ["string", "null"] },
+    "recommendation_version": { "type": ["string", "null"] },
+    "recommendation_review_decision": {
+      "oneOf": [
+        { "enum": ["approved", "adjusted"] },
+        { "type": "null" }
+      ]
+    },
+    "recommendation_application_status": {
+      "oneOf": [
+        { "const": "applied-as-reviewed" },
+        { "type": "null" }
+      ]
+    },
     "skill_ids": {
       "type": "array",
       "minItems": 1,

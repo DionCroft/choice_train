@@ -1286,6 +1286,27 @@ body.panel-view-admin .tableWrap {
   flex: 1 1 260px;
 }
 
+.stagedRecommendationNotice {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin: 12px 0;
+}
+
+.stagedRecommendationNotice[hidden] {
+  display: none;
+}
+
+.stagedRecommendationNotice.invalid {
+  border-color: var(--shell-danger);
+  background: var(--shell-danger-soft);
+}
+
+.stagedRecommendationNotice button {
+  flex: 0 0 auto;
+}
+
 .researchCurrentSessionHeading {
   margin-top: 24px;
   padding-top: 20px;
@@ -1299,6 +1320,11 @@ body.panel-view-admin .tableWrap {
 
   .recommendationReviewGrid .span2 {
     grid-column: auto;
+  }
+
+  .stagedRecommendationNotice {
+    align-items: stretch;
+    flex-direction: column;
   }
 }
 

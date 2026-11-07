@@ -30,6 +30,8 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
   assert.equal(contract.properties.generator_version.const, runtimeConstant('GENERATOR_VERSION'));
   assert.deepEqual(new Set(contract.properties.task_kind.enum), new Set(objectKeys('TASK_META')));
   assert.deepEqual(new Set(contract.properties.skill_ids.items.enum), new Set(objectKeys('SKILL_GRAPH')));
+  assert.deepEqual(new Set(contract.properties.recommendation_review_decision.oneOf[0].enum), new Set(['approved', 'adjusted']));
+  assert.equal(contract.properties.recommendation_application_status.oneOf[0].const, 'applied-as-reviewed');
 });
 
 test('Research summary schema matches its runtime export version and category/AI composition sections', () => {
@@ -101,5 +103,12 @@ test('model-development schema locks privacy and human-oversight invariants', ()
     'deferred'
   ]));
   assert.equal(decision.properties.final_plan.oneOf[1].type, 'null');
+  assert.equal(decision.properties.applied_session_count.minimum, 0);
   assert.equal(contract.$defs.privacySafeFinalPlan.additionalProperties, false);
+  const application = contract.$defs.privacySafeRecommendationApplication;
+  assert.equal(application.additionalProperties, false);
+  assert.equal(application.properties.applied.const, true);
+  assert.equal(application.properties.plan_matches_session_settings.const, true);
+  assert.deepEqual(new Set(application.properties.review_decision.oneOf[0].enum), new Set(['approved', 'adjusted']));
+  assert.equal(contract.properties.sessions.items.properties.recommendation_application.oneOf[0].$ref, '#/$defs/privacySafeRecommendationApplication');
 });

@@ -18,7 +18,7 @@ The alpha retains raw trial records and adds recomputable, versioned planning fi
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `practice_status_version` | string | Version of the transparent skill-state rules |
-| `recommendation_version` | string | Version of the deterministic proposal and review rules; current alpha value `1.1.0` |
+| `recommendation_version` | string | Version of the deterministic proposal, review, and explicit application rules; current alpha value `1.2.0` |
 | `local_recommendation_summary.practice_states` | array | Per-skill opportunity, recency, accuracy, independence, trend, retention, and support summaries |
 | `practice_status` | enum | `not-scored`, `insufficient-sample`, `needs-support`, `developing`, or `consistent-current-sample` |
 | `recent_window_sessions` | number | Number of latest observed sessions used, up to three |
@@ -30,6 +30,8 @@ The alpha retains raw trial records and adds recomputable, versioned planning fi
 Current alpha rules label samples below five scored opportunities or two sessions as needing more observations. `consistent-current-sample` requires at least eight recent scored opportunities, 80% recent accuracy, and 70% independent success. A retention comparison requires a gap of at least seven days and at least three scored opportunities on both sides; otherwise the sample is labelled too small.
 
 Teacher review records preserve the proposal, decision, optional override, approved final task and level where applicable, note, reviewer label, timestamp, and any superseded review ID. `approved` accepts the proposal, `adjusted` approves a recorded alternative, `declined` rejects it for now, and `deferred` records that more information or time is needed. Declined and deferred reviews have `final_plan: null`. A proposal never changes session settings automatically.
+
+An accepted review can be explicitly staged for one next session. `recommendation_application` freezes `recommendation_id`, `review_id`, recommendation version, review decision, final task/level, support direction, and application timestamps when Start is pressed with the same pupil, task, and level. Compatible trials repeat the recommendation/review IDs and `recommendation_application_status: applied-as-reviewed` for auditable linkage. Changing the staged pupil, task, or level prevents the link; support direction remains advisory and does not silently change prompt controls.
 
 V1.8 freezes the selected local pupil name, export alias, profile snapshot, context, presentation settings, and photo metadata when a session starts. Later profile selection cannot relabel that session. The export alias is a display/pseudonym field rather than the local identity key, so two profiles may share an alias without their longitudinal records being merged.
 
@@ -267,9 +269,10 @@ This separate JSON uses `export_schema_version: 1.0.0` and `privacy_status: pseu
 - privacy-safe per-skill summaries
 - relative EEG marker times and browser diagnostics
 - fixed-condition enabled/adherence/fingerprint state without the condition ID or manifest settings
-- sanitised teacher decisions and rationale codes, plus an approved final task/level only for approved or adjusted reviews, without reviewer identity or free text
+- sanitised teacher decisions and rationale codes, plus an approved final task/level and aggregate applied-session count only for approved or adjusted reviews, without reviewer identity or free text
+- a privacy-safe per-session application summary containing the reviewed decision, planned task/level, support direction, and settings-match flag without recommendation/review IDs or exact application times
 
-It excludes direct names and aliases, free text, images, photo labels, exact wall-clock/performance timestamps, source session/trial/recommendation IDs, prompt wording, selected labels, raw touch coordinates, fixed-condition IDs, and fixed manifest settings. `external_transmission` is `false`; clicking the button downloads a local file only.
+It excludes direct names and aliases, free text, images, photo labels, exact wall-clock/performance timestamps, source session/trial/recommendation/review IDs, prompt wording, selected labels, raw touch coordinates, fixed-condition IDs, and fixed manifest settings. `external_transmission` is `false`; clicking the button downloads a local file only.
 
 Model-development EEG diagnostics are recalculated from the selected raw trials, privacy-safe marker data, and protocol fields at export time. The model-dataset schema permits only aggregate ordering, timing-comparison, protocol-completeness, synchronisation-declaration, and interpretation-boundary fields. Stored diagnostic extensions such as operator notes, exact times, or source identifiers are not copied into this export.
 

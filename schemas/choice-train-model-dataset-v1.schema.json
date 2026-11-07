@@ -21,7 +21,7 @@
     },
     "privacy_manifest": {
       "type": "object",
-      "required": ["names_included", "aliases_included", "free_text_included", "image_data_included", "photo_labels_included", "exact_timestamps_included", "raw_touch_coordinates_included", "prompt_wording_included", "source_session_ids_included", "external_transmission"],
+      "required": ["names_included", "aliases_included", "free_text_included", "image_data_included", "photo_labels_included", "exact_timestamps_included", "raw_touch_coordinates_included", "prompt_wording_included", "source_session_ids_included", "recommendation_ids_included", "recommendation_review_ids_included", "external_transmission"],
       "properties": {
         "names_included": { "const": false },
         "aliases_included": { "const": false },
@@ -32,6 +32,8 @@
         "raw_touch_coordinates_included": { "const": false },
         "prompt_wording_included": { "const": false },
         "source_session_ids_included": { "const": false },
+        "recommendation_ids_included": { "const": false },
+        "recommendation_review_ids_included": { "const": false },
         "external_transmission": { "const": false }
       },
       "additionalProperties": true
@@ -44,7 +46,13 @@
         "type": "object",
         "required": ["eeg_marker_diagnostics"],
         "properties": {
-          "eeg_marker_diagnostics": { "$ref": "#/$defs/privacySafeMarkerDiagnostics" }
+          "eeg_marker_diagnostics": { "$ref": "#/$defs/privacySafeMarkerDiagnostics" },
+          "recommendation_application": {
+            "oneOf": [
+              { "$ref": "#/$defs/privacySafeRecommendationApplication" },
+              { "type": "null" }
+            ]
+          }
         },
         "additionalProperties": true
       }
@@ -80,7 +88,7 @@
     },
     "privacySafeTeacherDecision": {
       "type": "object",
-      "required": ["participant_code", "decision_index", "recommendation_version", "decision", "proposal", "final_plan"],
+      "required": ["participant_code", "decision_index", "recommendation_version", "decision", "applied_session_count", "proposal", "final_plan"],
       "properties": {
         "participant_code": { "type": "string", "minLength": 1 },
         "decision_index": { "type": "integer", "minimum": 1 },
@@ -91,6 +99,7 @@
             { "type": "null" }
           ]
         },
+        "applied_session_count": { "type": "integer", "minimum": 0 },
         "proposal": {
           "oneOf": [
             { "$ref": "#/$defs/privacySafeRecommendationProposal" },
@@ -126,6 +135,26 @@
         "task_kind": { "type": ["string", "null"] },
         "level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
         "support_direction": { "type": ["string", "null"] }
+      },
+      "additionalProperties": false
+    },
+    "privacySafeRecommendationApplication": {
+      "type": "object",
+      "required": ["applied", "application_schema_version", "recommendation_version", "review_decision", "planned_task_kind", "planned_level", "support_direction", "plan_matches_session_settings"],
+      "properties": {
+        "applied": { "const": true },
+        "application_schema_version": { "type": ["string", "null"] },
+        "recommendation_version": { "type": ["string", "null"] },
+        "review_decision": {
+          "oneOf": [
+            { "enum": ["approved", "adjusted"] },
+            { "type": "null" }
+          ]
+        },
+        "planned_task_kind": { "type": ["string", "null"] },
+        "planned_level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+        "support_direction": { "type": ["string", "null"] },
+        "plan_matches_session_settings": { "const": true }
       },
       "additionalProperties": false
     }

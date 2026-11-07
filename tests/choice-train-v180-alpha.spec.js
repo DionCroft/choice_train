@@ -1669,8 +1669,82 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
     final_plan: null
   }));
   expect(payload.practice_status_version).toBe('1.0.0');
-  expect(payload.recommendation_version).toBe('1.1.0');
+  expect(payload.recommendation_version).toBe('1.2.0');
   expect(payload.local_recommendation_summary.external_transmission).toBe(false);
+});
+
+test('an approved recommendation is explicitly staged, linked to one session, and visualised', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+
+  await setValue(page, 'recommendationDecision', 'adjusted');
+  await setValue(page, 'recommendationOverrideTask', 'find-object');
+  await setValue(page, 'recommendationOverrideLevel', 5);
+  await page.locator('#recommendationReviewNote').fill('Use the reviewed task and level for the next short session.');
+  await page.locator('#saveRecommendationReviewBtn').click();
+  await expect(page.locator('#applyRecommendationPlanBtn')).toBeEnabled();
+  await page.locator('#applyRecommendationPlanBtn').click();
+
+  await expect(page.locator('#teacherPanelTab')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#stagedRecommendationNotice')).toBeVisible();
+  await expect(page.locator('#stagedRecommendationText')).toContainText('Find object, Level 5');
+  await expect(page.locator('#sessionTaskType')).toHaveValue('find-object');
+  await expect(page.locator('#startLevel')).toHaveValue('5');
+
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  const application = payload.recommendation_application;
+  expect(application).toEqual(expect.objectContaining({
+    application_schema_version: '1.0.0',
+    application_status: 'applied-as-reviewed',
+    application_method: 'teacher-explicit',
+    recommendation_version: '1.2.0',
+    review_decision: 'adjusted',
+    task_kind: 'find-object',
+    level: 5,
+    plan_matches_session_settings: true
+  }));
+  expect(application.recommendation_id).toMatch(/^rec-/);
+  expect(application.review_id).toBeTruthy();
+  expect(payload.lesson_plan.constraints).toEqual(expect.objectContaining({
+    recommendation_id: application.recommendation_id,
+    recommendation_review_id: application.review_id
+  }));
+  expect(payload.trials[0]).toEqual(expect.objectContaining({
+    recommendation_id: application.recommendation_id,
+    recommendation_review_id: application.review_id,
+    recommendation_version: '1.2.0',
+    recommendation_review_decision: 'adjusted',
+    recommendation_application_status: 'applied-as-reviewed'
+  }));
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#refreshResearchBtn').click();
+  await expect(page.locator('#researchRecommendationApprovedCount')).toHaveText('1');
+  await expect(page.locator('#researchRecommendationAppliedCount')).toHaveText('1');
+  await expect(page.locator('#researchRecommendationPendingCount')).toHaveText('0');
+  await expect(page.locator('#researchRecommendationUseChart')).toBeVisible();
+  const reviewRow = page.locator('#researchRecommendationBody tr').filter({ hasText: 'Use the reviewed task and level' });
+  await expect(reviewRow.locator('td').nth(7)).toHaveText('1');
 });
 
 test('current-learner research does not merge pupils that share an export alias', async ({ page }) => {
@@ -2042,24 +2116,48 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   await page.evaluate(async () => {
     const learners = JSON.parse(localStorage.getItem('choice_train_learners_v140') || '{}');
     const learnerName = Object.keys(learners)[0];
-    learners[learnerName].reviews = (learners[learnerName].reviews || []).concat({
-      recommendation_version: '1.0.0',
-      decision: 'deferred',
-      note: 'SECRET-REVIEW wait for family discussion',
-      proposal: {
-        action: 'continue-practice',
-        skill_id: 'recognition.named_object',
-        recommended_task_kind: 'find-object',
-        recommended_level: 4,
-        support_direction: 'maintain',
-        rationale_codes: ['LEGACY_SAMPLE']
+    learners[learnerName].reviews = (learners[learnerName].reviews || []).concat([
+      {
+        review_id: 'SECRET-DEFERRED-REVIEW-ID',
+        recommendation_id: 'SECRET-DEFERRED-RECOMMENDATION-ID',
+        recommendation_version: '1.0.0',
+        decision: 'deferred',
+        note: 'SECRET-REVIEW wait for family discussion',
+        proposal: {
+          action: 'continue-practice',
+          skill_id: 'recognition.named_object',
+          recommended_task_kind: 'find-object',
+          recommended_level: 4,
+          support_direction: 'maintain',
+          rationale_codes: ['LEGACY_SAMPLE']
+        },
+        final_plan: {
+          task_kind: 'cpat-executive',
+          level: 9,
+          support_direction: 'fade'
+        }
       },
-      final_plan: {
-        task_kind: 'cpat-executive',
-        level: 9,
-        support_direction: 'fade'
+      {
+        review_id: 'SECRET-APPLIED-REVIEW-ID',
+        recommendation_id: 'SECRET-APPLIED-RECOMMENDATION-ID',
+        recommendation_version: '1.0.0',
+        decision: 'adjusted',
+        note: 'SECRET-APPLIED-REVIEWER-NOTE',
+        proposal: {
+          action: 'continue-practice',
+          skill_id: 'recognition.named_object',
+          recommended_task_kind: 'find-object',
+          recommended_level: 4,
+          support_direction: 'maintain',
+          rationale_codes: ['LEGACY_SAMPLE']
+        },
+        final_plan: {
+          task_kind: 'find-object',
+          level: 4,
+          support_direction: 'maintain'
+        }
       }
-    });
+    ]);
     localStorage.setItem('choice_train_learners_v140', JSON.stringify(learners));
 
     const db = await new Promise((resolve, reject) => {
@@ -2075,6 +2173,21 @@ test('pseudonymised AI research export excludes direct identifiers and free text
       request.onerror = () => reject(request.error);
     });
     sessions.forEach(session => {
+      session.recommendation_application = {
+        application_schema_version: '1.0.0',
+        application_status: 'applied-as-reviewed',
+        application_method: 'teacher-explicit',
+        recommendation_id: 'SECRET-APPLIED-RECOMMENDATION-ID',
+        recommendation_version: '1.0.0',
+        review_id: 'SECRET-APPLIED-REVIEW-ID',
+        review_decision: 'adjusted',
+        reviewer: 'SECRET-REVIEWER-NAME',
+        task_kind: 'find-object',
+        level: 4,
+        support_direction: 'maintain',
+        plan_matches_session_settings: true,
+        applied_at_wall_ms: 1893456000000
+      };
       session.eeg_marker_diagnostics = {
         ...(session.eeg_marker_diagnostics || {}),
         operator_notes: 'SECRET-DIAGNOSTIC free text',
@@ -2137,6 +2250,8 @@ test('pseudonymised AI research export excludes direct identifiers and free text
     raw_touch_coordinates_included: false,
     prompt_wording_included: false,
     source_session_ids_included: false,
+    recommendation_ids_included: false,
+    recommendation_review_ids_included: false,
     external_transmission: false
   }));
   expect(payload.participant_count).toBe(1);
@@ -2148,11 +2263,30 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(payload.sessions[0].trials[0].skill_ids).toContain('recognition.named_object');
   expect(payload.sessions[0].trials[0].coverage_strategy).toBe('balanced-before-repeat');
   expect(payload.sessions[0].trials[0].correct).toBe(true);
-  expect(payload.teacher_decisions).toHaveLength(1);
-  expect(payload.teacher_decisions[0]).toEqual(expect.objectContaining({
+  expect(payload.sessions[0].recommendation_application).toEqual({
+    applied: true,
+    application_schema_version: '1.0.0',
+    recommendation_version: '1.0.0',
+    review_decision: 'adjusted',
+    planned_task_kind: 'find-object',
+    planned_level: 4,
+    support_direction: 'maintain',
+    plan_matches_session_settings: true
+  });
+  expect(payload.teacher_decisions).toHaveLength(2);
+  const deferredDecision = payload.teacher_decisions.find(item => item.decision === 'deferred');
+  const appliedDecision = payload.teacher_decisions.find(item => item.decision === 'adjusted');
+  expect(deferredDecision).toEqual(expect.objectContaining({
     recommendation_version: '1.0.0',
     decision: 'deferred',
+    applied_session_count: 0,
     final_plan: null
+  }));
+  expect(appliedDecision).toEqual(expect.objectContaining({
+    recommendation_version: '1.0.0',
+    decision: 'adjusted',
+    applied_session_count: 1,
+    final_plan: expect.objectContaining({ task_kind: 'find-object', level: 4 })
   }));
   expect(Object.keys(payload.sessions[0].eeg_marker_diagnostics).sort()).toEqual([
     'version',
@@ -2181,6 +2315,9 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(exportedText).not.toContain('SECRET-GOVERNANCE-REFERENCE');
   expect(exportedText).not.toContain('SECRET-DIAGNOSTIC');
   expect(exportedText).not.toContain('SECRET-REVIEW');
+  expect(exportedText).not.toContain('SECRET-APPLIED');
+  expect(exportedText).not.toContain('SECRET-DEFERRED');
+  expect(exportedText).not.toContain('SECRET-REVIEWER-NAME');
   expect(exportedText).not.toContain('cpat-executive');
   expect(exportedText).not.toContain('2027-06-01');
   expect(exportedKeys).not.toContain('prompt_wording');

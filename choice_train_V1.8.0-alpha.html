@@ -477,6 +477,10 @@
             <div class="sessionReadinessItem">Questions<b id="readinessQuestions">8</b></div>
           </div>
         </div>
+        <div id="stagedRecommendationNotice" class="configSummary stagedRecommendationNotice" hidden role="status">
+          <span id="stagedRecommendationText"></span>
+          <button id="clearStagedRecommendationBtn" type="button">Clear reviewed plan</button>
+        </div>
 
         <div class="controlGroup">
           <div class="controlGroupTitle">Questions and timing</div>
@@ -1485,14 +1489,24 @@
                 <button id="saveRecommendationReviewBtn" type="button">Save teacher review</button>
                 <span id="recommendationReviewStatus" class="tiny">No review saved for this proposal.</span>
               </div>
+              <div class="row recommendationReviewActions">
+                <button id="applyRecommendationPlanBtn" type="button" disabled>Use approved task and level for next session</button>
+                <span id="recommendationApplicationStatus" class="tiny">Approve or adjust the current proposal before using it.</span>
+              </div>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Current approved plans</div><div class="v" id="researchRecommendationApprovedCount">0</div></div>
+                <div class="dashCard"><div class="k">Explicitly linked sessions</div><div class="v" id="researchRecommendationAppliedCount">0</div></div>
+                <div class="dashCard"><div class="k">Approved, not yet linked</div><div class="v" id="researchRecommendationPendingCount">0</div></div>
+              </div>
               <canvas id="researchRecommendationChart" class="researchCanvas" width="760" height="220" role="img" aria-label="Teacher recommendation decisions by status"></canvas>
+              <canvas id="researchRecommendationUseChart" class="researchCanvas" width="760" height="190" role="img" aria-label="Approved recommendation plans and explicitly linked sessions"></canvas>
               <div class="tableWrap researchTableWrap">
                 <table>
-                  <thead><tr><th>Date</th><th>Learner</th><th>Proposed action</th><th>Skill</th><th>Decision</th><th>Final task</th><th>Final level</th><th>Reviewer note</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Proposed action</th><th>Skill</th><th>Decision</th><th>Final task</th><th>Final level</th><th>Linked sessions</th><th>Reviewer note</th></tr></thead>
                   <tbody id="researchRecommendationBody"></tbody>
                 </table>
               </div>
-              <div class="compactNote">ChoiceTrain never applies a proposal automatically. Task and level overrides are used only for an approved adjustment; declined and deferred reviews have no final plan. Reviews remain local and are exported for audit; no external AI service is used.</div>
+              <div class="compactNote">ChoiceTrain never applies a proposal automatically. After approval, a teacher may explicitly stage its task and level for one next session; support direction remains advisory. Only sessions started from that unchanged staged setup are linked. Task and level overrides are used only for an approved adjustment; declined and deferred reviews have no final plan. Reviews remain local and are exported for audit; no external AI service is used.</div>
             </div>
             <div id="researchAiDatasetSection" class="chartCard span2 researchAnchorTarget">
               <h4>Future AI dataset composition</h4>
@@ -2053,7 +2067,7 @@
           <p><b>V1.7 presentation choices</b> let staff adjust font, text size, motion, feedback sound, and celebration for the individual pupil. They are access preferences, not diagnoses. The train reward and short sounds are original ChoiceTrain feedback and can be reduced or switched off.</p>
           <p><b>Personalised photos</b> can be labelled as Mum, Dad, Teacher, favourite toy, favourite food, classroom object, or preferred activity. These labels can be reused in question generation while exports keep the label metadata lightweight.</p>
           <p><b>Signal Station</b>, <b>Ticket Hunt</b>, <b>Platform Pointer</b>, and <b>Traffic Lights</b> keep the AT families playful while preserving the underlying sustained, selective-spatial, orienting, and executive learning goals.</p>
-          <p><b>Next-session planning</b> uses transparent local rules and requires a teacher to approve, adjust, decline, or defer each proposal. Declined and deferred reviews do not create a final plan. The review history is stored locally for audit; no session data is sent to an external AI service.</p>
+          <p><b>Next-session planning</b> uses transparent local rules and requires a teacher to approve, adjust, decline, or defer each proposal. Declined and deferred reviews do not create a final plan. A teacher may explicitly stage an approved task and level for one next session; ChoiceTrain records the review link only when that unchanged setup starts, while support direction remains advisory. The review and application history is stored locally for audit; no session data is sent to an external AI service.</p>
         </div>
       </details>
         </div>

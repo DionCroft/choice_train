@@ -36,7 +36,7 @@
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const DATA_QUALITY_SCHEMA_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
-  const RECOMMENDATION_VERSION = '1.1.0';
+  const RECOMMENDATION_VERSION = '1.2.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
   const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.7.0';
@@ -475,6 +475,7 @@
     lessonSeed: null,
     lessonSeedSource: null,
     activeRecommendation: null,
+    stagedRecommendation: null,
     sessionStartMs: 0,
     sessionEndMs: 0,
     sessionEndReason: '',
@@ -1279,6 +1280,12 @@
         max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
         coverage_strategy: 'balanced-before-repeat',
         research_condition: researchCondition(),
+        recommendation_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+          ? state.sessionSnapshot.recommendation_application.recommendation_id
+          : null,
+        recommendation_review_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+          ? state.sessionSnapshot.recommendation_application.review_id
+          : null,
         protocol_condition_id: state.sessionSnapshot && state.sessionSnapshot.study_protocol
           ? state.sessionSnapshot.study_protocol.protocol_condition_id
           : null,
@@ -1313,6 +1320,12 @@
         max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
         coverage_strategy: 'balanced-before-repeat',
         research_condition: researchCondition(),
+        recommendation_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+          ? state.sessionSnapshot.recommendation_application.recommendation_id
+          : null,
+        recommendation_review_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+          ? state.sessionSnapshot.recommendation_application.review_id
+          : null,
         protocol_condition_id: state.sessionSnapshot && state.sessionSnapshot.study_protocol
           ? state.sessionSnapshot.study_protocol.protocol_condition_id
           : null,
@@ -1838,6 +1851,7 @@
       ui.sessionReadinessState.textContent = ready ? 'Ready' : 'Needs pupil';
       ui.sessionReadinessState.classList.toggle('warnText', !ready);
     }
+    renderStagedRecommendationNotice();
   }
 
   function audioContextConstructor(){
@@ -4477,6 +4491,21 @@
       schema_version: DATA_SCHEMA_VERSION,
       skill_graph_version: SKILL_GRAPH_VERSION,
       skill_ids: skillIdsForTask(question.kind),
+      recommendation_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+        ? state.sessionSnapshot.recommendation_application.recommendation_id
+        : null,
+      recommendation_review_id: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+        ? state.sessionSnapshot.recommendation_application.review_id
+        : null,
+      recommendation_version: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+        ? state.sessionSnapshot.recommendation_application.recommendation_version
+        : null,
+      recommendation_review_decision: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+        ? state.sessionSnapshot.recommendation_application.review_decision
+        : null,
+      recommendation_application_status: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+        ? state.sessionSnapshot.recommendation_application.application_status
+        : null,
       lesson_plan_id: currentLessonPlanId(),
       lesson_seed: question.lessonSeed == null ? null : question.lessonSeed,
       question_seed: question.questionSeed == null ? null : question.questionSeed,
@@ -6123,6 +6152,107 @@
     return labels[decision] || 'Unknown decision';
   }
 
+  function acceptedRecommendationReview(review){
+    return !!(review && review.final_plan && ['approved', 'adjusted'].includes(review.decision));
+  }
+
+  function latestReviewForRecommendation(recommendationId, learnerName=currentPupilName()){
+    if(!recommendationId || !learnerName || learnerName === 'Unknown') return null;
+    const learner = normalizeLearner(learnerName, state.learners[learnerName] || {});
+    return learner.reviews
+      .filter(review => review.recommendation_id === recommendationId)
+      .slice(-1)[0] || null;
+  }
+
+  function stagedRecommendationMatchesCurrentSetup(staged=state.stagedRecommendation){
+    if(!staged || staged.learner_name !== currentPupilName()) return false;
+    const task = ui.sessionTaskType && ui.sessionTaskType.value ? ui.sessionTaskType.value : 'auto';
+    const level = clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10);
+    return staged.task_kind === task && staged.level === level;
+  }
+
+  function renderStagedRecommendationNotice(){
+    if(!ui.stagedRecommendationNotice || !ui.stagedRecommendationText) return;
+    const staged = state.stagedRecommendation;
+    ui.stagedRecommendationNotice.hidden = !staged;
+    if(!staged) return;
+    const matches = stagedRecommendationMatchesCurrentSetup(staged);
+    ui.stagedRecommendationNotice.classList.toggle('invalid', !matches);
+    const task = staged.task_kind === 'auto' ? 'Auto level path' : taskLabel(staged.task_kind);
+    ui.stagedRecommendationText.textContent = matches
+      ? `Reviewed plan staged for the next session: ${task}, Level ${staged.level}. The recommendation link will be frozen when Start is pressed.`
+      : 'The staged reviewed plan no longer matches this pupil, task, or level. Use the approved plan again before Start if the session should be linked.';
+  }
+
+  function clearStagedRecommendation(showMessage=false){
+    state.stagedRecommendation = null;
+    renderStagedRecommendationNotice();
+    if(showMessage) flash('good', 'Reviewed plan cleared');
+  }
+
+  function recommendationApplicationForCurrentSetup(){
+    const staged = state.stagedRecommendation;
+    if(!stagedRecommendationMatchesCurrentSetup(staged)) return null;
+    return {
+      application_schema_version: '1.0.0',
+      application_status: 'applied-as-reviewed',
+      application_method: 'teacher-explicit',
+      recommendation_id: staged.recommendation_id,
+      recommendation_version: staged.recommendation_version,
+      review_id: staged.review_id,
+      review_decision: staged.review_decision,
+      reviewed_at_wall_ms: staged.reviewed_at_wall_ms,
+      staged_at_wall_ms: staged.staged_at_wall_ms,
+      applied_at_wall_ms: wallMs(),
+      task_kind: staged.task_kind,
+      level: staged.level,
+      support_direction: staged.support_direction,
+      plan_matches_session_settings: true
+    };
+  }
+
+  function recommendationApplicationsForSessions(sessions){
+    return (Array.isArray(sessions) ? sessions : []).flatMap(session => {
+      const stored = session && session.recommendation_application;
+      if(stored && stored.recommendation_id && stored.review_id){
+        return [{
+          ...stored,
+          session_id: session.session_id,
+          learner_name: session.learner,
+          learner_alias: session.learner_alias
+        }];
+      }
+      const trial = latestTrialsByQuestion((session && session.trials) || [])
+        .find(item => item.recommendation_id && item.recommendation_review_id);
+      return trial ? [{
+        recommendation_id: trial.recommendation_id,
+        review_id: trial.recommendation_review_id,
+        recommendation_version: trial.recommendation_version || null,
+        review_decision: trial.recommendation_review_decision || null,
+        application_status: trial.recommendation_application_status || 'applied-as-reviewed',
+        task_kind: trial.task_kind,
+        level: trial.level,
+        session_id: session.session_id,
+        learner_name: session.learner,
+        learner_alias: session.learner_alias
+      }] : [];
+    });
+  }
+
+  function recommendationApplicationSummary(sessions, reviews=researchReviewsForSessions(sessions)){
+    const applications = recommendationApplicationsForSessions(sessions);
+    const latestByRecommendation = new Map();
+    reviews.forEach(review => latestByRecommendation.set(review.recommendation_id, review));
+    const acceptedPlans = Array.from(latestByRecommendation.values()).filter(acceptedRecommendationReview);
+    const appliedReviewIds = new Set(applications.map(item => item.review_id).filter(Boolean));
+    return {
+      current_approved_plan_count: acceptedPlans.length,
+      applied_session_count: applications.length,
+      approved_not_yet_linked_count: acceptedPlans.filter(review => !appliedReviewIds.has(review.review_id)).length,
+      applications
+    };
+  }
+
   function recommendationForSessions(sessions, learnerAlias=currentPupilAlias(), generatedAtWallMs=wallMs()){
     const usableSessions = Array.isArray(sessions) ? sessions : [];
     const states = skillPracticeStatesForSessions(usableSessions, generatedAtWallMs);
@@ -6454,6 +6584,9 @@
       research_summary_version: RESEARCH_SUMMARY_VERSION,
       practice_status_version: PRACTICE_STATUS_VERSION,
       recommendation_version: RECOMMENDATION_VERSION,
+      recommendation_application: snapshot && snapshot.recommendation_application
+        ? clonePlain(snapshot.recommendation_application)
+        : null,
       lesson_plan_id: currentLessonPlanId(),
       lesson_seed: state.lessonSeed,
       lesson_plan: lessonPlanSnapshot(),
@@ -7606,6 +7739,24 @@
       ? `Latest decision: ${recommendationDecisionLabel(latestReview.decision)} on ${new Date(latestReview.reviewed_at_wall_ms).toLocaleString()}. Saving again creates an auditable revision.`
       : 'No review saved for this proposal.';
 
+    const canApply = acceptedRecommendationReview(latestReview);
+    if(ui.applyRecommendationPlanBtn) ui.applyRecommendationPlanBtn.disabled = !canApply;
+    if(ui.recommendationApplicationStatus){
+      const staged = state.stagedRecommendation;
+      ui.recommendationApplicationStatus.textContent = staged && latestReview && staged.review_id === latestReview.review_id
+        ? 'This reviewed plan is staged in Teacher setup. It is linked only if the unchanged setup is started.'
+        : canApply
+          ? 'This approved plan can be copied to Teacher setup for one explicitly linked next session.'
+          : latestReview
+            ? 'The latest review is not approved, so it cannot be used as a session plan.'
+            : 'Approve or adjust the current proposal before using it.';
+    }
+
+    const applicationSummary = recommendationApplicationSummary(sessions, reviews);
+    if(ui.researchRecommendationApprovedCount) ui.researchRecommendationApprovedCount.textContent = String(applicationSummary.current_approved_plan_count);
+    if(ui.researchRecommendationAppliedCount) ui.researchRecommendationAppliedCount.textContent = String(applicationSummary.applied_session_count);
+    if(ui.researchRecommendationPendingCount) ui.researchRecommendationPendingCount.textContent = String(applicationSummary.approved_not_yet_linked_count);
+
     const decisionRows = ['approved', 'adjusted', 'declined', 'deferred'].map(decision => ({
       label: recommendationDecisionLabel(decision),
       value: reviews.filter(review => review.decision === decision).length,
@@ -7618,6 +7769,15 @@
             : themeToken('warning')
     }));
     drawResearchBars(ui.researchRecommendationChart, decisionRows, { labelWidth: 120 });
+    drawResearchBars(ui.researchRecommendationUseChart, [
+      { label: 'Current approved plans', value: applicationSummary.current_approved_plan_count, color: themeToken('success') },
+      { label: 'Explicitly linked sessions', value: applicationSummary.applied_session_count, color: themeToken('primary') },
+      { label: 'Approved, not yet linked', value: applicationSummary.approved_not_yet_linked_count, color: themeToken('warning') }
+    ], { labelWidth: 170 });
+    const applicationsByReview = new Map();
+    applicationSummary.applications.forEach(application => {
+      applicationsByReview.set(application.review_id, (applicationsByReview.get(application.review_id) || 0) + 1);
+    });
     if(reviews.length){
       clearNode(ui.researchRecommendationBody);
       reviews.forEach(review => appendResearchRow(ui.researchRecommendationBody, [
@@ -7628,9 +7788,48 @@
         recommendationDecisionLabel(review.decision),
         review.final_plan && review.final_plan.task_label,
         review.final_plan && review.final_plan.level,
+        applicationsByReview.get(review.review_id) || 0,
         review.note || 'No note'
       ]));
-    } else renderResearchEmptyRow(ui.researchRecommendationBody, 8, 'No teacher recommendation reviews in this scope yet.');
+    } else renderResearchEmptyRow(ui.researchRecommendationBody, 9, 'No teacher recommendation reviews in this scope yet.');
+  }
+
+  function stageApprovedRecommendationPlan(){
+    const proposal = state.activeRecommendation;
+    const review = proposal ? latestReviewForRecommendation(proposal.recommendation_id) : null;
+    if(!acceptedRecommendationReview(review)){
+      flash('try', 'Approve or adjust this proposal before using it');
+      return;
+    }
+    const taskKind = review.final_plan.task_kind;
+    const taskAvailable = ui.sessionTaskType && Array.from(ui.sessionTaskType.options).some(option => option.value === taskKind);
+    if(!taskAvailable){
+      flash('try', 'The approved task is not available in this build');
+      return;
+    }
+    ui.sessionTaskType.value = taskKind;
+    ui.startLevel.value = clamp(safeNumber(review.final_plan.level, proposal.recommended_level), 1, 10);
+    state.stagedRecommendation = {
+      learner_name: currentPupilName(),
+      learner_alias: currentPupilAlias(),
+      recommendation_id: review.recommendation_id,
+      recommendation_version: review.recommendation_version || RECOMMENDATION_VERSION,
+      review_id: review.review_id,
+      review_decision: review.decision,
+      reviewed_at_wall_ms: review.reviewed_at_wall_ms,
+      staged_at_wall_ms: wallMs(),
+      task_kind: taskKind,
+      level: clamp(safeNumber(review.final_plan.level, proposal.recommended_level), 1, 10),
+      support_direction: review.final_plan.support_direction || null
+    };
+    saveSettingsSoon();
+    saveCurrentLearnerProfile();
+    refreshContentConfiguration();
+    updateStats();
+    updateSessionReadiness();
+    openTeacherPanel();
+    applyTeacherPage('today', { scroll: true, behavior: 'auto' });
+    flash('good', 'Approved task and level staged for the next session');
   }
 
   function saveRecommendationReview(){
@@ -7702,6 +7901,9 @@
       state.sessionSnapshot.learner_profile = clonePlain(learner);
     }
     saveLearners();
+    if(state.stagedRecommendation && state.stagedRecommendation.recommendation_id === proposal.recommendation_id){
+      clearStagedRecommendation();
+    }
     if(state.trials.length){
       logEvent('recommendation_reviewed', {
         recommendation_id: proposal.recommendation_id,
@@ -10295,6 +10497,8 @@
     state.currentLevel = clamp(safeNumber(ui.startLevel.value, 1), 1, 10);
     state.sessionTaskType = ui.sessionTaskType.value === 'auto' ? 'auto' : ui.sessionTaskType.value;
     state.singleTargetRepetitions = clamp(safeNumber(ui.singleTargetReps.value, 3), 1, 10);
+    const stagedRecommendation = state.stagedRecommendation;
+    const recommendationApplication = recommendationApplicationForCurrentSetup();
     saveCurrentLearnerProfile();
     state.sessionSnapshot = {
       learner: currentPupilName(),
@@ -10308,8 +10512,11 @@
       student_friendly_mode: studentFriendlyModeEnabled(),
       photo_library_metadata: clonePlain(photoLibraryMetadata()),
       data_governance: clonePlain(dataGovernanceSnapshot()),
+      recommendation_application: recommendationApplication ? clonePlain(recommendationApplication) : null,
       study_protocol: clonePlain(studyProtocolSnapshot(currentResearchParticipantId()))
     };
+    state.stagedRecommendation = null;
+    renderStagedRecommendationNotice();
     initializeLessonPlan();
     state.sessionEndedEarly = false;
     state.blockPause = null;
@@ -10324,6 +10531,7 @@
       schema_version: DATA_SCHEMA_VERSION,
       skill_graph_version: SKILL_GRAPH_VERSION,
       generator_version: GENERATOR_VERSION,
+      recommendation_application: recommendationApplication ? clonePlain(recommendationApplication) : null,
       lesson_plan_id: currentLessonPlanId(),
       lesson_seed: state.lessonSeed,
       lesson_seed_source: state.lessonSeedSource,
@@ -10342,6 +10550,13 @@
       study_protocol: clonePlain(state.sessionSnapshot.study_protocol),
       content_configuration: exportableContentConfiguration()
     });
+    if(stagedRecommendation && !recommendationApplication){
+      logEvent('recommendation_plan_not_applied', {
+        recommendation_id: stagedRecommendation.recommendation_id,
+        review_id: stagedRecommendation.review_id,
+        reason: 'pupil-task-or-level-mismatch'
+      });
+    }
     pushEegMarker('session_start', {
       research_condition: state.sessionSnapshot.study_protocol.research_condition,
       task_kind: state.sessionTaskType,
@@ -10381,6 +10596,9 @@
       research_summary_version: RESEARCH_SUMMARY_VERSION,
       practice_status_version: PRACTICE_STATUS_VERSION,
       recommendation_version: RECOMMENDATION_VERSION,
+      recommendation_application: snapshot && snapshot.recommendation_application
+        ? clonePlain(snapshot.recommendation_application)
+        : null,
       lesson_plan_id: currentLessonPlanId(),
       lesson_seed: state.lessonSeed,
       lesson_plan: lessonPlanSnapshot(),
@@ -10463,6 +10681,9 @@
       learner: sessionPupilName(),
       learner_alias: sessionPupilAlias(),
       lesson_plan: lessonPlanSnapshot(),
+      recommendation_application: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
+        ? clonePlain(state.sessionSnapshot.recommendation_application)
+        : null,
       research_condition: state.sessionSnapshot && state.sessionSnapshot.study_protocol
         ? state.sessionSnapshot.study_protocol.research_condition
         : researchCondition(),
@@ -10611,7 +10832,13 @@
       core_marker_sets: coreMarkerCompleteness(session),
       diagnostics: markerDiagnostics(session)
     }));
-    const teacherDecisions = researchReviewsForSessions(sessions).map(review => ({
+    const researchReviews = researchReviewsForSessions(sessions);
+    const recommendationUse = recommendationApplicationSummary(sessions, researchReviews);
+    const applicationsByReview = new Map();
+    recommendationUse.applications.forEach(application => {
+      applicationsByReview.set(application.review_id, (applicationsByReview.get(application.review_id) || 0) + 1);
+    });
+    const teacherDecisions = researchReviews.map(review => ({
       date: researchDateLabel(Number(review.reviewed_at_wall_ms)),
       learner_alias: review.learner_alias || 'Unknown',
       recommendation_id: review.recommendation_id,
@@ -10619,7 +10846,8 @@
       proposed_action: review.proposal && review.proposal.action,
       skill_id: review.proposal && review.proposal.skill_id,
       final_task_kind: review.final_plan && review.final_plan.task_kind,
-      final_level: review.final_plan && review.final_plan.level
+      final_level: review.final_plan && review.final_plan.level,
+      applied_session_count: applicationsByReview.get(review.review_id) || 0
     }));
 
     return {
@@ -10683,6 +10911,11 @@
       model_dataset_composition: exportableModelDatasetComposition(modelDatasetComposition(sessions)),
       session_context: context,
       eeg_readiness: eegReadiness,
+      recommendation_application_summary: {
+        current_approved_plan_count: recommendationUse.current_approved_plan_count,
+        applied_session_count: recommendationUse.applied_session_count,
+        approved_not_yet_linked_count: recommendationUse.approved_not_yet_linked_count
+      },
       teacher_decisions: teacherDecisions,
       interpretation_boundary: 'Descriptive teaching and research-support summary only. It is not diagnostic, does not establish causation or transfer, and does not demonstrate neural change or validated EEG synchronisation.'
     };
@@ -10863,9 +11096,13 @@
     };
   }
 
-  function privacySafeReviews(participantByLearner){
+  function privacySafeReviews(participantByLearner, sessions=[]){
     const rows = [];
     const allowedDecisions = ['approved', 'adjusted', 'declined', 'deferred'];
+    const applicationsByReview = new Map();
+    recommendationApplicationsForSessions(sessions).forEach(application => {
+      applicationsByReview.set(application.review_id, (applicationsByReview.get(application.review_id) || 0) + 1);
+    });
     Object.keys(state.learners).forEach(name => {
       const participantCode = participantByLearner.get(name);
       if(!participantCode) return;
@@ -10878,6 +11115,7 @@
           decision_index: index + 1,
           recommendation_version: review.recommendation_version || null,
           decision,
+          applied_session_count: applicationsByReview.get(review.review_id) || 0,
           proposal: review.proposal ? {
             action: review.proposal.action || null,
             skill_id: review.proposal.skill_id || null,
@@ -10895,6 +11133,24 @@
       });
     });
     return rows;
+  }
+
+  function privacySafeRecommendationApplication(session){
+    const application = session && session.recommendation_application;
+    if(!application || application.application_status !== 'applied-as-reviewed') return null;
+    const decision = ['approved', 'adjusted'].includes(application.review_decision)
+      ? application.review_decision
+      : null;
+    return {
+      applied: true,
+      application_schema_version: application.application_schema_version || null,
+      recommendation_version: application.recommendation_version || null,
+      review_decision: decision,
+      planned_task_kind: application.task_kind || null,
+      planned_level: Number.isFinite(application.level) ? application.level : null,
+      support_direction: application.support_direction || null,
+      plan_matches_session_settings: application.plan_matches_session_settings === true
+    };
   }
 
   function modelExportGovernanceCheck(sessions){
@@ -10963,6 +11219,7 @@
           starting_level: trials.length && Number.isFinite(trials[0].level) ? trials[0].level : null,
           ending_level: summary.current_level == null ? null : summary.current_level,
           session_task_mode: summary.task_kind || null,
+          recommendation_application: privacySafeRecommendationApplication(session),
           context_note_recorded: !!String(session.context_notes || '').trim(),
           student_friendly_mode: session.student_friendly_mode !== false,
           theme_used: session.theme_used || null,
@@ -11025,6 +11282,8 @@
         raw_touch_coordinates_included: false,
         prompt_wording_included: false,
         source_session_ids_included: false,
+        recommendation_ids_included: false,
+        recommendation_review_ids_included: false,
         protocol_condition_ids_included: false,
         fixed_condition_settings_included: false,
         external_transmission: false
@@ -11033,7 +11292,7 @@
       participant_count: grouped.size,
       session_count: sessionRows.length,
       sessions: sessionRows,
-      teacher_decisions: privacySafeReviews(participantByLearner)
+      teacher_decisions: privacySafeReviews(participantByLearner, sessions)
     };
   }
 
@@ -11178,6 +11437,8 @@
     });
     bindAction(ui.exportResearchSummaryBtn, exportResearchWorkspaceSummary);
     bindAction(ui.saveRecommendationReviewBtn, saveRecommendationReview);
+    bindAction(ui.applyRecommendationPlanBtn, stageApprovedRecommendationPlan);
+    bindAction(ui.clearStagedRecommendationBtn, () => clearStagedRecommendation(true));
     bindAction(ui.copyBuildInfoBtn, async () => {
       if(await copyText(buildInfoClipboardText())){
         flash('good', 'Build copied');
@@ -11358,6 +11619,7 @@
         if(id === 'allowLearnerHelp' || id === 'allowLearnerBreak' || id === 'allowLearnerStop') updateLearnerControls();
         if(['dataUseStatus', 'researchAnalysisApproved', 'eegLinkageApproved', 'modelDevelopmentApproved', 'governanceReference', 'governanceReviewDate'].includes(id)) updateAiExportGovernanceStatus();
         if(['sessionTaskType', 'startLevel', 'autoLevelPath', 'maxObjects', 'findObjectSourceMode', 'findCategorySourceMode'].includes(id)) refreshContentConfiguration();
+        if(id === 'sessionTaskType' || id === 'startLevel') renderStagedRecommendationNotice();
         updateFixedConditionStatus();
         updateStats();
         updateSessionReadiness();
