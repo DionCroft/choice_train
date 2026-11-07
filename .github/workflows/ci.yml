@@ -38,10 +38,13 @@ jobs:
         run: npm run check:candidate:v180
 
       - name: Install Playwright browser
-        run: npx playwright install --with-deps chromium
+        run: npx playwright install --with-deps chromium webkit
 
       - name: Run browser tests
         run: npm run test:browser
+
+      - name: Run mobile and WebKit compatibility smoke tests
+        run: npm run test:browser:compat
 
       - name: Upload failed test evidence
         if: failure()

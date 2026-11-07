@@ -9,6 +9,7 @@
     "check:candidate:v180": "node scripts/check-v180-candidate.js",
     "check:promotion:v180": "node scripts/check-v180-promotion.js",
     "test:browser": "node scripts/run-browser-tests.js",
+    "test:browser:compat": "node scripts/run-browser-tests.js --config playwright.compat.config.js",
     "test:browser:headed": "node scripts/run-browser-tests.js --headed",
     "test:browser:ui": "node scripts/run-browser-tests.js --ui",
     "audit:visual:v170": "node scripts/capture-v170-visual-audit.js"

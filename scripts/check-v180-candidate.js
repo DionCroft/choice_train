@@ -142,17 +142,30 @@ check('candidate runtime contains no external transport implementation', () => {
 check('CI validates release, promotion-guard, schema, candidate, and browser gates', () => {
   ['.github/workflows/ci.yml', '.github/workflows/pages.yml'].forEach((file) => {
     const workflow = read(file);
-    ['npm run test:release', 'npm run test:promotion', 'npm run test:schema', 'npm run check:candidate:v180', 'npm run test:browser']
+    ['npm run test:release', 'npm run test:promotion', 'npm run test:schema', 'npm run check:candidate:v180', 'npm run test:browser', 'npm run test:browser:compat']
       .forEach((command) => assert(workflow.includes(command), `${file} does not run ${command}`));
+    assert(/playwright install --with-deps chromium webkit/.test(workflow), `${file} does not install Chromium and WebKit`);
   });
+  const packageJson = JSON.parse(read('package.json'));
+  const defaultPlaywrightConfig = read('playwright.config.js');
+  assert(packageJson.scripts && packageJson.scripts['test:browser:compat'], 'compatibility browser script is missing');
+  assert(fs.existsSync(path.join(ROOT, 'playwright.compat.config.js')), 'compatibility Playwright config is missing');
+  assert(fs.existsSync(path.join(ROOT, 'tests/choice-train-v180-compat.spec.js')), 'compatibility smoke test is missing');
+  assert(/testIgnore:\s*['"]choice-train-v180-compat\.spec\.js['"]/.test(defaultPlaywrightConfig),
+    'default browser matrix does not exclude the separately executed compatibility smoke test');
 });
 
 check('promotion and external validation boundaries remain documented', () => {
   const plan = read('docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md');
+  const validation = read('docs/V1.8.0_EXTERNAL_VALIDATION_PROTOCOL.md');
+  const readiness = read('docs/V1.8.0_RELEASE_READINESS.md');
   assert(/product owner explicitly approves promotion/i.test(plan), 'explicit promotion approval gate is missing');
   assert(/true LSL or hardware-trigger integration/i.test(plan), 'hardware synchronisation boundary is missing');
   assert(/school\/legal\/ethics approval/i.test(plan), 'school, legal, and ethics boundary is missing');
   assert(/V1\.8\.0_PROMOTION_EVIDENCE\.json/.test(plan), 'machine-readable promotion evidence record is missing from the plan');
+  assert(/automated WebKit\/Chromium compatibility smoke suite/i.test(validation), 'automated compatibility evidence boundary is missing');
+  assert(/keep pupil information[\s\S]*out of this repository/i.test(validation), 'external validation pupil-data boundary is missing');
+  assert(/V1\.8\.0_EXTERNAL_VALIDATION_PROTOCOL\.md/.test(readiness), 'release readiness does not link the external validation protocol');
 });
 
 console.log('');

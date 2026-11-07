@@ -2,6 +2,7 @@ const { defineConfig } = require('@playwright/test');
 
 module.exports = defineConfig({
   testDir: './tests',
+  testIgnore: 'choice-train-v180-compat.spec.js',
   timeout: 30_000,
   expect: {
     timeout: 7_000
