@@ -523,6 +523,60 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
   await expect(page.locator('#teacherIndependenceRating')).toHaveValue('2');
 });
 
+test('Research visualises prompt-ladder use and learner-agency events without deficit labels', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', true);
+  await setCheckbox(page, 'autoAdvance', false);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#choiceGrid [data-role="correct-target"]').first()).toBeVisible();
+  await page.locator('#learnerHelpBtn').click();
+  await page.locator('#learnerBreakBtn').click();
+  await expect(page.locator('#screenBreak.active')).toBeVisible();
+  await page.locator('#continueFromBreak').click();
+
+  let target = page.locator('#choiceGrid [data-role="correct-target"]').first();
+  await expect(target).toBeVisible();
+  await page.locator('#learnerHelpBtn').click();
+  await target.click();
+  await expect(page.locator('#screenReward.active')).toBeVisible();
+  await page.locator('#rewardRepeat').click();
+
+  target = page.locator('#choiceGrid [data-role="correct-target"]').first();
+  await expect(target).toBeVisible();
+  await page.locator('#learnerHelpBtn').click();
+  await target.click();
+  await expect(page.locator('#screenReward.active')).toBeVisible();
+  await page.locator('#rewardNext').click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+
+  const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  expect(payload.events.filter(event => event.type === 'help_requested')).toHaveLength(3);
+  expect(payload.events.filter(event => event.type === 'question_repeat')).toHaveLength(1);
+  expect(payload.events.filter(event => event.type === 'break_onset' && event.reason === 'learner-break')).toHaveLength(1);
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+
+  await expect(page.locator('#researchPromptLevelChart')).toBeVisible();
+  await expect(page.locator('#researchAgencyEventChart')).toBeVisible();
+  await expect(page.locator('#researchPromptLevelBody')).toContainText('P1');
+  await expect(page.locator('#researchPromptLevelBody')).toContainText('Cue only');
+  const agencyCells = page.locator('#researchAgencyEventBody tr').first().locator('td');
+  await expect(agencyCells.nth(2)).toHaveText('3');
+  await expect(agencyCells.nth(3)).toHaveText('3');
+  await expect(agencyCells.nth(4)).toHaveText('1');
+  await expect(agencyCells.nth(5)).toHaveText('1');
+  await expect(agencyCells.nth(8)).toHaveText('2');
+  await expect(page.locator('#researchAgencyEventNote')).toContainText('communication and regulation observations');
+});
+
 test('teacher-reviewed recommendations persist locally and export an audit record', async ({ page }) => {
   await gotoAlpha(page);
   await setCheckbox(page, 'ttsToggle', false);

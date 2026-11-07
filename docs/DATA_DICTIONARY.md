@@ -48,6 +48,8 @@ Current-learner points may be connected in chronological order. All-learner poin
 
 The support-fading table derives per-session response counts, observed support-status counts, independent percentage, prompted/assisted/unknown counts, mean highest prompt level, actual and target dosage minutes, and implementation-fidelity percentage. Independent percentage uses only responses whose support status was explicitly observed; an absent status remains unknown rather than being treated as independent.
 
+The prompt/agency view groups final trials by `highest_prompt_level` and counts `help_requested`, `prompt_applied`, `question_repeat`, learner and automatic `break_onset`, `learner_stop_requested`, and `reward_onset` records by session. Reward onsets come from the browser marker stream; other flow events come from the session event log. Counts depend on enabled controls, session opportunities, and practitioner practice. They are not deficit, motivation, or regulation scores.
+
 The teacher-observation view displays the session-start 1-5 attention and independence ratings and counts recorded maintenance/generalisation statuses. `not-run` and missing statuses are excluded from status bars but remain visible in the table. These are practitioner-entered observations, not validated task scores or evidence of transfer. Current-learner points may be connected by session date; all-learner points are unconnected.
 
 ### Research content-breadth and preference views

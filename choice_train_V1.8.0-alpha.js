@@ -7044,6 +7044,94 @@
       ? 'Pooled learners are shown as unconnected points. Independent percentage uses responses with an observed support status; missing statuses remain unknown. These implementation observations do not establish transfer or neural change.'
       : 'Connected points follow sessions in date order. Independent percentage uses responses with an observed support status; missing statuses remain unknown. These implementation observations do not establish transfer or neural change.';
 
+    const promptLevelRows = PROMPT_LADDER.map(prompt => {
+      const matching = finalTrials.filter(trial => Number.isFinite(trial.highest_prompt_level) && trial.highest_prompt_level === prompt.level);
+      return {
+        level: prompt.level,
+        label: prompt.label,
+        trials: matching.length,
+        scored_correct: matching.filter(trial => trial.scored_response !== false && trial.correct).length,
+        omissions: matching.filter(trial => trial.omission).length
+      };
+    }).filter(item => item.trials > 0);
+    const unknownPromptTrials = finalTrials.filter(trial => !Number.isFinite(trial.highest_prompt_level));
+    if(unknownPromptTrials.length){
+      promptLevelRows.push({
+        level: null,
+        label: 'Not recorded',
+        trials: unknownPromptTrials.length,
+        scored_correct: unknownPromptTrials.filter(trial => trial.scored_response !== false && trial.correct).length,
+        omissions: unknownPromptTrials.filter(trial => trial.omission).length
+      });
+    }
+    drawResearchBars(ui.researchPromptLevelChart, promptLevelRows.map(item => ({
+      label: item.level == null ? item.label : `P${item.level} ${item.label}`,
+      value: item.trials,
+      color: item.level === 0 ? themeToken('success') : item.level == null ? themeToken('danger') : themeToken('warning')
+    })), { labelWidth: 155 });
+    if(promptLevelRows.length){
+      clearNode(ui.researchPromptLevelBody);
+      promptLevelRows.forEach(item => appendResearchRow(ui.researchPromptLevelBody, [
+        item.level == null ? 'Not recorded' : `P${item.level}`,
+        item.label,
+        item.trials,
+        item.scored_correct,
+        item.omissions
+      ]));
+    } else renderResearchEmptyRow(ui.researchPromptLevelBody, 5, 'No final trials in this scope yet.');
+
+    const agencyRows = sessions.map(session => {
+      const events = Array.isArray(session.events) ? session.events : [];
+      const markers = Array.isArray(session.eeg_markers) ? session.eeg_markers : [];
+      const sessionTrials = latestTrialsByQuestion(session.trials || []);
+      const contextTrial = sessionTrials.find(trial => trial.session_context && typeof trial.session_context === 'object');
+      const context = contextTrial ? contextTrial.session_context : {};
+      const countEvents = (type, predicate=() => true) => events.filter(event => event.type === type && predicate(event)).length;
+      return {
+        date: researchDateLabel(Number(session.updated_at_wall_ms)),
+        learner: session.learner_alias || session.learner || 'Unknown',
+        help: countEvents('help_requested'),
+        prompts: countEvents('prompt_applied'),
+        repeats: countEvents('question_repeat'),
+        learner_breaks: countEvents('break_onset', event => event.reason === 'learner-break'),
+        auto_pauses: countEvents('break_onset', event => event.reason === 'auto-block-pause'),
+        stops: countEvents('learner_stop_requested'),
+        rewards: markers.filter(marker => marker.name === 'reward_onset').length,
+        reward_choice: context.reward_choice || (session.settings && session.settings.rewardChoice) || 'not recorded'
+      };
+    });
+    const agencyEventTotals = [
+      { key: 'help', label: 'Help requests', color: themeToken('primary') },
+      { key: 'prompts', label: 'Prompt events', color: themeToken('warning') },
+      { key: 'repeats', label: 'Repeats', color: themeToken('secondary', themeToken('primary')) },
+      { key: 'learner_breaks', label: 'Learner breaks', color: themeToken('success') },
+      { key: 'auto_pauses', label: 'Auto pauses', color: themeToken('reward') },
+      { key: 'stops', label: 'Early stops', color: themeToken('danger') },
+      { key: 'rewards', label: 'Reward onsets', color: themeToken('reward') }
+    ].map(item => ({
+      ...item,
+      value: agencyRows.reduce((sum, row) => sum + row[item.key], 0)
+    }));
+    drawResearchBars(ui.researchAgencyEventChart, agencyEventTotals, { labelWidth: 150 });
+    if(agencyRows.length){
+      clearNode(ui.researchAgencyEventBody);
+      agencyRows.forEach(item => appendResearchRow(ui.researchAgencyEventBody, [
+        item.date,
+        item.learner,
+        item.help,
+        item.prompts,
+        item.repeats,
+        item.learner_breaks,
+        item.auto_pauses,
+        item.stops,
+        item.rewards,
+        String(item.reward_choice).replace(/-/g, ' ')
+      ]));
+    } else renderResearchEmptyRow(ui.researchAgencyEventBody, 10, 'No sessions in this scope yet.');
+    ui.researchAgencyEventNote.textContent = scope === 'all-learners'
+      ? 'Counts are pooled across learners and are not a single longitudinal trajectory. Help, breaks, and repeats are communication and regulation observations, not deficit scores.'
+      : 'Counts follow each session. Help, breaks, and repeats are communication and regulation observations; availability, task demands, and practitioner practice affect every count.';
+
     const categoryMap = new Map();
     finalTrials.forEach(trial => {
       const key = trial.target_category_label || trial.target_category || 'Uncategorised';
