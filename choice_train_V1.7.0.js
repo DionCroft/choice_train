@@ -7,8 +7,8 @@
     source_file: 'choice_train_V1.7.0.html',
     source_script: 'choice_train_V1.7.0.js',
     based_on_branch: 'main',
-    based_on_commit: '9f860cf',
-    build_date: '2026-11-06',
+    based_on_commit: '185fdd2',
+    build_date: '2026-11-07',
     published_entry: 'index.html',
     live_url: 'https://dioncroft.github.io/choice_train/',
     repo_url: 'https://github.com/DionCroft/choice_train'
