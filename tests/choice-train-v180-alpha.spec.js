@@ -28,6 +28,100 @@ function expectCoreSchema(value, schema, path='payload') {
   });
 }
 
+function finalTrialRecords(trials) {
+  const records = new Map();
+  (trials || []).forEach(trial => {
+    const key = `${trial.session_id || 'session'}|${trial.question_index}`;
+    const current = records.get(key);
+    if(!current || Number(trial.attempt_index || 1) >= Number(current.attempt_index || 1)) records.set(key, trial);
+  });
+  return Array.from(records.values()).sort((a, b) => Number(a.question_index) - Number(b.question_index));
+}
+
+function medianValue(values) {
+  const sorted = values.slice().sort((a, b) => a - b);
+  const middle = Math.floor(sorted.length / 2);
+  return sorted.length % 2 ? sorted[middle] : (sorted[middle - 1] + sorted[middle]) / 2;
+}
+
+function populationStandardDeviation(values) {
+  if(values.length <= 1) return 0;
+  const average = values.reduce((sum, value) => sum + value, 0) / values.length;
+  return Math.sqrt(values.reduce((sum, value) => sum + Math.pow(value - average, 2), 0) / values.length);
+}
+
+function independentlyDerivedSessionRow(payload) {
+  const trials = finalTrialRecords(payload.trials);
+  const scored = trials.filter(trial => trial.scored_response !== false);
+  const responded = trials.filter(trial => !trial.omission);
+  const supportObserved = responded.filter(trial => ['independent', 'prompted', 'assisted'].includes(trial.independence_status));
+  const responseTimes = trials.map(trial => trial.response_time_ms).filter(Number.isFinite);
+  const touchDistances = trials.map(trial => trial.distance_to_target_px).filter(Number.isFinite);
+  return {
+    level: trials[0] ? trials[0].level : null,
+    trials: trials.length,
+    accuracy_pct: scored.length ? Math.round(scored.filter(trial => trial.correct).length / scored.length * 100) : null,
+    independent_pct: supportObserved.length
+      ? Math.round(supportObserved.filter(trial => trial.independence_status === 'independent').length / supportObserved.length * 100)
+      : null,
+    median_rt_ms: responseTimes.length ? Math.round(medianValue(responseTimes)) : null,
+    rt_observed_count: responseTimes.length,
+    rt_variability_ms: responseTimes.length > 1 ? Math.round(populationStandardDeviation(responseTimes)) : null,
+    omissions: trials.filter(trial => trial.omission).length,
+    commissions: trials.filter(trial => trial.commission).length,
+    omission_pct: trials.length ? Math.round(trials.filter(trial => trial.omission).length / trials.length * 100) : null,
+    commission_pct: trials.length ? Math.round(trials.filter(trial => trial.commission).length / trials.length * 100) : null,
+    touch_observed_count: touchDistances.length,
+    mean_touch_distance_px: touchDistances.length
+      ? Number((touchDistances.reduce((sum, value) => sum + value, 0) / touchDistances.length).toFixed(1))
+      : null
+  };
+}
+
+function independentlyDerivedSkillRows(payloads) {
+  const grouped = new Map();
+  payloads.flatMap(payload => finalTrialRecords(payload.trials)).forEach(trial => {
+    (trial.skill_ids || []).forEach(skillId => {
+      if(!grouped.has(skillId)) grouped.set(skillId, {
+        skill_id: skillId,
+        opportunities: 0,
+        scored_opportunities: 0,
+        response_count: 0,
+        correct: 0,
+        incorrect: 0,
+        omissions: 0,
+        commissions: 0,
+        correct_rejections: 0,
+        independent_responses: 0,
+        assisted_responses: 0,
+        independent_correct: 0,
+        assisted_correct: 0
+      });
+      const row = grouped.get(skillId);
+      const scored = skillId !== 'choice.preference';
+      const responded = !trial.omission && (trial.response_type != null || trial.selected_id || trial.correct_rejection);
+      const assisted = trial.independence_status && trial.independence_status !== 'independent';
+      row.opportunities += 1;
+      if(scored) {
+        row.scored_opportunities += 1;
+        if(trial.correct) row.correct += 1;
+        else row.incorrect += 1;
+        if(trial.correct && assisted) row.assisted_correct += 1;
+        if(trial.correct && !assisted) row.independent_correct += 1;
+      }
+      if(responded) {
+        row.response_count += 1;
+        if(assisted) row.assisted_responses += 1;
+        else row.independent_responses += 1;
+      }
+      if(trial.omission) row.omissions += 1;
+      if(trial.commission) row.commissions += 1;
+      if(trial.correct_rejection) row.correct_rejections += 1;
+    });
+  });
+  return Array.from(grouped.values()).sort((a, b) => a.skill_id.localeCompare(b.skill_id));
+}
+
 async function gotoAlpha(page) {
   await page.goto(APP_PATH);
   await expect(page.locator('#beginFlow')).toBeVisible();
@@ -993,6 +1087,49 @@ test('Research visualises future AI dataset composition without performing a mod
   expect(researchPayload.teacher_decisions).toEqual([]);
   expect(JSON.stringify(researchPayload.model_dataset_composition)).not.toContain('Pupil A');
   expect(JSON.stringify(researchPayload.model_dataset_composition)).not.toContain('Pupil B');
+});
+
+test('longitudinal Research session and skill rows reproduce independently from raw exports', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'sessionMax', 2);
+  await setValue(page, 'sessionTaskType', 'touch-object');
+  const touchPayload = await completeSessionAndExport(page, 2);
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'sessionMax', 2);
+  const recognitionPayload = await completeSessionAndExport(page, 2);
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-learner');
+  await page.locator('#refreshResearchBtn').click();
+  const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+
+  const sourcePayloads = [touchPayload, recognitionPayload];
+  const expectedSessions = sourcePayloads.map(independentlyDerivedSessionRow);
+  expect(researchPayload.session_count).toBe(2);
+  expect(researchPayload.final_trial_count).toBe(4);
+  expect(researchPayload.session_performance).toHaveLength(2);
+  researchPayload.session_performance.forEach((row, index) => {
+    expect(row).toEqual(expect.objectContaining(expectedSessions[index]));
+  });
+
+  const expectedSkills = independentlyDerivedSkillRows(sourcePayloads);
+  const observedSkills = researchPayload.skill_summaries.map(row => {
+    const expected = expectedSkills.find(item => item.skill_id === row.skill_id);
+    return Object.fromEntries(Object.keys(expected).map(field => [field, row[field]]));
+  }).sort((a, b) => a.skill_id.localeCompare(b.skill_id));
+  expect(observedSkills).toEqual(expectedSkills);
 });
 
 test('Research separates Attention Training families and avoids unsupported slope claims', async ({ page }) => {
