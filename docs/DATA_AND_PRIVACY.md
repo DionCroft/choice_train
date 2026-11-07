@@ -41,6 +41,20 @@ V1.8 snapshots session identity and context at Start. Changing the selected pupi
 
 The alpha adds `audio_onset` and `reward_onset` browser markers. They provide event context for protocol development but are not substitutes for hardware triggers or measured end-to-end timing validation. See [DATA_DICTIONARY.md](DATA_DICTIONARY.md) for field meanings and [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md) for pre-promotion checks.
 
+### V1.8 export boundaries
+
+The V1.8 alpha has separate exports for different authorised purposes:
+
+- full session and stored-history exports can contain names or aliases, context notes, prompt and photo labels, precise event times, touch coordinates, and teacher review notes
+- EEG/research exports retain detailed event timing and declared study-protocol metadata for audit and later alignment
+- the `Pseudonymised AI research data` export applies a separate minimisation transform and is intended only as a governed analysis/model-development input
+
+The pseudonymised export excludes pupil names and aliases, free-text notes, image bytes, photo labels, exact session and event timestamps, source session IDs, exact prompt wording, reviewer identity, and raw touch coordinates. It retains random participant codes, relative session spacing, task and skill IDs, outcomes, reaction times, touch distances, support/independence fields, relative EEG marker times, diagnostic summaries, and sanitised teacher decisions.
+
+This output is **pseudonymised, not anonymous**. The random participant code is stored in the local pupil profile and can support longitudinal linkage; the source device or a separately held mapping may therefore permit re-identification. Export creation does not establish consent or another lawful basis and does not transmit the file. Before research or model development, schools and researchers must define purpose, lawful basis or consent/authority, data minimisation, access, secure transfer, retention/deletion, train/validation/test separation, bias review, human oversight, and incident handling.
+
+V1.8 protocol controls record the declared synchronisation method but do not activate LSL or hardware triggers. Marker completeness, event ordering, and timing-difference cards are software-log diagnostics. They do not validate amplifier clocks, display/audio latency, transport delay, cap quality, artifact removal, or physiological signal quality.
+
 ## Incident Reporting
 
 Do not place pupil information in a public GitHub issue. Security concerns should follow [SECURITY.md](../SECURITY.md), and school data incidents should use the school's established safeguarding and data-protection process.

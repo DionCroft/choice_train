@@ -19,12 +19,17 @@ All notable changes to ChoiceTrain are listed here.
 - local recommendation audit history with proposal, final task and level, reviewer note, decision timestamp, and revision linkage
 - Research visualisations and accessible tables for practice status, retention observations, recommendation decisions, and review history
 - frozen session identity and contextual metadata so selecting another pupil after a session cannot relabel its history or export; duplicate display aliases remain isolated by local profile name
-- 10 focused V1.8 browser tests; the complete stable-plus-alpha matrix currently passes 87 tests
+- versioned EEG study metadata for protocol, pseudonymous participant code, visit, run, acquisition-system label, declared synchronisation method, planned markers, and clock/latency notes
+- per-session browser diagnostics for core marker completeness, event ordering, response-timing differences, duplicate IDs, non-monotonic clocks, and protocol-field completeness
+- Research cards, an accessible aggregate chart, and an expanded session table for marker completeness, ordered trials, timing differences, protocol coverage, and declared synchronisation method
+- a separate pseudonymised AI/research export with behavioural features, relative marker times, skill summaries, and sanitised teacher decisions; it excludes names, aliases, free text, images, photo labels, exact timestamps, source session IDs, prompt wording, and raw touch coordinates
+- persistent random research participant codes, with explicit wording that pseudonymised data is not anonymous and remains subject to school governance
+- 12 focused V1.8 browser tests, including protocol/diagnostic visualisation and deliberate direct-identifier/free-text exclusion checks; the complete stable, archive, and alpha matrix passes 89 tests
 
 ### Planned
 
-- privacy-preserving AI-training exports
-- additional EEG protocol and synchronization-diagnostic fields without claiming hardware-synchronised triggers
+- broader randomized generator-invariant coverage
+- physical school-device, staff-usability, safeguarding, privacy, and measured EEG-timing validation
 
 See [the V1.8 research and personalisation plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md) for evidence boundaries, milestones, and promotion gates.
 

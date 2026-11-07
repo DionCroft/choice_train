@@ -11,7 +11,9 @@ ChoiceTrain is a static, browser-based learning and research-support tool design
 
 Stable `V1.7.0` remains the live GitHub Pages application. Development continues separately on `feature/v1.8.0-research-personalisation` in `choice_train_V1.8.0-alpha.html`; the alpha is not loaded by `index.html`.
 
-The current alpha adds schema-versioned skill data, reproducible seeded lesson generation, and a dedicated local-only `Research` destination. It can visualise current-session, current-learner, or all-learner data across accuracy, independent responding, reaction time, outcomes, skills, descriptive practice status, spaced retention observations, teacher-reviewed planning decisions, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and classroom-transfer observations. Every chart has a table or text equivalent. Session exports retain the generator version, frozen constraints, lesson seed, per-question seed, derived-state versions, and recommendation review history so an authorised researcher can audit or replay the record. These outputs are descriptive teaching and study-support data, not diagnostic results or evidence that neural change has occurred.
+The current alpha adds schema-versioned skill data, reproducible seeded lesson generation, and a dedicated local-only `Research` destination. It can visualise current-session, current-learner, or all-learner data across accuracy, independent responding, reaction time, outcomes, skills, descriptive practice status, spaced retention observations, teacher-reviewed planning decisions, support, category exposure, fidelity, artifacts, EEG marker completeness and ordering, study-protocol coverage, maintenance, generalisation, and classroom-transfer observations. Every chart has a table or text equivalent. Session exports retain the generator version, frozen constraints, lesson seed, per-question seed, derived-state versions, study protocol, browser timing diagnostics, and recommendation review history so an authorised researcher can audit or replay the record. These outputs are descriptive teaching and study-support data, not diagnostic results or evidence that neural change has occurred.
+
+V1.8 also offers a separate pseudonymised research/model-development export. It keeps relative behavioural, skill, support, teacher-decision, and browser-marker features while excluding pupil names and aliases, free text, image data, photo labels, exact session timestamps, prompt wording, source session IDs, and raw touch coordinates. Pseudonymised does not mean anonymous: schools must still apply consent or other appropriate authority, access, retention, safeguarding, and data-governance controls.
 
 The current stable release is `V1.7.0`. Historical versioned builds and the reviewed V1.7 alpha candidate remain available for traceability.
 
@@ -388,9 +390,11 @@ The app includes a research mode that can log structured event markers such as:
 - artifact note
 - session completion
 
-This is designed to support later EEG-linked work, fixed blocks, and ERP-style export preparation.
+This is designed to support later EEG-linked work, fixed blocks, and ERP-style export preparation. The V1.8 alpha can freeze a study/protocol ID, random participant pseudonym, visit, run, acquisition-system label, research condition, declared synchronisation method, planned marker set, and technical clock notes at session start.
 
-At present, the app does not connect directly to an EEG device. It prepares the data structure and event timing layer needed for future integration.
+The V1.8 Research view visualises core marker-set completeness, event-order validity, response-time/marker differences, protocol-field coverage, artifacts, block quality, and the declared synchronisation method. These are browser-log quality checks only. A displayed `100%` does not establish hardware synchronisation or EEG signal quality.
+
+At present, the app does not connect directly to an EEG device. It prepares the data structure and event timing layer needed for future integration. Publication-quality EEG work still requires a separately implemented and measured LSL/device-trigger bridge, latency validation, signal-quality procedures, a pre-specified protocol, an appropriate comparison condition, and ethics/information-governance approval.
 
 ## Local Storage and Privacy
 
@@ -427,6 +431,8 @@ Current position:
 
 The V1.8 local summary includes learner level, recent accuracy, recent reaction time, support used, preferred content, per-skill practice states, an explainable suggested next session, and teacher review history. No proposal changes a level, task, or support plan automatically.
 
+The alpha's pseudonymised export prepares governed analysis data; it does not train or call a model. Teacher decisions are retained without reviewer names or free-text notes so future model-development work can evaluate reviewed choices rather than treating unapproved automated suggestions as ground truth.
+
 ## Exports
 
 Session exports use school-friendly filenames such as:
@@ -450,7 +456,12 @@ Exports can include:
 - support level
 - build version
 
-The app also supports richer research-oriented exports when those settings are enabled.
+The app also supports richer research-oriented exports when those settings are enabled:
+
+- full session JSON for authorised classroom audit and replay; this can contain personal or sensitive data
+- EEG/research JSON or TSV with event-level browser timestamps and study metadata
+- stored longitudinal history
+- a privacy-minimised, pseudonymised research/model-development JSON with no external transmission
 
 ## Running Locally
 
@@ -514,6 +525,8 @@ The `V1.7.0` release is validated with:
 
 The V1.7-specific suite contains 21 checks for workspace separation and focused navigation, high-legibility font loading, staff and learner contrast, semantic-token completeness, runtime-drawn theme colours, learner viewport containment, deliberate teacher return, per-pupil sensory settings, reward progression, reward-disabled manual navigation, zero external runtime requests, reduced motion, local audio/EEG metadata, exports, and tablet/mobile sizing. The broader regression suite contributes the remaining 56 checks.
 
+The isolated V1.8 suite adds 12 checks for its schema and skill graph, deterministic lesson replay, longitudinal scope isolation, accessible Research navigation, teacher-reviewed planning, retention observations, EEG protocol/timing diagnostics, and pseudonymised-export exclusions. The complete stable, archive, and alpha matrix currently passes 89 Playwright tests.
+
 `npm run audit:visual:v170` creates a repeatable local visual-review set with 17 synthetic-data captures covering teacher and Admin workspaces, active learner tasks, reward and reward-disabled feedback, break mode, tablet, mobile, and every theme. The generated screenshots are ignored by Git because they are review evidence rather than product assets.
 
 ## Current Limitations
@@ -530,8 +543,8 @@ The V1.7-specific suite contains 21 checks for workspace separation and focused 
 
 Planned or likely next steps include:
 
-- interpretable practice-status, retention, and recommendation histories within the new Research workspace
 - deeper EEG workflow integration
+- randomized procedural-generation invariant and exposure-balancing tests
 - additional AT variants that preserve the research-informed attention rules
 - stronger classroom transfer and maintenance measures
 - richer fidelity and implementation support for staff

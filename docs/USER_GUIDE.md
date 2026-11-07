@@ -123,7 +123,11 @@ Procedural questions in V1.8 use a stored lesson seed. The session export record
 
 ChoiceTrain freezes the session's selected pupil and context when `Start learner session` is pressed. Staff can select another pupil afterward to review their history without changing who completed the earlier session. An export alias does not need to be unique, but schools should still use a consistent alias policy.
 
-The V1.8 research view is descriptive. It does not diagnose a learner, establish durable transfer, or prove neural plasticity.
+The EEG quality area also shows marker-set completeness, event-order validity, response-timing differences, protocol-field coverage, and the declared synchronisation method. These are browser-log checks, not confirmation that an EEG amplifier is synchronised or that the physiological signal is usable.
+
+The Export centre includes `Pseudonymised AI research data`. This creates a local, privacy-minimised file containing behavioural/skill features, relative marker times, and sanitised teacher decisions. It excludes names, aliases, notes, images, photo and selected-response labels, exact dates/times, prompt wording, and raw coordinates. It is pseudonymised rather than anonymous, so use it only under the school's approved research and data-governance process.
+
+The V1.8 research view is descriptive. It does not diagnose a learner, establish durable transfer, prove neural plasticity, or call an external AI service.
 
 ---
 
@@ -579,6 +583,10 @@ Depending on settings, this can include:
 - heatmap-ready touch data
 - artifact and data-quality notes
 - advanced export fields
+
+For a planned EEG session in V1.8, Admin staff can record the study/protocol ID, visit, run number, acquisition-system label, declared synchronisation method, and technical clock/latency notes. Use identifiers that do not contain pupil names. These values are frozen when the learner session starts.
+
+Use the Research destination after a session to check marker completeness, event ordering, response-timing differences, and protocol metadata. A complete software record is useful for audit, but it does not replace LSL/device triggers, measured end-to-end latency, cap/signal checks, or the research team's artifact-cleaning procedure.
 
 The app currently supports **research preparation and export**, not direct clinical or diagnostic interpretation.
 

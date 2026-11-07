@@ -843,6 +843,41 @@
             <div class="helperText">Lets the same game layout run either as the training condition or a matched control condition.</div>
           </div>
           <div>
+            <label for="studyProtocolId">Study / protocol ID</label>
+            <input id="studyProtocolId" type="text" maxlength="80" placeholder="For example CT-PILOT-01" />
+            <div class="helperText">The approved study or school evaluation identifier. Avoid pupil names.</div>
+          </div>
+          <div>
+            <label for="studyVisitId">Visit label</label>
+            <input id="studyVisitId" type="text" maxlength="40" placeholder="For example baseline or week-4" />
+            <div class="helperText">Identifies the planned assessment visit without adding a pupil name.</div>
+          </div>
+          <div>
+            <label for="studyRunNumber">Run number</label>
+            <input id="studyRunNumber" type="number" min="1" max="99" step="1" value="1" />
+            <div class="helperText">The numbered task run within this visit.</div>
+          </div>
+          <div>
+            <label for="eegAcquisitionSystem">EEG acquisition system</label>
+            <input id="eegAcquisitionSystem" type="text" maxlength="80" placeholder="Device / amplifier label" />
+            <div class="helperText">Records the local equipment label for later provenance; this does not connect ChoiceTrain to it.</div>
+          </div>
+          <div>
+            <label for="eegSyncMethod">Declared synchronisation method</label>
+            <select id="eegSyncMethod">
+              <option value="browser-only">Browser timestamps only</option>
+              <option value="manual-event-log">Manual event alignment</option>
+              <option value="lsl-bridge">Planned LSL bridge</option>
+              <option value="hardware-trigger">Planned hardware trigger</option>
+            </select>
+            <div class="helperText">Records the intended method only. LSL or hardware timing must be implemented and validated separately.</div>
+          </div>
+          <div>
+            <label for="eegClockNotes">Clock / latency notes</label>
+            <textarea id="eegClockNotes" rows="3" maxlength="500" placeholder="Clock source, display/audio latency test, bridge version, or known limitation"></textarea>
+            <div class="helperText">Free-text technical notes for the research team. Do not enter pupil-identifying information.</div>
+          </div>
+          <div>
             <label for="lessonSeedOverride">Lesson replay seed (optional)</label>
             <input id="lessonSeedOverride" type="number" min="1" max="4294967295" step="1" placeholder="Generated automatically" />
             <div class="helperText">Use the same seed with the same settings and content to reproduce generated targets, options, and Attention Training conditions. Leave blank for a new seed.</div>
@@ -1116,6 +1151,10 @@
               <b>Stored history</b>
               <span>Filtered longitudinal sessions from local IndexedDB storage.</span>
             </button>
+            <button id="adminExportAiDatasetBtn" type="button">
+              <b>Pseudonymised AI research data</b>
+              <span>Privacy-minimised behavioural features and teacher decisions without names, notes, images, exact dates, or raw coordinates.</span>
+            </button>
           </div>
           <div class="compactNote">Exports are created locally. ChoiceTrain does not upload pupil, image, touch, or research data to an external service.</div>
         </div>
@@ -1245,10 +1284,13 @@
                 <div class="dashCard"><div class="k">Observed artifacts</div><div class="v" id="researchArtifacts">0</div></div>
                 <div class="dashCard"><div class="k">EEG markers</div><div class="v" id="researchMarkers">0</div></div>
                 <div class="dashCard"><div class="k">Marker completeness</div><div class="v" id="researchMarkerCompleteness">&mdash;</div></div>
+                <div class="dashCard"><div class="k">Ordering validity</div><div class="v" id="researchMarkerOrdering">&mdash;</div></div>
+                <div class="dashCard"><div class="k">Protocol metadata</div><div class="v" id="researchProtocolCompleteness">&mdash;</div></div>
               </div>
+              <canvas id="researchEegQualityChart" class="researchCanvas" width="760" height="240" role="img" aria-label="Aggregate EEG marker completeness, ordering validity, and protocol metadata completeness"></canvas>
               <div class="tableWrap researchTableWrap">
                 <table>
-                  <thead><tr><th>Date</th><th>Condition</th><th>Fidelity</th><th>Blocks</th><th>Artifacts</th><th>Markers</th><th>Core marker sets</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Condition</th><th>Fidelity</th><th>Blocks</th><th>Artifacts</th><th>Markers</th><th>Core marker sets</th><th>Ordered trials</th><th>Timing differences</th><th>Protocol fields</th><th>Sync method</th></tr></thead>
                   <tbody id="researchQualityBody"></tbody>
                 </table>
               </div>

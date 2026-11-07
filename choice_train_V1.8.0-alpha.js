@@ -34,6 +34,8 @@
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
+  const EEG_PROTOCOL_VERSION = '1.0.0';
+  const PRIVACY_EXPORT_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
   const MAX_IMPORT_FILES = 100;
   const MAX_IMAGE_FILE_BYTES = 12 * 1024 * 1024;
@@ -59,6 +61,11 @@
     artifact: 50,
     session_complete: 90
   });
+  const EEG_PLANNED_MARKER_SET = Object.freeze([
+    'session_start', 'prompt_onset', 'cue_onset', 'stimulus_onset', 'target_present', 'no_go',
+    'response', 'omission', 'commission', 'feedback_onset', 'prompt_onset_support',
+    'break_onset', 'break_offset', 'artifact', 'session_complete'
+  ]);
   const RESEARCH_CONDITION_LABELS = Object.freeze({
     training: 'Training condition',
     'active-control': 'Active control'
@@ -596,6 +603,24 @@
   function researchCondition(){
     if(ui.activeControlEnabled && ui.activeControlEnabled.checked) return 'active-control';
     return ui.researchCondition ? ui.researchCondition.value : 'training';
+  }
+
+  function studyProtocolSnapshot(participantPseudonym=currentResearchParticipantId()){
+    return {
+      protocol_schema_version: EEG_PROTOCOL_VERSION,
+      study_protocol_id: String(ui.studyProtocolId && ui.studyProtocolId.value || '').trim(),
+      participant_pseudonym: participantPseudonym,
+      visit_id: String(ui.studyVisitId && ui.studyVisitId.value || '').trim(),
+      run_number: clamp(safeNumber(ui.studyRunNumber && ui.studyRunNumber.value, 1), 1, 99),
+      acquisition_system: String(ui.eegAcquisitionSystem && ui.eegAcquisitionSystem.value || '').trim(),
+      declared_sync_method: ui.eegSyncMethod ? ui.eegSyncMethod.value : 'browser-only',
+      research_condition: researchCondition(),
+      clock_latency_notes: String(ui.eegClockNotes && ui.eegClockNotes.value || '').trim(),
+      planned_marker_set: EEG_PLANNED_MARKER_SET.slice(),
+      browser_clock_sources: ['Date.now', 'performance.now'],
+      hardware_synchronization_verified: false,
+      interpretation_boundary: 'Declared study metadata only. Hardware or LSL synchronisation requires separate implementation and measured validation.'
+    };
   }
 
   function normalizeThemeChoice(value){
@@ -1159,6 +1184,18 @@
       : (ui.pupilAlias && ui.pupilAlias.value.trim()) || 'Unknown';
   }
 
+  function currentResearchParticipantId(){
+    const name = currentPupilName();
+    const source = state.learners[name] || state.currentPupil || buildDefaultLearner(name);
+    const learner = normalizeLearner(name, source);
+    if(name && name !== 'Unknown' && (!state.learners[name] || state.learners[name].researchParticipantId !== learner.researchParticipantId)){
+      state.learners[name] = learner;
+      state.currentPupil = learner;
+      saveLearners();
+    }
+    return learner.researchParticipantId;
+  }
+
   function sessionPupilName(){
     return state.sessionSnapshot && state.sessionSnapshot.learner
       ? state.sessionSnapshot.learner
@@ -1549,6 +1586,7 @@
   }
 
   function pushEegMarker(name, extras={}){
+    const protocol = state.sessionSnapshot && state.sessionSnapshot.study_protocol;
     const marker = {
       marker_id: uuid4(),
       code: EEG_EVENT_CODES[name] || 0,
@@ -1562,7 +1600,11 @@
       level: state.currentLevel,
       question_index: state.currentQuestion ? state.currentQuestion.questionIndex : state.questionIndex,
       block_index: currentBlockIndex(),
-      research_condition: researchCondition(),
+      research_condition: protocol ? protocol.research_condition : researchCondition(),
+      study_protocol_id: protocol ? protocol.study_protocol_id : '',
+      visit_id: protocol ? protocol.visit_id : '',
+      run_number: protocol ? protocol.run_number : null,
+      declared_sync_method: protocol ? protocol.declared_sync_method : 'browser-only',
       ...extras
     };
     state.eeg.markers.push(marker);
@@ -1570,7 +1612,7 @@
   }
 
   function markerTsv(markers){
-    const headers = ['marker_id', 'code', 'name', 'session_id', 'learner', 't_rel_ms', 't_wall_ms', 't_perf_ms', 'level', 'question_index', 'block_index', 'research_condition', 'trial_id', 'task_kind', 'task_variant', 'attention_domain', 'response_type', 'correct', 'omission', 'commission', 'artifact_type', 'break_reason'];
+    const headers = ['marker_id', 'code', 'name', 'session_id', 'learner', 'learner_alias', 'study_protocol_id', 'visit_id', 'run_number', 'declared_sync_method', 't_rel_ms', 't_wall_ms', 't_perf_ms', 'level', 'question_index', 'block_index', 'research_condition', 'trial_id', 'task_kind', 'task_variant', 'attention_domain', 'response_type', 'correct', 'omission', 'commission', 'artifact_type', 'break_reason'];
     const lines = [headers.join('\t')];
     markers.forEach(marker => {
       lines.push(headers.map(header => {
@@ -1703,6 +1745,7 @@
     return {
       name,
       alias: name,
+      researchParticipantId: `ctp-${uuid4()}`,
       lastLevel: 1,
       sessions: [],
       baseline: { ...SESSION_CONTEXT_DEFAULTS },
@@ -1718,6 +1761,7 @@
     return {
       name: learner.name || name,
       alias: learner.alias || learner.name || name,
+      researchParticipantId: learner.researchParticipantId || `ctp-${uuid4()}`,
       lastLevel: clamp(safeNumber(learner.lastLevel, 1), 1, 10),
       sessions: Array.isArray(learner.sessions) ? learner.sessions : [],
       baseline: { ...SESSION_CONTEXT_DEFAULTS, ...baseline },
@@ -1787,6 +1831,12 @@
       eegBlockSize: ui.eegBlockSize.value,
       eegAutoPauseSec: ui.eegAutoPauseSec.value,
       researchCondition: ui.researchCondition.value,
+      studyProtocolId: ui.studyProtocolId ? ui.studyProtocolId.value : '',
+      studyVisitId: ui.studyVisitId ? ui.studyVisitId.value : '',
+      studyRunNumber: ui.studyRunNumber ? ui.studyRunNumber.value : 1,
+      eegAcquisitionSystem: ui.eegAcquisitionSystem ? ui.eegAcquisitionSystem.value : '',
+      eegSyncMethod: ui.eegSyncMethod ? ui.eegSyncMethod.value : 'browser-only',
+      eegClockNotes: ui.eegClockNotes ? ui.eegClockNotes.value : '',
       lessonSeedOverride: ui.lessonSeedOverride ? ui.lessonSeedOverride.value : '',
       eegExportFormat: ui.eegExportFormat.value,
       studentFriendlyMode: studentFriendlyModeEnabled(),
@@ -1863,6 +1913,12 @@
     if(ui.eegBlockSize) ui.eegBlockSize.value = settings.eegBlockSize || 4;
     if(ui.eegAutoPauseSec) ui.eegAutoPauseSec.value = settings.eegAutoPauseSec || 6;
     if(ui.researchCondition) ui.researchCondition.value = settings.researchCondition || 'training';
+    if(ui.studyProtocolId) ui.studyProtocolId.value = settings.studyProtocolId || '';
+    if(ui.studyVisitId) ui.studyVisitId.value = settings.studyVisitId || '';
+    if(ui.studyRunNumber) ui.studyRunNumber.value = settings.studyRunNumber || 1;
+    if(ui.eegAcquisitionSystem) ui.eegAcquisitionSystem.value = settings.eegAcquisitionSystem || '';
+    if(ui.eegSyncMethod) ui.eegSyncMethod.value = settings.eegSyncMethod || 'browser-only';
+    if(ui.eegClockNotes) ui.eegClockNotes.value = settings.eegClockNotes || '';
     if(ui.lessonSeedOverride) ui.lessonSeedOverride.value = settings.lessonSeedOverride || '';
     if(ui.eegExportFormat) ui.eegExportFormat.value = settings.eegExportFormat || 'tsv';
     if(ui.studentFriendlyMode) ui.studentFriendlyMode.checked = settings.studentFriendlyMode !== false;
@@ -3517,7 +3573,9 @@
       task_variant: question.variantId || '',
       variant_label: question.variantLabel || '',
       attention_domain: question.attentionDomain || '',
-      research_condition: researchCondition(),
+      research_condition: state.sessionSnapshot && state.sessionSnapshot.study_protocol
+        ? state.sessionSnapshot.study_protocol.research_condition
+        : researchCondition(),
       eeg_research_mode: eegModeEnabled(),
       block_index: blockIndexForQuestion(question.questionIndex),
       trial_in_block: ((question.questionIndex - 1) % eegBlockSize()) + 1,
@@ -5282,6 +5340,9 @@
   function buildSessionRecord(){
     const summary = analyticsSummary();
     const snapshot = state.sessionSnapshot;
+    const protocol = snapshot && snapshot.study_protocol
+      ? clonePlain(snapshot.study_protocol)
+      : studyProtocolSnapshot(currentResearchParticipantId());
     return {
       session_id: state.sessionId,
       learner: sessionPupilName(),
@@ -5302,8 +5363,14 @@
       summary,
       research_summary: researchSummaryForTrials(state.trials),
       fidelity: fidelitySnapshot(),
-      research_condition: researchCondition(),
+      research_condition: protocol.research_condition,
+      study_protocol: protocol,
       eeg_markers: state.eeg.markers.slice(),
+      eeg_marker_diagnostics: markerDiagnostics({
+        trials: state.trials,
+        eeg_markers: state.eeg.markers,
+        study_protocol: protocol
+      }),
       block_summaries: buildBlockSummaries(),
       events: state.logs.slice(),
       trials: state.trials.slice(),
@@ -5759,6 +5826,81 @@
     return { complete, expected: trials.length };
   }
 
+  function markerDiagnostics(session){
+    const trials = latestTrialsByQuestion(session.trials || []);
+    const markers = Array.isArray(session.eeg_markers) ? session.eeg_markers : [];
+    const protocol = session.study_protocol || {};
+    let orderedTrials = 0;
+    let timingDifferenceCount = 0;
+    let responseComparisons = 0;
+
+    trials.forEach(trial => {
+      const trialMarkers = markers.filter(marker => marker.trial_id === trial.trial_id);
+      const first = name => trialMarkers.find(marker => marker.name === name);
+      const stimulus = first('stimulus_onset');
+      const condition = first(trial.correct_rejection || trial.requires_response === false ? 'no_go' : 'target_present')
+        || first('target_present')
+        || first('no_go');
+      const response = first('response');
+      const outcome = trial.omission
+        ? first('omission')
+        : trial.commission
+          ? first('commission')
+          : trial.correct_rejection
+            ? condition
+            : response;
+      const feedback = first('feedback_onset');
+      const cue = first('cue_onset');
+      const sequence = [cue, stimulus, condition, response, outcome, feedback]
+        .filter((marker, index, items) => marker && items.indexOf(marker) === index);
+      const hasCore = !!(stimulus && condition && outcome && feedback);
+      const nonDecreasing = sequence.every((marker, index) => (
+        index === 0 || Number(marker.t_perf_ms) >= Number(sequence[index - 1].t_perf_ms)
+      ));
+      if(hasCore && nonDecreasing) orderedTrials += 1;
+
+      if(stimulus && response && Number.isFinite(trial.response_time_ms)){
+        responseComparisons += 1;
+        const markerLatency = Number(response.t_perf_ms) - Number(stimulus.t_perf_ms);
+        if(!Number.isFinite(markerLatency) || markerLatency < 0 || Math.abs(markerLatency - trial.response_time_ms) > 75){
+          timingDifferenceCount += 1;
+        }
+      }
+    });
+
+    const nonMonotonicMarkerCount = markers.reduce((count, marker, index) => {
+      if(index === 0) return count;
+      return Number(marker.t_perf_ms) < Number(markers[index - 1].t_perf_ms) ? count + 1 : count;
+    }, 0);
+    const markerIds = markers.map(marker => marker.marker_id).filter(Boolean);
+    const duplicateMarkerIdCount = markerIds.length - new Set(markerIds).size;
+    const requiredProtocolValues = [
+      protocol.study_protocol_id,
+      protocol.visit_id,
+      protocol.run_number,
+      protocol.acquisition_system,
+      protocol.declared_sync_method
+    ];
+    const protocolComplete = requiredProtocolValues.filter(value => value !== '' && value != null).length;
+    return {
+      version: EEG_PROTOCOL_VERSION,
+      ordered_trials: orderedTrials,
+      expected_order_trials: trials.length,
+      ordering_pct: trials.length ? Math.round((orderedTrials / trials.length) * 100) : null,
+      response_timing_comparisons: responseComparisons,
+      timing_difference_count: timingDifferenceCount,
+      response_timing_tolerance_ms: 75,
+      non_monotonic_marker_count: nonMonotonicMarkerCount,
+      duplicate_marker_id_count: duplicateMarkerIdCount,
+      protocol_fields_complete: protocolComplete,
+      protocol_fields_expected: requiredProtocolValues.length,
+      protocol_completeness_pct: Math.round((protocolComplete / requiredProtocolValues.length) * 100),
+      declared_sync_method: protocol.declared_sync_method || 'not recorded',
+      hardware_synchronization_verified: protocol.hardware_synchronization_verified === true,
+      interpretation_boundary: 'Browser event diagnostics only. They do not validate EEG hardware synchronisation or physiological signal quality.'
+    };
+  }
+
   function prepareResearchCanvas(canvas){
     const ctx = canvas.getContext('2d');
     ctx.clearRect(0, 0, canvas.width, canvas.height);
@@ -6195,6 +6337,7 @@
 
     const qualityRows = sessions.map(session => {
       const markerSet = coreMarkerCompleteness(session);
+      const diagnostics = session.eeg_marker_diagnostics || markerDiagnostics(session);
       const events = Array.isArray(session.events) ? session.events : [];
       const markers = Array.isArray(session.eeg_markers) ? session.eeg_markers : [];
       const blocks = Array.isArray(session.block_summaries) ? session.block_summaries : buildBlockSummaries(session.trials || [], events);
@@ -6205,23 +6348,44 @@
         blocks: blocks.length,
         artifacts: events.filter(event => event.type === 'artifact_noted').length,
         markers: markers.length,
-        markerSet
+        markerSet,
+        diagnostics
       };
     });
     const fidelityValues = qualityRows.map(item => item.fidelity).filter(Number.isFinite);
     const markerComplete = qualityRows.reduce((sum, item) => sum + item.markerSet.complete, 0);
     const markerExpected = qualityRows.reduce((sum, item) => sum + item.markerSet.expected, 0);
+    const orderedTrials = qualityRows.reduce((sum, item) => sum + item.diagnostics.ordered_trials, 0);
+    const expectedOrderTrials = qualityRows.reduce((sum, item) => sum + item.diagnostics.expected_order_trials, 0);
+    const protocolComplete = qualityRows.reduce((sum, item) => sum + item.diagnostics.protocol_fields_complete, 0);
+    const protocolExpected = qualityRows.reduce((sum, item) => sum + item.diagnostics.protocol_fields_expected, 0);
+    const markerCompletenessPct = markerExpected ? Math.round((markerComplete / markerExpected) * 100) : null;
+    const orderingPct = expectedOrderTrials ? Math.round((orderedTrials / expectedOrderTrials) * 100) : null;
+    const protocolCompletenessPct = protocolExpected ? Math.round((protocolComplete / protocolExpected) * 100) : null;
     ui.researchFidelity.textContent = fidelityValues.length ? `${Math.round(mean(fidelityValues))}%` : '--';
     ui.researchArtifacts.textContent = String(qualityRows.reduce((sum, item) => sum + item.artifacts, 0));
     ui.researchMarkers.textContent = String(qualityRows.reduce((sum, item) => sum + item.markers, 0));
-    ui.researchMarkerCompleteness.textContent = markerExpected ? `${Math.round((markerComplete / markerExpected) * 100)}%` : '--';
+    ui.researchMarkerCompleteness.textContent = markerCompletenessPct == null ? '--' : `${markerCompletenessPct}%`;
+    ui.researchMarkerOrdering.textContent = orderingPct == null ? '--' : `${orderingPct}%`;
+    ui.researchProtocolCompleteness.textContent = protocolCompletenessPct == null ? '--' : `${protocolCompletenessPct}%`;
+    drawResearchBars(ui.researchEegQualityChart, [
+      { label: 'Core marker sets', value: markerCompletenessPct || 0, color: themeToken('primary') },
+      { label: 'Ordered trials', value: orderingPct || 0, color: themeToken('success') },
+      { label: 'Protocol fields', value: protocolCompletenessPct || 0, color: themeToken('warning') }
+    ], { maxValue: 100, suffix: '%', labelWidth: 150 });
     if(qualityRows.length){
       clearNode(ui.researchQualityBody);
       qualityRows.forEach(item => appendResearchRow(ui.researchQualityBody, [
         item.date, item.condition, item.fidelity == null ? null : `${item.fidelity}%`, item.blocks, item.artifacts, item.markers,
-        item.markerSet.expected ? `${item.markerSet.complete}/${item.markerSet.expected}` : null
+        item.markerSet.expected ? `${item.markerSet.complete}/${item.markerSet.expected}` : null,
+        item.diagnostics.expected_order_trials ? `${item.diagnostics.ordered_trials}/${item.diagnostics.expected_order_trials}` : null,
+        item.diagnostics.response_timing_comparisons
+          ? `${item.diagnostics.timing_difference_count}/${item.diagnostics.response_timing_comparisons}`
+          : null,
+        `${item.diagnostics.protocol_fields_complete}/${item.diagnostics.protocol_fields_expected}`,
+        item.diagnostics.declared_sync_method
       ]));
-    } else renderResearchEmptyRow(ui.researchQualityBody, 7);
+    } else renderResearchEmptyRow(ui.researchQualityBody, 11);
 
     const transferRows = sessions.map(session => {
       const baseline = session.learner_snapshot && session.learner_snapshot.baseline ? session.learner_snapshot.baseline : {};
@@ -6532,7 +6696,8 @@
       theme_used: currentThemeChoice(),
       sensory_preferences: clonePlain(sensoryPreferenceSnapshot()),
       student_friendly_mode: studentFriendlyModeEnabled(),
-      photo_library_metadata: clonePlain(photoLibraryMetadata())
+      photo_library_metadata: clonePlain(photoLibraryMetadata()),
+      study_protocol: clonePlain(studyProtocolSnapshot(currentResearchParticipantId()))
     };
     initializeLessonPlan();
     state.sessionEndedEarly = false;
@@ -6558,12 +6723,13 @@
       learner_context: learnerContextSnapshot(),
       learner_baseline: learnerBaselineSnapshot(),
       fidelity: fidelitySnapshot(),
-      research_condition: researchCondition(),
+      research_condition: state.sessionSnapshot.study_protocol.research_condition,
       eeg_mode: eegModeEnabled(),
+      study_protocol: clonePlain(state.sessionSnapshot.study_protocol),
       content_configuration: exportableContentConfiguration()
     });
     pushEegMarker('session_start', {
-      research_condition: researchCondition(),
+      research_condition: state.sessionSnapshot.study_protocol.research_condition,
       task_kind: state.sessionTaskType,
       attention_domain: selectedSessionTaskMode()
     });
@@ -6589,6 +6755,9 @@
     await persistCurrentSession();
     const summary = analyticsSummary();
     const snapshot = state.sessionSnapshot;
+    const protocol = snapshot && snapshot.study_protocol
+      ? clonePlain(snapshot.study_protocol)
+      : studyProtocolSnapshot(currentResearchParticipantId());
     const payload = {
       app: APP_BUILD.app,
       build: buildExportMeta(),
@@ -6631,8 +6800,9 @@
       learner_profile: snapshot ? clonePlain(snapshot.learner_profile) : currentLearnerRecord(),
       summary,
       fidelity: fidelitySnapshot(),
-      research_condition: researchCondition(),
+      research_condition: protocol.research_condition,
       eeg_mode: eegModeEnabled(),
+      study_protocol: protocol,
       context_notes: snapshot ? snapshot.context_notes : currentContextNotes(),
       theme_used: snapshot ? snapshot.theme_used : currentThemeChoice(),
       sensory_preferences: snapshot ? clonePlain(snapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
@@ -6645,6 +6815,11 @@
       research_summary: researchSummaryForTrials(state.trials),
       eeg_marker_code_map: EEG_EVENT_CODES,
       eeg_markers: state.eeg.markers.slice(),
+      eeg_marker_diagnostics: markerDiagnostics({
+        trials: state.trials,
+        eeg_markers: state.eeg.markers,
+        study_protocol: protocol
+      }),
       block_summaries: buildBlockSummaries(),
       artifact_summary: artifactEvents(),
       marker_tsv: markerTsv(state.eeg.markers),
@@ -6668,12 +6843,24 @@
       learner: sessionPupilName(),
       learner_alias: sessionPupilAlias(),
       lesson_plan: lessonPlanSnapshot(),
-      research_condition: researchCondition(),
+      research_condition: state.sessionSnapshot && state.sessionSnapshot.study_protocol
+        ? state.sessionSnapshot.study_protocol.research_condition
+        : researchCondition(),
       eeg_mode: eegModeEnabled(),
+      study_protocol: state.sessionSnapshot && state.sessionSnapshot.study_protocol
+        ? clonePlain(state.sessionSnapshot.study_protocol)
+        : studyProtocolSnapshot(currentResearchParticipantId()),
       sensory_preferences: state.sessionSnapshot ? clonePlain(state.sessionSnapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
       fidelity: fidelitySnapshot(),
       eeg_marker_code_map: EEG_EVENT_CODES,
       markers,
+      marker_diagnostics: markerDiagnostics({
+        trials: state.trials,
+        eeg_markers: markers,
+        study_protocol: state.sessionSnapshot && state.sessionSnapshot.study_protocol
+          ? state.sessionSnapshot.study_protocol
+          : studyProtocolSnapshot(currentResearchParticipantId())
+      }),
       blocks: buildBlockSummaries(),
       artifacts: artifactEvents(),
       trials: state.trials.slice()
@@ -6689,6 +6876,277 @@
     logEvent('eeg_markers_exported', {
       export_format: format,
       marker_count: markers.length
+    });
+  }
+
+  function participantCodeForSession(session, fallbackCodes){
+    const snapshotCode = session && session.learner_snapshot && session.learner_snapshot.researchParticipantId;
+    const storedLearner = session && session.learner ? state.learners[session.learner] : null;
+    const storedCode = storedLearner && storedLearner.researchParticipantId;
+    if(snapshotCode || storedCode) return String(snapshotCode || storedCode);
+    const sourceKey = String(session && (session.learner || session.learner_alias || session.session_id) || 'unknown');
+    if(!fallbackCodes.has(sourceKey)){
+      fallbackCodes.set(sourceKey, `ctp-export-${String(fallbackCodes.size + 1).padStart(3, '0')}`);
+    }
+    return fallbackCodes.get(sourceKey);
+  }
+
+  function privacySafeSkillSummaries(trials){
+    const summary = researchSummaryForTrials(trials || []);
+    return summary.skill_summaries.map(skill => ({
+      skill_id: skill.skill_id,
+      opportunities: skill.opportunities,
+      scored_opportunities: skill.scored_opportunities,
+      correct: skill.correct,
+      incorrect: skill.incorrect,
+      accuracy_pct: skill.accuracy_pct,
+      omissions: skill.omissions,
+      commissions: skill.commissions,
+      correct_rejections: skill.correct_rejections,
+      independent_responses: skill.independent_responses,
+      assisted_responses: skill.assisted_responses,
+      independent_correct: skill.independent_correct,
+      assisted_correct: skill.assisted_correct,
+      support_code_counts: clonePlain(skill.support_code_counts),
+      highest_prompt_level: skill.highest_prompt_level,
+      median_reaction_time_ms: skill.median_reaction_time_ms,
+      reaction_time_variability_ms: skill.reaction_time_variability_ms,
+      mean_touch_distance_px: skill.mean_touch_distance_px
+    }));
+  }
+
+  function privacySafeTrial(trial, trialIndex){
+    const categoryId = trial.target_category && PHOTO_CATEGORY_META[trial.target_category]
+      ? trial.target_category
+      : (trial.target_category ? 'custom' : null);
+    const personalisedContent = !!(
+      (Array.isArray(trial.photo_labels_used) && trial.photo_labels_used.length)
+      || ['upload', 'uploaded', 'pupil-photo', 'personalised'].includes(trial.target_source)
+    );
+    return {
+      trial_index: trialIndex + 1,
+      question_index: trial.question_index,
+      attempt_index: trial.attempt_index,
+      repeat_count: trial.repeat_count,
+      level: trial.level,
+      block_index: trial.block_index,
+      trial_in_block: trial.trial_in_block,
+      task_family: trial.task_family,
+      task_kind: trial.task_kind,
+      task_variant: trial.task_variant || null,
+      attention_domain: trial.attention_domain || null,
+      skill_ids: Array.isArray(trial.skill_ids) ? trial.skill_ids.slice() : skillIdsForTask(trial.task_kind),
+      schema_version: trial.schema_version || DATA_SCHEMA_VERSION,
+      generator_version: trial.generator_version || null,
+      generator_mode: trial.generator_mode || null,
+      research_condition: trial.research_condition || null,
+      category_id: categoryId,
+      personalised_content: personalisedContent,
+      option_count: Array.isArray(trial.option_metadata)
+        ? trial.option_metadata.length
+        : (Array.isArray(trial.option_labels) ? trial.option_labels.length : null),
+      distractor_count: Number.isFinite(trial.distractor_count) ? trial.distractor_count : null,
+      response_type: trial.response_type || null,
+      correct: !!trial.correct,
+      omission: !!trial.omission,
+      commission: !!trial.commission,
+      correct_rejection: !!trial.correct_rejection,
+      timed_out: !!trial.timed_out,
+      response_time_ms: Number.isFinite(trial.response_time_ms) ? trial.response_time_ms : null,
+      distance_to_target_px: Number.isFinite(trial.distance_to_target_px) ? trial.distance_to_target_px : null,
+      selected_to_target_distance_px: Number.isFinite(trial.selected_to_target_distance_px)
+        ? trial.selected_to_target_distance_px
+        : null,
+      highest_prompt_level: Number.isFinite(trial.highest_prompt_level) ? trial.highest_prompt_level : null,
+      support_code: trial.support_code || null,
+      independence_status: trial.independence_status || null,
+      student_friendly_mode: trial.student_friendly_mode !== false
+    };
+  }
+
+  function privacySafeMarkers(markers){
+    return (markers || []).map((marker, index) => ({
+      marker_index: index + 1,
+      code: marker.code,
+      name: marker.name,
+      t_rel_ms: Number.isFinite(marker.t_rel_ms) ? marker.t_rel_ms : null,
+      level: marker.level,
+      question_index: marker.question_index,
+      block_index: marker.block_index,
+      research_condition: marker.research_condition || null,
+      task_kind: marker.task_kind || null,
+      task_variant: marker.task_variant || null,
+      attention_domain: marker.attention_domain || null,
+      response_type: marker.response_type || null,
+      correct: typeof marker.correct === 'boolean' ? marker.correct : null,
+      omission: typeof marker.omission === 'boolean' ? marker.omission : null,
+      commission: typeof marker.commission === 'boolean' ? marker.commission : null,
+      artifact_type: marker.artifact_type || null,
+      break_reason: marker.break_reason || null
+    }));
+  }
+
+  function privacySafeReviews(participantByLearner){
+    const rows = [];
+    Object.keys(state.learners).forEach(name => {
+      const participantCode = participantByLearner.get(name);
+      if(!participantCode) return;
+      const learner = normalizeLearner(name, state.learners[name]);
+      learner.reviews.forEach((review, index) => {
+        rows.push({
+          participant_code: participantCode,
+          decision_index: index + 1,
+          recommendation_version: review.recommendation_version || null,
+          decision: review.decision || null,
+          proposal: review.proposal ? {
+            action: review.proposal.action || null,
+            skill_id: review.proposal.skill_id || null,
+            recommended_task_kind: review.proposal.recommended_task_kind || null,
+            recommended_level: review.proposal.recommended_level || null,
+            support_direction: review.proposal.support_direction || null,
+            rationale_codes: Array.isArray(review.proposal.rationale_codes) ? review.proposal.rationale_codes.slice() : []
+          } : null,
+          final_plan: review.final_plan ? {
+            task_kind: review.final_plan.task_kind || null,
+            level: review.final_plan.level || null,
+            support_direction: review.final_plan.support_direction || null
+          } : null
+        });
+      });
+    });
+    return rows;
+  }
+
+  function buildPrivacyMinimisedDataset(sessions){
+    const fallbackCodes = new Map();
+    const participantByLearner = new Map();
+    const grouped = new Map();
+    sessions.forEach(session => {
+      const participantCode = participantCodeForSession(session, fallbackCodes);
+      if(session.learner) participantByLearner.set(session.learner, participantCode);
+      if(!grouped.has(participantCode)) grouped.set(participantCode, []);
+      grouped.get(participantCode).push(session);
+    });
+
+    const sessionRows = [];
+    Array.from(grouped.keys()).sort().forEach(participantCode => {
+      const participantSessions = grouped.get(participantCode)
+        .slice()
+        .sort((a, b) => Number(a.updated_at_wall_ms || 0) - Number(b.updated_at_wall_ms || 0));
+      const firstTime = Number(participantSessions[0] && participantSessions[0].updated_at_wall_ms);
+      let previousTime = null;
+      participantSessions.forEach((session, index) => {
+        const sessionTime = Number(session.updated_at_wall_ms);
+        const trials = Array.isArray(session.trials) ? session.trials : [];
+        const summary = session.summary || analyticsSummaryForTrials(trials);
+        const protocol = session.study_protocol || {};
+        const diagnostics = session.eeg_marker_diagnostics || markerDiagnostics(session);
+        const daysSinceFirst = Number.isFinite(firstTime) && Number.isFinite(sessionTime)
+          ? Math.max(0, Math.round((sessionTime - firstTime) / 86400000))
+          : null;
+        const daysSincePrevious = Number.isFinite(previousTime) && Number.isFinite(sessionTime)
+          ? Math.max(0, Math.round((sessionTime - previousTime) / 86400000))
+          : null;
+        sessionRows.push({
+          participant_code: participantCode,
+          session_code: `${participantCode}-s${String(index + 1).padStart(3, '0')}`,
+          session_index: index + 1,
+          days_since_first_session: daysSinceFirst,
+          days_since_previous_session: daysSincePrevious,
+          build_version: session.build && session.build.version ? session.build.version : APP_BUILD.version,
+          schema_version: session.schema_version || DATA_SCHEMA_VERSION,
+          skill_graph_version: session.skill_graph_version || SKILL_GRAPH_VERSION,
+          generator_version: session.generator_version || GENERATOR_VERSION,
+          research_condition: session.research_condition || protocol.research_condition || null,
+          starting_level: trials.length && Number.isFinite(trials[0].level) ? trials[0].level : null,
+          ending_level: summary.current_level == null ? null : summary.current_level,
+          session_task_mode: summary.task_kind || null,
+          context_note_recorded: !!String(session.context_notes || '').trim(),
+          student_friendly_mode: session.student_friendly_mode !== false,
+          theme_used: session.theme_used || null,
+          summary: {
+            questions_answered: summary.questions_answered || 0,
+            total_attempts: summary.total_attempts || trials.length,
+            repeated_attempts: summary.repeated_attempts || 0,
+            correct: summary.correct || 0,
+            incorrect: summary.incorrect || 0,
+            accuracy_pct: Number.isFinite(summary.accuracy_pct) ? summary.accuracy_pct : null,
+            omission_count: summary.omission_count || 0,
+            commission_count: summary.commission_count || 0,
+            independent_success_count: summary.independent_success_count || 0,
+            prompted_success_count: summary.prompted_success_count || 0,
+            mean_rt_ms: Number.isFinite(summary.mean_rt_ms) ? summary.mean_rt_ms : null,
+            rt_sd_ms: Number.isFinite(summary.rt_sd_ms) ? summary.rt_sd_ms : null,
+            rt_cv: Number.isFinite(summary.rt_cv) ? summary.rt_cv : null,
+            mean_touch_distance_px: Number.isFinite(summary.mean_touch_distance_px) ? summary.mean_touch_distance_px : null,
+            fidelity_score_pct: Number.isFinite(summary.fidelity_score_pct) ? summary.fidelity_score_pct : null
+          },
+          skill_summaries: privacySafeSkillSummaries(trials),
+          eeg_protocol: {
+            protocol_schema_version: protocol.protocol_schema_version || null,
+            run_number: protocol.run_number || null,
+            declared_sync_method: protocol.declared_sync_method || 'not recorded',
+            hardware_synchronization_verified: protocol.hardware_synchronization_verified === true
+          },
+          eeg_marker_diagnostics: diagnostics,
+          trials: trials.map(privacySafeTrial),
+          eeg_markers: privacySafeMarkers(session.eeg_markers || [])
+        });
+        if(Number.isFinite(sessionTime)) previousTime = sessionTime;
+      });
+    });
+
+    return {
+      app: APP_BUILD.app,
+      export_schema_version: PRIVACY_EXPORT_VERSION,
+      build: buildExportMeta(),
+      purpose: 'Local, privacy-minimised research dataset for governed analysis and future model-development review.',
+      privacy_status: 'pseudonymised-not-anonymous',
+      privacy_notice: 'Participant codes remain linkable on the source device. Apply school consent, access, retention, and data-governance controls before research or model use.',
+      governance: {
+        dataset_purpose: 'research-and-model-development-review',
+        consent_or_other_authority_status: 'not-recorded-in-this-export',
+        human_review_required: true,
+        automated_decision_making_enabled: false,
+        model_training_performed_by_application: false
+      },
+      privacy_manifest: {
+        names_included: false,
+        aliases_included: false,
+        free_text_included: false,
+        image_data_included: false,
+        photo_labels_included: false,
+        exact_timestamps_included: false,
+        raw_touch_coordinates_included: false,
+        prompt_wording_included: false,
+        source_session_ids_included: false,
+        external_transmission: false
+      },
+      interpretation_boundary: 'Behavioural and browser-event data support exploratory teaching and research analysis. They are not diagnostic and do not prove neural change or validate EEG synchronisation.',
+      participant_count: grouped.size,
+      session_count: sessionRows.length,
+      sessions: sessionRows,
+      teacher_decisions: privacySafeReviews(participantByLearner)
+    };
+  }
+
+  async function exportPseudonymisedAiDataset(){
+    await persistCurrentSession();
+    await refreshStoredHistory();
+    const sessions = researchSessionsInScope();
+    if(!sessions.length){
+      flash('try', 'No research sessions in this scope');
+      return;
+    }
+    const payload = buildPrivacyMinimisedDataset(sessions);
+    const stamp = schoolTimestampParts();
+    const filename = `ChoiceTrain_Pseudonymised_${stamp.date}_${stamp.time}_research-dataset.json`;
+    triggerBlobDownload(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), filename);
+    logEvent('pseudonymised_research_exported', {
+      export_schema_version: PRIVACY_EXPORT_VERSION,
+      participant_count: payload.participant_count,
+      session_count: payload.session_count,
+      external_transmission: false
     });
   }
 
@@ -6786,6 +7244,7 @@
     bindAction(ui.adminExportSessionBtn, exportLogs);
     bindAction(ui.adminExportResearchBtn, exportEegMarkers);
     bindAction(ui.adminExportHistoryBtn, exportStoredHistory);
+    bindAction(ui.adminExportAiDatasetBtn, exportPseudonymisedAiDataset);
     bindAction(ui.addPupil, () => {
       const name = ui.newPupilName.value.trim();
       if(!name) return;
@@ -6953,7 +7412,9 @@
       'moveSampleMs', 'dashboardRefreshMs', 'responseWindowSec', 'itiSec', 'useBlankInterval', 'blankIntervalSec',
       'eegResearchMode', 'autoBlockPauses',
       'allowLearnerHelp', 'allowLearnerBreak', 'allowLearnerStop', 'activeControlEnabled', 'eegBlockSize',
-      'eegAutoPauseSec', 'researchCondition', 'lessonSeedOverride', 'eegExportFormat', 'faceName', 'contextNotes', 'rewardChoice',
+      'eegAutoPauseSec', 'researchCondition', 'studyProtocolId', 'studyVisitId', 'studyRunNumber',
+      'eegAcquisitionSystem', 'eegSyncMethod', 'eegClockNotes', 'lessonSeedOverride', 'eegExportFormat',
+      'faceName', 'contextNotes', 'rewardChoice',
       'themeChoice', 'fontChoice', 'textScale', 'motionPreference', 'feedbackSoundMode', 'celebrationIntensity',
       'communicationSupportChoice', 'preSessionPreference',
       'communicationMode', 'motorAccessMode', 'adaptiveFunctioningBand', 'teacherAttentionRating',

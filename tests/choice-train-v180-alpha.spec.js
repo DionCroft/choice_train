@@ -376,3 +376,140 @@ test('Research view keeps same-numbered questions from separate sessions distinc
   await expect(page.locator('#researchQualityBody tr')).toHaveCount(2);
   expect(errors, errors.join('\n')).toEqual([]);
 });
+
+test('EEG protocol metadata and browser timing diagnostics are exported and visualised', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'eegResearchMode', true);
+  await setValue(page, 'studyProtocolId', 'CT-PILOT-01');
+  await setValue(page, 'studyVisitId', 'baseline');
+  await setValue(page, 'studyRunNumber', 2);
+  await setValue(page, 'eegAcquisitionSystem', 'Test amplifier');
+  await setValue(page, 'eegSyncMethod', 'lsl-bridge');
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+
+  expect(payload.study_protocol).toEqual(expect.objectContaining({
+    protocol_schema_version: '1.0.0',
+    study_protocol_id: 'CT-PILOT-01',
+    visit_id: 'baseline',
+    run_number: 2,
+    acquisition_system: 'Test amplifier',
+    declared_sync_method: 'lsl-bridge',
+    hardware_synchronization_verified: false
+  }));
+  expect(payload.study_protocol.participant_pseudonym).toMatch(/^ctp-/);
+  expect(payload.eeg_markers.every(marker => marker.study_protocol_id === 'CT-PILOT-01')).toBe(true);
+  expect(payload.eeg_marker_diagnostics).toEqual(expect.objectContaining({
+    ordered_trials: 1,
+    expected_order_trials: 1,
+    ordering_pct: 100,
+    timing_difference_count: 0,
+    protocol_fields_complete: 5,
+    protocol_fields_expected: 5,
+    protocol_completeness_pct: 100,
+    hardware_synchronization_verified: false
+  }));
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#refreshResearchBtn').click();
+  await expect(page.locator('#researchMarkerOrdering')).toHaveText('100%');
+  await expect(page.locator('#researchProtocolCompleteness')).toHaveText('100%');
+  await expect(page.locator('#researchQualityBody')).toContainText('1/1');
+  await expect(page.locator('#researchQualityBody')).toContainText('0/1');
+  await expect(page.locator('#researchQualityBody')).toContainText('5/5');
+  await expect(page.locator('#researchQualityBody')).toContainText('lsl-bridge');
+});
+
+test('pseudonymised AI research export excludes direct identifiers and free text', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'pupilAlias', 'Secret Learner Alias');
+  await setValue(page, 'contextNotes', 'SECRET-CONTEXT tired after named appointment');
+  await setValue(page, 'eegClockNotes', 'SECRET-CLOCK device operator detail');
+  await setValue(page, 'studyProtocolId', 'CT-PRIVATE-PILOT');
+  await setValue(page, 'studyVisitId', 'private-visit-label');
+  await setValue(page, 'eegAcquisitionSystem', 'Private device serial');
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#adminExportAiDatasetBtn').evaluate(node => node.click());
+  const download = await downloadPromise;
+  const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  const exportedText = JSON.stringify(payload);
+  const exportedKeys = [];
+  const collectKeys = value => {
+    if(!value || typeof value !== 'object') return;
+    Object.keys(value).forEach(key => {
+      exportedKeys.push(key);
+      collectKeys(value[key]);
+    });
+  };
+  collectKeys(payload);
+
+  expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_Pseudonymised_\d{4}-\d{2}-\d{2}_\d{4}_research-dataset\.json$/);
+  expect(payload.privacy_status).toBe('pseudonymised-not-anonymous');
+  expect(payload.governance).toEqual(expect.objectContaining({
+    consent_or_other_authority_status: 'not-recorded-in-this-export',
+    human_review_required: true,
+    automated_decision_making_enabled: false,
+    model_training_performed_by_application: false
+  }));
+  expect(payload.privacy_manifest).toEqual(expect.objectContaining({
+    names_included: false,
+    aliases_included: false,
+    free_text_included: false,
+    image_data_included: false,
+    photo_labels_included: false,
+    exact_timestamps_included: false,
+    raw_touch_coordinates_included: false,
+    prompt_wording_included: false,
+    source_session_ids_included: false,
+    external_transmission: false
+  }));
+  expect(payload.participant_count).toBe(1);
+  expect(payload.sessions).toHaveLength(1);
+  expect(payload.sessions[0].participant_code).toMatch(/^ctp-/);
+  expect(payload.sessions[0].starting_level).toBe(4);
+  expect(payload.sessions[0].ending_level).toBe(5);
+  expect(payload.sessions[0].session_task_mode).toBe('auto');
+  expect(payload.sessions[0].trials[0].skill_ids).toContain('recognition.named_object');
+  expect(payload.sessions[0].trials[0].correct).toBe(true);
+  expect(exportedText).not.toContain('Pupil A');
+  expect(exportedText).not.toContain('Secret Learner Alias');
+  expect(exportedText).not.toContain('SECRET-CONTEXT');
+  expect(exportedText).not.toContain('SECRET-CLOCK');
+  expect(exportedText).not.toContain('CT-PRIVATE-PILOT');
+  expect(exportedText).not.toContain('private-visit-label');
+  expect(exportedText).not.toContain('Private device serial');
+  expect(exportedKeys).not.toContain('prompt_wording');
+  expect(exportedKeys).not.toContain('photo_labels_used');
+  expect(exportedKeys).not.toContain('pointer_play_x');
+  expect(exportedKeys).not.toContain('t_wall_ms');
+  expect(exportedKeys).not.toContain('t_perf_ms');
+  expect(exportedKeys).not.toContain('context_notes');
+});

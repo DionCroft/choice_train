@@ -108,6 +108,41 @@ Field availability depends on the task and enabled logging mode. Missing data mu
 
 These are browser event times. Real EEG synchronisation still requires a hardware/LSL integration and measured clock, display, audio, and transport latency.
 
+## V1.8 EEG Protocol and Diagnostics
+
+The session-start protocol snapshot is immutable for that session. It records declared study provenance; it does not establish acquisition synchronisation.
+
+| Field | Meaning |
+| --- | --- |
+| `study_protocol.protocol_schema_version` | Version of the protocol metadata structure |
+| `study_protocol.study_protocol_id` | School/research protocol identifier; staff are instructed not to enter pupil names |
+| `study_protocol.participant_pseudonym` | Random local `ctp-...` profile code rather than the display alias |
+| `study_protocol.visit_id` | Declared visit label such as baseline or week-4 |
+| `study_protocol.run_number` | Run number within the visit |
+| `study_protocol.acquisition_system` | Locally entered equipment/amplifier label |
+| `study_protocol.declared_sync_method` | `browser-only`, `manual-event-log`, `lsl-bridge`, or `hardware-trigger`; this is a declaration, not verification |
+| `study_protocol.clock_latency_notes` | Free-text technical notes; excluded from the pseudonymised model-development export |
+| `study_protocol.planned_marker_set` | Marker names expected by the ChoiceTrain protocol layer |
+| `study_protocol.hardware_synchronization_verified` | Always `false` in the current browser-only implementation |
+| `eeg_marker_diagnostics.ordering_pct` | Percentage of final trials whose expected browser markers exist in non-decreasing order |
+| `eeg_marker_diagnostics.timing_difference_count` | Response marker/trial-latency comparisons outside the current 75 ms software tolerance |
+| `eeg_marker_diagnostics.protocol_completeness_pct` | Filled required protocol fields, not a signal-quality score |
+| `eeg_marker_diagnostics.non_monotonic_marker_count` | Adjacent marker times that run backwards in the exported sequence |
+| `eeg_marker_diagnostics.duplicate_marker_id_count` | Repeated browser marker IDs |
+
+## V1.8 Pseudonymised Research / Model-Development Export
+
+This separate JSON uses `export_schema_version: 1.0.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
+
+- random participant codes and relative session order/spacing
+- build, schema, skill-graph, and generator versions
+- task, skill, outcome, support, reaction-time, and touch-distance features
+- privacy-safe per-skill summaries
+- relative EEG marker times and browser diagnostics
+- sanitised teacher decisions, rationale codes, and final task/level without reviewer identity or free text
+
+It excludes direct names and aliases, free text, images, photo labels, exact wall-clock/performance timestamps, source session/trial/recommendation IDs, prompt wording, selected labels, and raw touch coordinates. `external_transmission` is `false`; clicking the button downloads a local file only.
+
 ## Local Storage
 
 - `localStorage` holds settings, profiles, lightweight summaries, and compatibility data.
@@ -117,5 +152,5 @@ These are browser event times. Real EEG synchronisation still requires a hardwar
 
 ## Future LLM Summary
 
-ChoiceTrain may prepare local structured summaries with learner level, recent accuracy, recent reaction time, support used, preferred content, suggested next session, and context notes. No summary is currently sent to an LLM or external service. Any future use requires consent, safeguarding, information-governance, security, bias, and human-review controls.
+ChoiceTrain prepares local structured summaries with learner level, recent accuracy, recent reaction time, support used, preferred content, suggested next session, and context notes. It also offers the narrower pseudonymised export described above. No summary is sent to an LLM or external service, and no model is trained in the application. Any future use requires consent or another appropriate authority, safeguarding, information-governance, security, bias evaluation, purpose limitation, and human-review controls.
 
