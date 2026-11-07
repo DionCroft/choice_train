@@ -1892,11 +1892,13 @@
           <div class="analyticsPanel">
             <div class="chartCard">
               <h4>Reaction time trend</h4>
-              <canvas id="rtChart" class="miniCanvas" width="320" height="140"></canvas>
+              <canvas id="rtChart" class="miniCanvas researchCanvas" width="320" height="140" role="img" aria-label="Current-session reaction time values in final-question order"></canvas>
+              <div id="rtChartNote" class="compactNote">No current-session reaction times have been recorded.</div>
             </div>
             <div class="chartCard">
               <h4>Touch distance trend</h4>
-              <canvas id="distChart" class="miniCanvas" width="320" height="140"></canvas>
+              <canvas id="distChart" class="miniCanvas researchCanvas" width="320" height="140" role="img" aria-label="Current-session target-distance values in final-question order"></canvas>
+              <div id="distChartNote" class="compactNote">No eligible current-session target distances have been recorded.</div>
             </div>
             <div class="chartCard span2">
               <h4>Accuracy summary</h4>
@@ -1914,7 +1916,7 @@
               </div>
             </div>
             <div class="chartCard span2">
-              <h4>Per-task heat map</h4>
+              <h4>Normalised per-task touch map</h4>
               <div class="heatmapControls">
                 <label for="heatmapScopeSelect">Scope</label>
                 <select id="heatmapScopeSelect">
@@ -1925,8 +1927,14 @@
                 <label for="heatmapQuestionSelect">Task</label>
                 <select id="heatmapQuestionSelect"></select>
               </div>
-              <canvas id="heatmapCanvas" class="heatmapCanvas" width="420" height="280"></canvas>
-              <div id="heatmapMeta" class="heatMeta">Select a task to view target position, touches, and attention call.</div>
+              <canvas id="heatmapCanvas" class="heatmapCanvas researchCanvas" width="420" height="280" role="img" aria-label="Normalised target positions and touch responses for the selected task and history scope"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Scope</th><th>Task</th><th>Attempt records</th><th>Touches plotted</th><th>Targets observed</th><th>Correct</th><th>Incorrect</th><th>Omissions</th><th>Commissions</th></tr></thead>
+                  <tbody id="heatmapSummaryBody"></tbody>
+                </table>
+              </div>
+              <div id="heatmapMeta" class="heatMeta compactNote">Select a task to view target positions and touch responses normalised to each trial's recorded play area.</div>
             </div>
             <div class="chartCard span2">
               <h4>Attention family dashboard</h4>

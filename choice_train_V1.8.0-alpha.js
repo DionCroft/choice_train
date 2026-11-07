@@ -6813,25 +6813,92 @@
     ctx.clearRect(0, 0, canvas.width, canvas.height);
     ctx.fillStyle = themeToken('surface-raised', '#ffffff');
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    canvas.dataset.normalization = 'per-trial-play-area';
     if(!group){
       ui.heatmapMeta.textContent = 'No heat map data available yet.';
+      canvas.dataset.sourceAttemptCount = '0';
+      canvas.dataset.plottedTouchCount = '0';
+      canvas.dataset.targetGeometryCount = '0';
+      renderResearchEmptyRow(ui.heatmapSummaryBody, 9, 'No touch-map data available yet.');
       return;
     }
-    group.trials.forEach(trial => {
-      if(!Number.isFinite(trial.pointer_play_x) || !Number.isFinite(trial.pointer_play_y)) return;
-      const x = clamp(trial.pointer_play_x / Math.max(ui.playArea.clientWidth || 1, 1) * canvas.width, 0, canvas.width);
-      const y = clamp(trial.pointer_play_y / Math.max(ui.playArea.clientHeight || 1, 1) * canvas.height, 0, canvas.height);
-      const color = trial.correct
-        ? colourWithAlpha(themeToken('success', STIMULUS_COLOR_FALLBACKS.green), 0.55)
-        : trial.omission
-          ? colourWithAlpha(themeToken('warning', STIMULUS_COLOR_FALLBACKS.amber), 0.45)
-          : colourWithAlpha(themeToken('danger', STIMULUS_COLOR_FALLBACKS.red), 0.55);
-      ctx.fillStyle = color;
+    const plotTop = 34;
+    const plotPadding = 14;
+    const plotWidth = canvas.width - plotPadding * 2;
+    const plotHeight = canvas.height - plotTop - plotPadding;
+    const normalisedPoint = (trial, xField, yField) => {
+      const playWidth = Number(trial.play_area_width_px);
+      const playHeight = Number(trial.play_area_height_px);
+      const sourceX = Number(trial[xField]);
+      const sourceY = Number(trial[yField]);
+      if(!Number.isFinite(playWidth) || playWidth <= 0 || !Number.isFinite(playHeight) || playHeight <= 0) return null;
+      if(!Number.isFinite(sourceX) || !Number.isFinite(sourceY)) return null;
+      return {
+        x: plotPadding + clamp(sourceX / playWidth, 0, 1) * plotWidth,
+        y: plotTop + clamp(sourceY / playHeight, 0, 1) * plotHeight
+      };
+    };
+    const targetPoints = group.trials.map(trial => normalisedPoint(trial, 'target_play_x', 'target_play_y')).filter(Boolean);
+    const touchPoints = group.trials.map(trial => ({
+      point: normalisedPoint(trial, 'pointer_play_x', 'pointer_play_y'),
+      trial
+    })).filter(item => item.point);
+
+    ctx.font = '11px sans-serif';
+    ctx.fillStyle = themeToken('text-muted', '#52656d');
+    ctx.fillText('Target ring', 12, 20);
+    ctx.fillText('Correct circle', 92, 20);
+    ctx.fillText('Incorrect square', 188, 20);
+    ctx.fillText('Commission cross', 292, 20);
+
+    targetPoints.forEach(point => {
+      ctx.strokeStyle = themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue);
+      ctx.lineWidth = 2;
       ctx.beginPath();
-      ctx.arc(x, y, 10, 0, Math.PI * 2);
-      ctx.fill();
+      ctx.arc(point.x, point.y, 12, 0, Math.PI * 2);
+      ctx.stroke();
     });
-    ui.heatmapMeta.textContent = `${data.source}. ${group.trials.length} trial(s). Correct ${group.trials.filter(trial => trial.correct).length}, omissions ${group.trials.filter(trial => trial.omission).length}, commissions ${group.trials.filter(trial => trial.commission).length}.`;
+    touchPoints.forEach(({ point, trial }) => {
+      if(trial.commission){
+        ctx.strokeStyle = themeToken('danger', STIMULUS_COLOR_FALLBACKS.red);
+        ctx.lineWidth = 3;
+        ctx.beginPath();
+        ctx.moveTo(point.x - 7, point.y - 7);
+        ctx.lineTo(point.x + 7, point.y + 7);
+        ctx.moveTo(point.x + 7, point.y - 7);
+        ctx.lineTo(point.x - 7, point.y + 7);
+        ctx.stroke();
+      } else if(trial.correct){
+        ctx.fillStyle = colourWithAlpha(themeToken('success', STIMULUS_COLOR_FALLBACKS.green), 0.7);
+        ctx.beginPath();
+        ctx.arc(point.x, point.y, 8, 0, Math.PI * 2);
+        ctx.fill();
+      } else {
+        ctx.fillStyle = colourWithAlpha(themeToken('danger', STIMULUS_COLOR_FALLBACKS.red), 0.7);
+        ctx.fillRect(point.x - 7, point.y - 7, 14, 14);
+      }
+    });
+
+    const correctCount = group.trials.filter(trial => trial.correct).length;
+    const incorrectCount = group.trials.filter(trial => trial.correct === false && !trial.omission && !trial.correct_rejection).length;
+    const omissionCount = group.trials.filter(trial => trial.omission).length;
+    const commissionCount = group.trials.filter(trial => trial.commission).length;
+    canvas.dataset.sourceAttemptCount = String(group.trials.length);
+    canvas.dataset.plottedTouchCount = String(touchPoints.length);
+    canvas.dataset.targetGeometryCount = String(targetPoints.length);
+    clearNode(ui.heatmapSummaryBody);
+    appendResearchRow(ui.heatmapSummaryBody, [
+      data.source,
+      group.label,
+      group.trials.length,
+      touchPoints.length,
+      targetPoints.length,
+      correctCount,
+      incorrectCount,
+      omissionCount,
+      commissionCount
+    ]);
+    ui.heatmapMeta.textContent = `${data.source}. ${group.trials.length} attempt record(s); ${touchPoints.length} touch point(s) and ${targetPoints.length} target position(s) plotted. Coordinates use each trial's recorded play-area dimensions. Shape and text distinguish outcomes; omitted responses have no touch point.`;
   }
 
   function drawMiniChart(canvas, values, color){
@@ -9970,6 +10037,12 @@
     const distValues = finalTrials.map(trial => trial.distance_to_target_px).filter(Number.isFinite);
     drawMiniChart(ui.rtChart, rtValues, themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue));
     drawMiniChart(ui.distChart, distValues, themeToken('warning', STIMULUS_COLOR_FALLBACKS.amber));
+    ui.rtChartNote.textContent = rtValues.length
+      ? `${rtValues.length} observed final-response time(s) in question order. Median ${Math.round(median(rtValues))} ms; range ${Math.round(Math.min(...rtValues))} to ${Math.round(Math.max(...rtValues))} ms.`
+      : 'No current-session reaction times have been recorded.';
+    ui.distChartNote.textContent = distValues.length
+      ? `${distValues.length} eligible final-response target distance(s) in question order. Median ${median(distValues).toFixed(1)} px; range ${Math.min(...distValues).toFixed(1)} to ${Math.max(...distValues).toFixed(1)} px.`
+      : 'No eligible current-session target distances have been recorded.';
 
     clearNode(ui.familySummaryBody);
     const familyRows = summary.domain_summaries && summary.domain_summaries.length

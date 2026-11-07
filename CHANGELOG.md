@@ -85,10 +85,13 @@ All notable changes to ChoiceTrain are listed here.
 - versioned trial-recording completeness schema 1.0.0 with final/repeat counts, observed-versus-expected timing and touch fields, support, prompt, generator, option, outcome, and session-identity coverage, plus stable recording flags and explicit validity/consent boundaries
 - a Research trial-completeness dashboard, chart, accessible table, and flag summary; retained repeat attempts remain audit evidence and are not automatically treated as learner errors
 - explicit `aria-describedby` relationships from every Research canvas to readable in-card table or text alternatives, enforced across the complete Research workspace by Playwright
+- a scope-selectable normalised touch map that uses each trial's recorded play-area dimensions instead of the current device size, plots target rings and outcome-specific shapes, reports omitted geometry, and provides a tabular equivalent
+- readable current-session reaction-time and target-distance summaries, with every canvas in the Research destination now included in the same automated accessibility audit
+- a browser-level local-only check proving the V1.8 alpha makes no external runtime requests during load
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary
-- 29 focused V1.8 browser tests, including multi-seed group-completion and category-difference integrity, deterministic teacher-declared colour replay, multi-learner AI-composition visualisation, participant-separated split safeguards, fixed-condition persistence, drift blocking, export, marker, trial-recording completeness, and every-Research-chart accessibility coverage; the complete stable, archive, and alpha matrix passes 106 tests
+- 30 focused V1.8 browser tests, including multi-seed group-completion and category-difference integrity, deterministic teacher-declared colour replay, multi-learner AI-composition visualisation, participant-separated split safeguards, fixed-condition persistence, drift blocking, export, marker, trial-recording completeness, normalized touch-map evidence, local-only runtime behavior, and every-Research-chart accessibility coverage; the complete stable, archive, and alpha matrix passes 107 tests
 
 ### Planned
 

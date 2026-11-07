@@ -57,6 +57,10 @@ Compatible V1.8 response trials add `target_play_x`, `target_play_y`, `target_wi
 
 The spatial view is a description of interaction geometry. Device dimensions, layout, target size, touch scaling, posture, access method, and assistance can all affect it, so it is not a validated motor, visual-field, attention, or diagnostic measure.
 
+The Research `Normalised per-task touch map` can use current-session, current-learner-history, or all-stored-history attempt records. It divides `pointer_play_x`, `pointer_play_y`, `target_play_x`, and `target_play_y` by each trial's own `play_area_width_px` and `play_area_height_px` before plotting. Records without compatible dimensions are counted in the table but are not plotted using the current device as a substitute. Target rings, correct circles, incorrect squares, and commission crosses provide redundant shape coding; omissions have no touch point. The accompanying table reports attempts, plotted touches, observed targets, outcomes, omissions, and commissions.
+
+Normalisation makes coordinates comparable as relative interface positions, not equivalent physical distances. It does not correct for screen size, pixel density, posture, motor access, visual angle, target geometry, or assistance, and it is not included as raw geometry in the privacy-minimised model-development export.
+
 ### Research implementation and transfer-observation views
 
 The support-fading table derives per-session response counts, observed support-status counts, independent percentage, prompted/assisted/unknown counts, mean highest prompt level, actual and target dosage minutes, and implementation-fidelity percentage. Independent percentage uses only responses whose support status was explicitly observed; an absent status remains unknown rather than being treated as independent.

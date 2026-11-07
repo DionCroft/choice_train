@@ -90,6 +90,17 @@ test('V1.8 alpha is versioned without changing the stable entry point', async ({
   expect(index).not.toContain('choice_train_V1.8.0-alpha.js');
 });
 
+test('V1.8 alpha loads without making external runtime requests', async ({ page }) => {
+  const externalRequests = [];
+  page.on('request', request => {
+    const url = new URL(request.url());
+    if(!['127.0.0.1', 'localhost'].includes(url.hostname)) externalRequests.push(request.url());
+  });
+  await gotoAlpha(page);
+  await page.waitForTimeout(150);
+  expect(externalRequests).toEqual([]);
+});
+
 test('V1.8 export declares the versioned research contract and preserves missing values', async ({ page }) => {
   await gotoAlpha(page);
   const payload = await downloadJsonAfter(page, () => page.locator('#exportBtn').click());
@@ -818,7 +829,9 @@ test('Research is a separate admin destination with accessible visual equivalent
       hasReadableAlternative: alternativeIds.some(id => String(document.getElementById(id)?.textContent || '').trim().length > 0)
     };
   }));
+  const researchCanvasCount = await page.locator('#adminAnalyticsSection canvas').count();
   expect(chartAudit.length).toBeGreaterThan(50);
+  expect(chartAudit.length).toBe(researchCanvasCount);
   chartAudit.forEach(chart => {
     expect(chart.role, `${chart.id} must expose an image role`).toBe('img');
     expect(chart.label, `${chart.id} must have an accessible label`).toBeTruthy();
@@ -869,6 +882,13 @@ test('Research visualises versioned trial recording completeness without treatin
   await expect(page.locator('#researchTrialQualityBody tr')).toHaveCount(9);
   await expect(page.locator('#researchTrialQualityBody')).toContainText('Generator provenance');
   await expect(page.locator('#researchTrialQualityNote')).toContainText('not automatically treated as errors');
+  await expect(page.locator('#heatmapCanvas')).toHaveAttribute('data-normalization', 'per-trial-play-area');
+  await expect(page.locator('#heatmapCanvas')).toHaveAttribute('data-source-attempt-count', '1');
+  await expect(page.locator('#heatmapCanvas')).toHaveAttribute('data-plotted-touch-count', '1');
+  await expect(page.locator('#heatmapCanvas')).toHaveAttribute('data-target-geometry-count', '1');
+  await expect(page.locator('#heatmapSummaryBody tr')).toHaveCount(1);
+  await expect(page.locator('#heatmapSummaryBody')).toContainText('Touch object');
+  await expect(page.locator('#heatmapMeta')).toContainText("each trial's recorded play-area dimensions");
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');

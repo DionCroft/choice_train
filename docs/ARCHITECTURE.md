@@ -57,6 +57,7 @@ V1.7 exports include a `sensory_preferences` object containing the selected font
 - `scripts/stamp-build.test.js` validates replacement safety, explicit targeting, and dry-run argument handling with the built-in Node test runner.
 - `schemas/` contains JSON Schema 2020-12 core contracts, and `scripts/schema-contract.test.js` keeps their versions, task/skill enums, recording flags, and privacy invariants aligned with the V1.8 runtime.
 - Research canvases are enhancement-only visualisations. `wireResearchChartAlternatives()` links each canvas by `aria-describedby` to readable table or explanatory text in the same card, and Playwright audits every Research canvas for a resolved, non-empty alternative.
+- Historical touch-map coordinates are normalised with each trial's frozen play-area width and height. Incompatible legacy geometry stays unplotted instead of being rescaled with the current device dimensions; source, plotted-touch, and target-geometry counts remain visible in the table and canvas dataset for audit.
 - `.github/workflows/ci.yml` validates branches and pull requests.
 - `.github/workflows/pages.yml` reruns release-tool and browser suites before deploying `main` to GitHub Pages.
 
