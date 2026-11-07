@@ -184,8 +184,8 @@ The papers above were used to support these broad feature areas:
 - **V1.8 skill graph, longitudinal trends, retention checks, and interpretable recommendations**
   Supported mainly by Corbett and Anderson (1994), Cepeda et al. (2006), Roediger and Karpicke (2006), Camerota et al. (2019), and the transfer caution from Ganesan et al. (2024). These papers inform what should be measured; they do not validate ChoiceTrain's future recommendation rules.
 
-- **V1.8 category matching, category difference, exemplar breadth, and Research profiles**
-  Informed by Wimmer et al. (2023), Ellawadi et al. (2017), and Snape et al. (2018). The papers support category processing as a relevant measurement area and justify collecting accuracy, response time, stability, and exemplar exposure. They do not validate ChoiceTrain as an intervention or establish conceptual mastery, classroom transfer, or neural change.
+- **V1.8 category matching, group completion, category difference, exemplar breadth, and Research profiles**
+  Informed by Wimmer et al. (2023), Ellawadi et al. (2017), and Snape et al. (2018). The papers support category processing as a relevant measurement area and justify collecting accuracy, response time, stability, and exemplar exposure. Snape et al. also cautions that benefits from multiple examples are not uniform. These papers do not validate ChoiceTrain as an intervention or establish conceptual mastery, classroom transfer, or neural change.
 
 ## Important Note
 

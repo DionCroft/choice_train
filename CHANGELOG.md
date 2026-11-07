@@ -7,7 +7,7 @@ All notable changes to ChoiceTrain are listed here.
 ### Implemented on the feature branch
 
 - isolated `choice_train_V1.8.0-alpha` HTML, JavaScript, and CSS files while leaving the V1.7.0 GitHub Pages entry unchanged
-- schema version 7 with versioned skill IDs, structured category-match and category-difference relationship metadata, lesson/generator provenance, null-safe descriptive research summaries, and interpretation boundaries in session exports
+- schema version 8 with versioned skill IDs, structured single- and multi-cue category relationship metadata, lesson/generator provenance, null-safe descriptive research summaries, and interpretation boundaries in session exports
 - a separate local migration version so research-schema changes do not trigger unnecessary IndexedDB photo-asset rewrites
 - a separate `Research` Admin destination with current-session, current-learner, and all-learner scopes; archived sessions remain excluded unless selected
 - accessible chart-and-table views for session accuracy and independent responding, speed versus accuracy, outcome balance, skill profiles, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and transfer observations
@@ -25,13 +25,15 @@ All notable changes to ChoiceTrain are listed here.
 - Research cards, an accessible aggregate chart, and an expanded session table for marker completeness, ordered trials, timing differences, protocol coverage, and declared synchronisation method
 - a separate pseudonymised AI/research export with behavioural features, relative marker times, skill summaries, and sanitised teacher decisions; it excludes names, aliases, free text, images, photo labels, exact timestamps, source session IDs, prompt wording, and raw touch coordinates
 - persistent random research participant codes, with explicit wording that pseudonymised data is not anonymous and remains subject to school governance
-- generator version 1.4.0 and skill graph version 1.2.0 with deterministic `balanced-before-repeat` category and target schedules for Find object, Find category, Match category, Find the different one, Discriminate object, and Choice preference
+- generator version 1.5.0 and skill graph version 1.3.0 with deterministic `balanced-before-repeat` category and target schedules for Find object, Find category, Match category, Complete the group, Find the different one, Discriminate object, and Choice preference
 - a metadata-defined `Match category` lesson that keeps one non-selectable cue exemplar visible above the choices, requires a different same-category target, and excludes category-matching distractors
 - a metadata-defined `Find the different one` lesson that presents at least two differently labelled members of one reference category and exactly one outside-category target; it records the reference category, target relationship, and generator constraints for audit and Research views
-- a three-task automatic Level 6 rotation across Find category, Match category, and Find the different one when at least three answer options are configured; two-option sessions retain the first two tasks
+- a metadata-defined `Complete the group` lesson with two distinct non-selectable cue exemplars, one same-category target, outside-category distractors, structured cue-list metadata, and a separate `categorisation.complete_group` skill
+- a four-task automatic Level 6 rotation across Find category, Match category, Complete the group, and Find the different one when at least three answer options are configured; two-option sessions retain all except Find the different one
 - multi-seed browser safeguards for category-task grammar, distinct IDs and labels, source/category constraints, exactly one valid answer, reproducible provenance, and Level 6 task rotation
 - an accessible category-matching Research profile for trials, categories, distinct cues, targets and cue-target pairs, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
-- Research workspace summary export version 1.3.0 with category-level matching and category-difference aggregates, fixed-condition adherence rows, and no cue or target item labels
+- Research workspace summary export version 1.4.0 with category-level matching, group-completion, and category-difference aggregates, fixed-condition adherence rows, and no cue or target item labels
+- an accessible complete-the-group Research profile for cue, cue-set and target breadth, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
 - an accessible category-difference Research profile for reference categories, group-exemplar and outside-target breadth, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
 - local fixed-condition manifests with non-identifying condition IDs, deterministic settings fingerprints, required replay seeds, protected non-overwrite behaviour, and save/apply controls under Admin and research
 - opt-in session-start enforcement that blocks missing or drifted fixed conditions while leaving ordinary classroom sessions unrestricted; the frozen manifest, adherence result, condition ID, and fingerprint are retained in session, EEG, and marker exports
@@ -74,7 +76,7 @@ All notable changes to ChoiceTrain are listed here.
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary
-- 25 focused V1.8 browser tests, including multi-seed category-difference integrity, fixed-condition persistence, drift blocking, replay, export, marker, and Research-view coverage; the complete stable, archive, and alpha matrix passes 102 tests
+- 26 focused V1.8 browser tests, including multi-seed group-completion and category-difference integrity, fixed-condition persistence, drift blocking, replay, export, marker, and Research-view coverage; the complete stable, archive, and alpha matrix passes 103 tests
 
 ### Planned
 

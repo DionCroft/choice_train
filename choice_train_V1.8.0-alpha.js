@@ -30,15 +30,15 @@
   const CUSTOM_IMAGES_ASSET_KEY = 'profile:customImages';
   const SESSION_ARCHIVE_LIMIT = 60;
   const LOCAL_DATA_MIGRATION_VERSION = 5;
-  const DATA_SCHEMA_VERSION = 7;
-  const SKILL_GRAPH_VERSION = '1.2.0';
-  const GENERATOR_VERSION = '1.4.0';
+  const DATA_SCHEMA_VERSION = 8;
+  const SKILL_GRAPH_VERSION = '1.3.0';
+  const GENERATOR_VERSION = '1.5.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.3.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.4.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
@@ -274,6 +274,7 @@
     'discriminate-object': { label: 'Discriminate object', family: 'foundation', domain: 'discrimination' },
     'find-category': { label: 'Find category', family: 'foundation', domain: 'reasoning' },
     'match-category': { label: 'Match category', family: 'foundation', domain: 'reasoning' },
+    'complete-category-group': { label: 'Complete the group', family: 'foundation', domain: 'reasoning' },
     'category-exclusion': { label: 'Find the different one', family: 'foundation', domain: 'reasoning' },
     'choice-preference': { label: 'Choice preference', family: 'foundation', domain: 'choice' },
     'cpat-suite': { label: 'AT suite', family: 'cpat', domain: 'mixed' },
@@ -291,6 +292,7 @@
     'discrimination.named_object': Object.freeze({ label: 'Discriminate a named object', prerequisites: ['recognition.named_object'] }),
     'categorisation.category_member': Object.freeze({ label: 'Select a category member', prerequisites: ['discrimination.named_object'] }),
     'categorisation.match_category': Object.freeze({ label: 'Match different members of a category', prerequisites: ['categorisation.category_member'] }),
+    'categorisation.complete_group': Object.freeze({ label: 'Complete a category group from multiple examples', prerequisites: ['categorisation.match_category'] }),
     'categorisation.category_exclusion': Object.freeze({ label: 'Select an item outside a reference category', prerequisites: ['categorisation.category_member'] }),
     'choice.preference': Object.freeze({ label: 'Express a preference', prerequisites: ['access.touch_target'] }),
     'attention.sustained': Object.freeze({ label: 'Sustained attention practice', prerequisites: ['access.touch_target'] }),
@@ -307,6 +309,7 @@
     'discriminate-object': Object.freeze(['discrimination.named_object']),
     'find-category': Object.freeze(['categorisation.category_member']),
     'match-category': Object.freeze(['categorisation.match_category']),
+    'complete-category-group': Object.freeze(['categorisation.complete_group']),
     'category-exclusion': Object.freeze(['categorisation.category_exclusion']),
     'choice-preference': Object.freeze(['choice.preference']),
     'cpat-suite': Object.freeze(['attention.sustained', 'attention.selective_spatial', 'attention.orienting', 'attention.executive']),
@@ -1132,6 +1135,16 @@
     return prompts[Math.max(0, index - 1) % prompts.length];
   }
 
+  function buildCategoryGroupPrompt(index){
+    const prompts = [
+      'Find one more for the group',
+      'Which one belongs with this group?',
+      'Can you find another one for the group?',
+      'Which one completes the group?'
+    ];
+    return prompts[Math.max(0, index - 1) % prompts.length];
+  }
+
   function setFooter(text, pillText){
     if(ui.footerHint) ui.footerHint.textContent = text;
     if(ui.touchInfo) ui.touchInfo.textContent = pillText;
@@ -1286,6 +1299,7 @@
       reference_category: question.referenceCategory || null,
       category_relation: question.categoryRelation || null,
       cue_id: question.cueOption ? question.cueOption.id : null,
+      cue_ids: Array.isArray(question.cueOptions) ? question.cueOptions.map(option => option.id) : (question.cueOption ? [question.cueOption.id] : []),
       cue_category: question.cueCategory || null,
       procedural_variant: question.proceduralVariant || null,
       discrimination_contrast: question.discriminationContrast || null,
@@ -3165,6 +3179,15 @@
     });
   }
 
+  function fairGroupCompletionCategories(categories, pool){
+    const selected = normalizeCategorySelection(categories, []);
+    return selected.filter(category => {
+      const members = uniqueOptions(pool.filter(item => optionMatchesCategory(item, category)), true);
+      const distractors = uniqueOptions(pool.filter(item => !optionMatchesCategory(item, category)), true);
+      return members.length >= 3 && distractors.length > 0;
+    });
+  }
+
   function contentOptionMetadata(item){
     return {
       id: item.id,
@@ -3184,6 +3207,7 @@
     const findCategoryFair = fairPromptCategories(filters.findCategoryCategories, findCategoryItems);
     const matchCategoryFair = fairMatchCategories(filters.findCategoryCategories, findCategoryItems);
     const exclusionCategoryFair = fairExclusionCategories(filters.findCategoryCategories, findCategoryItems);
+    const groupCompletionFair = fairGroupCompletionCategories(filters.findCategoryCategories, findCategoryItems);
     const categoryLabels = ids => ids.map(id => ({ id, label: categoryMeta(id).label }));
     return {
       schemaVersion: DATA_SCHEMA_VERSION,
@@ -3200,6 +3224,7 @@
         fairPromptCategories: categoryLabels(findCategoryFair),
         fairMatchCategories: categoryLabels(matchCategoryFair),
         fairExclusionCategories: categoryLabels(exclusionCategoryFair),
+        fairGroupCompletionCategories: categoryLabels(groupCompletionFair),
         sourceMode: filters.findCategorySource,
         items: findCategoryItems.map(item => ({ ...item })),
         itemMetadata: findCategoryItems.map(contentOptionMetadata)
@@ -3224,6 +3249,7 @@
         fair_prompt_categories: snapshot.findCategory.fairPromptCategories,
         fair_match_categories: snapshot.findCategory.fairMatchCategories,
         fair_exclusion_categories: snapshot.findCategory.fairExclusionCategories,
+        fair_group_completion_categories: snapshot.findCategory.fairGroupCompletionCategories,
         source_mode: snapshot.findCategory.sourceMode,
         usable_item_count: snapshot.findCategory.itemMetadata.length,
         items: snapshot.findCategory.itemMetadata
@@ -3279,11 +3305,22 @@
     return { valid, message, config, fair };
   }
 
+  function categoryGroupCompletionConfiguration(snapshot=buildContentConfigurationSnapshot()){
+    const config = snapshot.findCategory;
+    const fair = config.fairGroupCompletionCategories || [];
+    const valid = fair.length >= 2;
+    const categoryNames = config.categories.map(category => category.label).join(', ') || 'None';
+    let message = `Categories: ${categoryNames}. Source: ${sourceModeLabel(config.sourceMode)}. ${config.items.length} usable items; ${fair.length} can produce fair complete-the-group questions.`;
+    if(config.categories.length < 2) message = 'Complete the group needs at least two selected categories.';
+    else if(fair.length < 2) message = 'Complete the group needs at least two categories with three differently labelled members and an item outside the category.';
+    return { valid, message, config, fair };
+  }
+
   function categoryLessonTaskKinds(){
     const maxAnswerOptions = clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6);
-    return maxAnswerOptions >= 3
-      ? ['find-category', 'match-category', 'category-exclusion']
-      : ['find-category', 'match-category'];
+    const kinds = ['find-category', 'match-category', 'complete-category-group'];
+    if(maxAnswerOptions >= 3) kinds.push('category-exclusion');
+    return kinds;
   }
 
   function effectiveConfiguredTaskKinds(){
@@ -3304,14 +3341,16 @@
     const categoryCheck = findCategoryConfiguration(snapshot);
     const matchCheck = matchCategoryConfiguration(snapshot);
     const exclusionCheck = categoryExclusionConfiguration(snapshot);
+    const groupCompletionCheck = categoryGroupCompletionConfiguration(snapshot);
     const usesObjectContent = kinds.some(kind => ['find-object', 'discriminate-object', 'choice-preference'].includes(kind));
     ui.findObjectConfig.hidden = !usesObjectContent;
-    ui.findCategoryConfig.hidden = !kinds.some(kind => ['find-category', 'match-category', 'category-exclusion'].includes(kind));
+    ui.findCategoryConfig.hidden = !kinds.some(kind => ['find-category', 'match-category', 'complete-category-group', 'category-exclusion'].includes(kind));
     ui.findObjectConfigSummary.textContent = objectCheck.message;
     ui.findObjectConfigSummary.classList.toggle('invalid', !objectCheck.valid);
     const activeCategoryChecks = [
       kinds.includes('find-category') ? categoryCheck : null,
       kinds.includes('match-category') ? matchCheck : null,
+      kinds.includes('complete-category-group') ? groupCompletionCheck : null,
       kinds.includes('category-exclusion') ? exclusionCheck : null
     ].filter(Boolean);
     const activeCategoryCheck = activeCategoryChecks.find(check => !check.valid) || activeCategoryChecks[activeCategoryChecks.length - 1] || categoryCheck;
@@ -3339,16 +3378,20 @@
       const check = categoryExclusionConfiguration(snapshot);
       if(!check.valid) problems.push(check.message);
     }
+    if(kinds.includes('complete-category-group')){
+      const check = categoryGroupCompletionConfiguration(snapshot);
+      if(!check.valid) problems.push(check.message);
+    }
     return { valid: problems.length === 0, problems, snapshot };
   }
 
   function sessionPoolFor(kind){
     if(state.sessionContentConfig){
       if(kind === 'find-object') return state.sessionContentConfig.findObject.items.slice();
-      if(['find-category', 'match-category', 'category-exclusion'].includes(kind)) return state.sessionContentConfig.findCategory.items.slice();
+      if(['find-category', 'match-category', 'complete-category-group', 'category-exclusion'].includes(kind)) return state.sessionContentConfig.findCategory.items.slice();
     }
     const snapshot = buildContentConfigurationSnapshot();
-    return ['find-category', 'match-category', 'category-exclusion'].includes(kind) ? snapshot.findCategory.items : snapshot.findObject.items;
+    return ['find-category', 'match-category', 'complete-category-group', 'category-exclusion'].includes(kind) ? snapshot.findCategory.items : snapshot.findObject.items;
   }
 
   function getFaceObject(){
@@ -3762,6 +3805,49 @@
         categoryRelation: 'outside-reference-category',
         contentConfiguration: exportableContentConfiguration(snapshot).find_category,
         proceduralVariant: 'category-exclusion',
+        expectedResponseType: 'hit'
+      };
+    }
+
+    if(currentKind === 'complete-category-group'){
+      const eligible = sessionPoolFor('complete-category-group');
+      const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
+      const fairCategories = snapshot.findCategory.fairGroupCompletionCategories.map(item => item.id);
+      const occurrence = taskOccurrenceIndex(currentKind, index);
+      const category = balancedLessonChoice(fairCategories, occurrence, 'complete-category-group:categories', item => item);
+      const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, fairCategories.length)) + 1;
+      const members = uniqueOptions(eligible.filter(item => optionMatchesCategory(item, category)), true);
+      const orderedMembers = balancedLessonOrder(members, `complete-category-group:${category}:members:${categoryOccurrence}`);
+      const cueOptions = orderedMembers.slice(0, 2);
+      const target = orderedMembers[2];
+      const usedLabels = new Set(cueOptions.concat(target).map(item => normalizedConceptLabel(item.label)));
+      const distractorPool = uniqueOptions(eligible.filter(item => (
+        !optionMatchesCategory(item, category)
+        && !usedLabels.has(normalizedConceptLabel(item.label))
+      )), true);
+      const distractors = balancedLessonOrder(distractorPool, `complete-category-group:q${index}:distractors:${category}:${target.id}`)
+        .slice(0, Math.min(optionCount - 1, distractorPool.length));
+      return {
+        ...baseQuestion,
+        prompt: buildCategoryGroupPrompt(index),
+        cueSummary: `Two examples from ${categoryMeta(category).label} are shown. Choose one more from the same teacher-defined category.`,
+        cueOption: cueOptions[0],
+        cueOptions,
+        cueCategory: category,
+        promptPreviewOption: cueOptions[0],
+        promptPreviewText: 'Find one more for the group',
+        target,
+        options: shuffle([target].concat(distractors)),
+        correctId: target.id,
+        renderMode: 'grid',
+        distractorCount: distractors.length,
+        targetCategory: category,
+        targetCategoryLabel: categoryMeta(category).label,
+        referenceCategory: category,
+        referenceCategoryLabel: categoryMeta(category).label,
+        categoryRelation: 'same-as-reference-category',
+        contentConfiguration: exportableContentConfiguration(snapshot).find_category,
+        proceduralVariant: 'category-group-completion',
         expectedResponseType: 'hit'
       };
     }
@@ -4185,6 +4271,9 @@
   }
 
   function createTrial(question, attemptIndex){
+    const cueOptions = Array.isArray(question.cueOptions) && question.cueOptions.length
+      ? question.cueOptions
+      : (question.cueOption ? [question.cueOption] : []);
     return {
       trial_id: uuid4(),
       session_id: state.sessionId,
@@ -4244,11 +4333,14 @@
       cue_category_label: question.cueCategory ? categoryMeta(question.cueCategory).label : '',
       cue_source: question.cueOption ? normalizeImageSource(question.cueOption.source) : '',
       cue_metadata: question.cueOption ? contentOptionMetadata(question.cueOption) : null,
+      cue_ids: cueOptions.map(option => option.id),
+      cue_labels: cueOptions.map(option => option.label || '').filter(Boolean),
+      cue_metadata_list: cueOptions.map(contentOptionMetadata),
       prompt_wording: question.prompt || '',
       option_labels: Array.isArray(question.options) ? question.options.map(option => option.label || '').filter(Boolean) : [],
       option_metadata: Array.isArray(question.options) ? question.options.map(contentOptionMetadata) : [],
       photo_labels_used: Array.from(new Set((Array.isArray(question.options) ? question.options : [])
-        .concat(question.cueOption ? [question.cueOption] : [])
+        .concat(cueOptions)
         .filter(option => option && option.src)
         .map(option => option.label || '')
         .filter(Boolean))),
@@ -4697,7 +4789,28 @@
       return;
     }
 
-    if(question.kind === 'match-category' && question.cueOption){
+    if(question.kind === 'complete-category-group' && Array.isArray(question.cueOptions)){
+      const cueCard = document.createElement('div');
+      cueCard.className = 'bigCard matchCueCard groupCueCard';
+      cueCard.dataset.cueIds = question.cueOptions.map(option => option.id).join(',');
+      cueCard.setAttribute('aria-label', `Complete the group with ${question.cueOptions.map(option => option.label).join(' and ')}`);
+      const cueLead = document.createElement('div');
+      cueLead.className = 'choiceSmall';
+      cueLead.textContent = 'Complete the group';
+      const cueItems = document.createElement('div');
+      cueItems.className = 'groupCueItems';
+      question.cueOptions.forEach(option => {
+        const cueItem = document.createElement('div');
+        cueItem.className = 'groupCueItem';
+        const cueLabel = document.createElement('div');
+        cueLabel.className = 'choiceLabel';
+        cueLabel.textContent = option.label;
+        setNodeChildren(cueItem, buildChoiceMediaElement(option, 'choiceMedia'), cueLabel);
+        cueItems.appendChild(cueItem);
+      });
+      setNodeChildren(cueCard, cueLead, cueItems);
+      ui.choiceGrid.appendChild(cueCard);
+    } else if(question.kind === 'match-category' && question.cueOption){
       const cueCard = document.createElement('div');
       cueCard.className = 'bigCard matchCueCard';
       cueCard.dataset.cueId = question.cueOption.id;
@@ -5719,7 +5832,7 @@
   function preferredTaskKindForSkill(skillId){
     const preferredOrder = [
       'touch-screen', 'touch-object', 'moving-target', 'find-object', 'discriminate-object', 'find-category',
-      'match-category', 'category-exclusion', 'choice-preference', 'cpat-sustained', 'cpat-selective', 'cpat-orienting', 'cpat-executive'
+      'match-category', 'complete-category-group', 'category-exclusion', 'choice-preference', 'cpat-sustained', 'cpat-selective', 'cpat-orienting', 'cpat-executive'
     ];
     return preferredOrder.find(kind => (TASK_SKILL_IDS[kind] || []).includes(skillId)) || 'auto';
   }
@@ -7528,6 +7641,83 @@
     })).sort((a, b) => b.trials - a.trials || a.reference_category.localeCompare(b.reference_category));
   }
 
+  function categoryGroupCompletionIntegrity(trial){
+    if(!trial || trial.task_kind !== 'complete-category-group') return { observed: false, valid: false };
+    const cues = Array.isArray(trial.cue_metadata_list) && trial.cue_metadata_list.length
+      ? trial.cue_metadata_list
+      : (trial.cue_metadata ? [trial.cue_metadata] : []);
+    const options = Array.isArray(trial.option_metadata) ? trial.option_metadata : [];
+    const observed = !!(trial.reference_category && trial.target_id && cues.length >= 2 && options.length >= 2);
+    if(!observed) return { observed: false, valid: false };
+    const cueIds = cues.map(option => option.id);
+    const matchingOptions = options.filter(option => storedOptionMatchesCategory(option, trial.reference_category));
+    return {
+      observed: true,
+      valid: new Set(cueIds).size === cues.length
+        && cues.every(option => storedOptionMatchesCategory(option, trial.reference_category))
+        && !options.some(option => cueIds.includes(option.id))
+        && matchingOptions.length === 1
+        && matchingOptions[0].id === trial.target_id
+        && new Set(options.map(option => option.id)).size === options.length
+        && new Set(options.map(option => normalizedConceptLabel(option.label))).size === options.length
+    };
+  }
+
+  function categoryGroupCompletionResearchRows(trials){
+    const groups = new Map();
+    (Array.isArray(trials) ? trials : [])
+      .filter(trial => trial.task_kind === 'complete-category-group')
+      .forEach(trial => {
+        const category = trial.reference_category_label || trial.reference_category || 'Not recorded';
+        if(!groups.has(category)){
+          groups.set(category, {
+            category,
+            trials: 0,
+            correct: 0,
+            independent_correct: 0,
+            omissions: 0,
+            cue_ids: new Set(),
+            target_ids: new Set(),
+            cue_sets: new Set(),
+            response_times: [],
+            integrity_observed: 0,
+            integrity_valid: 0
+          });
+        }
+        const item = groups.get(category);
+        item.trials += 1;
+        if(trial.correct) item.correct += 1;
+        if(trial.correct && trial.independence_status === 'independent') item.independent_correct += 1;
+        if(trial.omission) item.omissions += 1;
+        const cueIds = Array.isArray(trial.cue_ids) && trial.cue_ids.length
+          ? trial.cue_ids
+          : (trial.cue_id ? [trial.cue_id] : []);
+        cueIds.forEach(id => item.cue_ids.add(id));
+        if(cueIds.length) item.cue_sets.add(cueIds.slice().sort().join('|'));
+        if(trial.target_id) item.target_ids.add(trial.target_id);
+        if(Number.isFinite(trial.response_time_ms)) item.response_times.push(trial.response_time_ms);
+        const integrity = categoryGroupCompletionIntegrity(trial);
+        if(integrity.observed){
+          item.integrity_observed += 1;
+          if(integrity.valid) item.integrity_valid += 1;
+        }
+      });
+    return Array.from(groups.values()).map(item => ({
+      category: item.category,
+      trials: item.trials,
+      distinct_cues: item.cue_ids.size,
+      distinct_cue_sets: item.cue_sets.size,
+      distinct_targets: item.target_ids.size,
+      accuracy_pct: percentage(item.correct, item.trials),
+      independent_success_pct: percentage(item.independent_correct, item.trials),
+      omissions: item.omissions,
+      median_reaction_time_ms: item.response_times.length ? Math.round(median(item.response_times)) : null,
+      generator_integrity_observed: item.integrity_observed,
+      generator_integrity_valid: item.integrity_valid,
+      generator_integrity_pct: item.integrity_observed ? percentage(item.integrity_valid, item.integrity_observed) : null
+    })).sort((a, b) => b.trials - a.trials || a.category.localeCompare(b.category));
+  }
+
   function renderResearchWorkspace(){
     if(!ui.researchScopeSelect) return;
     const sessions = researchSessionsInScope();
@@ -8300,6 +8490,41 @@
     ui.researchMatchCategoryNote.textContent = scope === 'all-learners'
       ? 'Rows pool learners and are not a single learning trajectory. Category matching describes delivered in-app tasks; generator integrity is an engineering/data-quality check, not a pupil outcome or evidence of generalisation.'
       : 'Category matching describes delivered in-app cue-and-choice tasks. Generator integrity is an engineering/data-quality check of stored cue, target, category, and option relationships; neither measure proves conceptual mastery or real-world generalisation.';
+
+    const groupRows = categoryGroupCompletionResearchRows(finalTrials);
+    const groupTrialCount = groupRows.reduce((sum, item) => sum + item.trials, 0);
+    const groupCueCount = groupRows.reduce((sum, item) => sum + item.distinct_cues, 0);
+    const groupIntegrityObserved = groupRows.reduce((sum, item) => sum + item.generator_integrity_observed, 0);
+    const groupIntegrityValid = groupRows.reduce((sum, item) => sum + item.generator_integrity_valid, 0);
+    ui.researchGroupTrials.textContent = String(groupTrialCount);
+    ui.researchGroupCategories.textContent = String(groupRows.length);
+    ui.researchGroupCues.textContent = String(groupCueCount);
+    ui.researchGroupIntegrity.textContent = groupIntegrityObserved ? `${percentage(groupIntegrityValid, groupIntegrityObserved)}%` : 'Not recorded';
+    drawResearchBars(ui.researchGroupCategoryChart, groupRows.map(item => ({
+      label: item.category,
+      value: item.accuracy_pct,
+      color: themeToken('success', themeToken('primary'))
+    })), { maxValue: 100, suffix: '%', labelWidth: 145 });
+    if(groupRows.length){
+      clearNode(ui.researchGroupCategoryBody);
+      groupRows.forEach(item => appendResearchRow(ui.researchGroupCategoryBody, [
+        item.category,
+        item.trials,
+        item.distinct_cues,
+        item.distinct_cue_sets,
+        item.distinct_targets,
+        `${item.accuracy_pct}%`,
+        `${item.independent_success_pct}%`,
+        item.omissions,
+        item.median_reaction_time_ms == null ? null : `${item.median_reaction_time_ms} ms`,
+        item.generator_integrity_pct == null
+          ? 'Not recorded'
+          : `${item.generator_integrity_valid}/${item.generator_integrity_observed} (${item.generator_integrity_pct}%)`
+      ]));
+    } else renderResearchEmptyRow(ui.researchGroupCategoryBody, 10, 'No Complete the group trials in this scope yet.');
+    ui.researchGroupCategoryNote.textContent = scope === 'all-learners'
+      ? 'Rows pool learners and are not a single learning trajectory. Group completion describes delivered in-app tasks; multiple examples do not by themselves demonstrate conceptual mastery or generalisation.'
+      : 'Group completion describes delivered in-app tasks using two category examples. Generator integrity is an engineering/data-quality check; multiple examples do not by themselves demonstrate conceptual mastery, transfer, or neural change.';
 
     const exclusionRows = categoryExclusionResearchRows(finalTrials);
     const exclusionTrialCount = exclusionRows.reduce((sum, item) => sum + item.trials, 0);
@@ -9459,6 +9684,7 @@
       task_exposure: Array.from(taskGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
       category_exposure: Array.from(categoryGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
       category_matching: categoryMatchResearchRows(finalTrials),
+      category_group_completion: categoryGroupCompletionResearchRows(finalTrials),
       category_exclusion: categoryExclusionResearchRows(finalTrials),
       session_context: context,
       eeg_readiness: eegReadiness,

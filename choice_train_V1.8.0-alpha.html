@@ -496,6 +496,7 @@
                 <option value="find-object">Find object</option>
                 <option value="find-category">Find category</option>
                 <option value="match-category">Match category</option>
+                <option value="complete-category-group">Complete the group</option>
                 <option value="category-exclusion">Find the different one</option>
                 <option value="discriminate-object">Discriminate object</option>
                 <option value="choice-preference">Choice preference</option>
@@ -1568,6 +1569,23 @@
                 </table>
               </div>
               <div id="researchMatchCategoryNote" class="compactNote">Category matching describes performance on delivered in-app cue-and-choice tasks. Generator integrity checks the stored cue, target, category, and option relationship; neither measure proves conceptual mastery or real-world generalisation.</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Complete-the-group profile</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Group trials</div><div class="v" id="researchGroupTrials">0</div></div>
+                <div class="dashCard"><div class="k">Categories</div><div class="v" id="researchGroupCategories">0</div></div>
+                <div class="dashCard"><div class="k">Distinct cues</div><div class="v" id="researchGroupCues">0</div></div>
+                <div class="dashCard"><div class="k">Generator integrity observed</div><div class="v" id="researchGroupIntegrity">&mdash;</div></div>
+              </div>
+              <canvas id="researchGroupCategoryChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Complete the group accuracy by teacher-defined category"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Category</th><th>Trials</th><th>Cues</th><th>Cue sets</th><th>Targets</th><th>Accuracy</th><th>Independent success</th><th>Omissions</th><th>Median RT</th><th>Generator integrity</th></tr></thead>
+                  <tbody id="researchGroupCategoryBody"></tbody>
+                </table>
+              </div>
+              <div id="researchGroupCategoryNote" class="compactNote">Group completion describes delivered in-app tasks using two category examples. Generator integrity is an engineering/data-quality check; multiple examples do not by themselves demonstrate conceptual mastery, transfer, or neural change.</div>
             </div>
             <div class="chartCard span2">
               <h4>Category difference profile</h4>

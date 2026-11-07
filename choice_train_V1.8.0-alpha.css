@@ -797,6 +797,31 @@ td {
   flex: 0 0 88px;
 }
 
+.groupCueCard {
+  flex-direction: column;
+  width: min(100%, 560px);
+}
+
+.groupCueItems {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 18px;
+  width: 100%;
+}
+
+.groupCueItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 150px;
+}
+
+.groupCueItem .choiceMedia {
+  width: 76px;
+  flex-basis: 76px;
+}
+
 .main button.choice.correct {
   color: var(--text);
   background: var(--success-soft);
