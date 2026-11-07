@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 
 const APP_PATH = '/choice_train_V1.8.0-alpha.html';
 const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.schema.json', 'utf8'));
-const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v1.7.schema.json', 'utf8'));
+const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v1.8.schema.json', 'utf8'));
 const DATA_QUALITY_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-data-quality-v1.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
 
@@ -670,7 +670,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('1.7.0');
+  expect(researchPayload.export_schema_version).toBe('1.8.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.trials, 0)).toBe(8);
@@ -748,7 +748,7 @@ test('Complete the group uses two distinct cues and one same-category answer acr
   await expect(page.locator('#researchGroupCategoryNote')).toContainText('multiple examples');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.7.0');
+  expect(researchPayload.export_schema_version).toBe('1.8.0');
   expect(researchPayload.category_group_completion).toHaveLength(4);
   expect(researchPayload.category_group_completion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -816,7 +816,7 @@ test('Find the different one keeps exactly one outside-category target and visua
   await expect(page.locator('#researchExclusionCategoryNote')).toContainText('not a pupil outcome');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.7.0');
+  expect(researchPayload.export_schema_version).toBe('1.8.0');
   expect(researchPayload.category_exclusion).toHaveLength(4);
   expect(researchPayload.category_exclusion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -946,7 +946,7 @@ test('Find by colour uses teacher-declared metadata with deterministic one-answe
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('1.7.0');
+  expect(researchPayload.export_schema_version).toBe('1.8.0');
   expect(researchPayload.attribute_selection).toHaveLength(1);
   expect(researchPayload.attribute_selection.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.find_attribute_trials, 0)).toBe(1);
@@ -1217,7 +1217,7 @@ test('Research visualises future AI dataset composition without performing a mod
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('1.7.0');
+  expect(researchPayload.export_schema_version).toBe('1.8.0');
   expect(researchPayload.model_dataset_composition).toEqual(expect.objectContaining({
     profile_version: '1.0.0',
     participant_count: 2,
@@ -1386,7 +1386,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('1.7.0');
+  expect(researchPayload.export_schema_version).toBe('1.8.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);
@@ -1668,8 +1668,8 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
     supersedes_review_id: adjustedReview.review_id,
     final_plan: null
   }));
-  expect(payload.practice_status_version).toBe('1.0.0');
-  expect(payload.recommendation_version).toBe('1.2.0');
+  expect(payload.practice_status_version).toBe('1.1.0');
+  expect(payload.recommendation_version).toBe('1.3.0');
   expect(payload.local_recommendation_summary.external_transmission).toBe(false);
 });
 
@@ -1714,7 +1714,7 @@ test('an approved recommendation is explicitly staged, linked to one session, an
     application_schema_version: '1.0.0',
     application_status: 'applied-as-reviewed',
     application_method: 'teacher-explicit',
-    recommendation_version: '1.2.0',
+    recommendation_version: '1.3.0',
     review_decision: 'adjusted',
     task_kind: 'find-object',
     level: 5,
@@ -1729,7 +1729,7 @@ test('an approved recommendation is explicitly staged, linked to one session, an
   expect(payload.trials[0]).toEqual(expect.objectContaining({
     recommendation_id: application.recommendation_id,
     recommendation_review_id: application.review_id,
-    recommendation_version: '1.2.0',
+    recommendation_version: '1.3.0',
     recommendation_review_decision: 'adjusted',
     recommendation_application_status: 'applied-as-reviewed'
   }));
@@ -1798,6 +1798,12 @@ test('Research labels a spaced follow-up as an observed retention comparison', a
   await setValue(page, 'sessionTaskType', 'find-object');
   await setValue(page, 'startLevel', 4);
   await setValue(page, 'sessionMax', 3);
+  await setValue(page, 'retentionGapDays', 999);
+  await expect(page.locator('#retentionGapDays')).toHaveValue('365');
+  await setValue(page, 'retentionGapDays', 14);
+  await page.waitForTimeout(250);
+  await page.reload();
+  await expect(page.locator('#retentionGapDays')).toHaveValue('14');
 
   async function completeThreeQuestions(){
     for(let index = 0; index < 3; index += 1){
@@ -1824,7 +1830,7 @@ test('Research labels a spaced follow-up as an observed retention comparison', a
       request.onsuccess = () => resolve(request.result);
       request.onerror = () => reject(request.error);
     });
-    const offset = 8 * 24 * 60 * 60 * 1000;
+    const offset = 15 * 24 * 60 * 60 * 1000;
     record.updated_at_wall_ms -= offset;
     record.trials.forEach(trial => {
       ['cue_onset_wall_ms', 'stimulus_onset_wall_ms', 'response_wall_ms', 'feedback_onset_wall_ms'].forEach(field => {
@@ -1840,9 +1846,25 @@ test('Research labels a spaced follow-up as an observed retention comparison', a
     database.close();
   }, first.session_id);
 
-  await page.locator('#summaryRestart').click();
+  await page.reload();
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#refreshResearchBtn').click();
+  await expect(page.locator('#researchRetentionGap')).toHaveText('14 days');
+  await expect(page.locator('#researchRetentionDueCount')).toHaveText('1');
+  await expect(page.locator('#researchRetentionScheduledCount')).toHaveText('0');
+  await expect(page.locator('#researchPracticeBody')).toContainText('Due now (1d past planned date)');
+  await expect(page.locator('#researchRecommendationSummary')).toContainText('Run a spaced retention check');
+  await expect(page.locator('#researchRecommendationRationale')).toContainText('configured 14-day check interval');
+
+  await page.locator('#teacherPanelTab').click();
+  await page.locator('#quickStartSessionBtn').click();
   await completeThreeQuestions();
-  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  const second = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  expect(second.retention_planning.version).toBe('1.0.0');
+  expect(second.retention_planning.configured_gap_days).toBe(14);
   await page.locator('#teacherExitHold').focus();
   await page.locator('#teacherExitHold').press('Enter');
   await page.locator('#adminPanelTab').click();
@@ -1850,11 +1872,26 @@ test('Research labels a spaced follow-up as an observed retention comparison', a
   await page.locator('#refreshResearchBtn').click();
 
   await expect(page.locator('#researchPracticeBody')).toContainText('Similar at spaced observation');
-  await expect(page.locator('#researchPracticeBody')).toContainText('8d gap');
+  await expect(page.locator('#researchPracticeBody')).toContainText('15d gap');
+  await expect(page.locator('#researchPracticeBody')).toContainText('Not yet due (14 days remaining)');
   await expect(page.locator('#researchPracticeBody')).not.toContainText('mastery');
+  await expect(page.locator('#researchRetentionDueCount')).toHaveText('0');
+  await expect(page.locator('#researchRetentionScheduledCount')).toHaveText('1');
+  await expect(page.locator('#researchRetentionObservedCount')).toHaveText('1');
+  await expect(page.locator('#researchRetentionScheduleChart')).toBeVisible();
   await expect(page.locator('#researchCadenceBody tr')).toHaveCount(2);
-  await expect(page.locator('#researchMedianSessionGap')).toHaveText('8 days');
-  await expect(page.locator('#researchCadenceBody')).toContainText('8 days');
+  await expect(page.locator('#researchMedianSessionGap')).toHaveText('15 days');
+  await expect(page.locator('#researchCadenceBody')).toContainText('15 days');
+
+  const research = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expectCoreSchema(research, RESEARCH_SCHEMA);
+  expect(research.retention_planning.configured_gap_days).toBe(14);
+  expect(research.retention_planning.due_now_count).toBe(0);
+  expect(research.retention_planning.not_yet_due_count).toBe(1);
+  expect(research.retention_planning.observed_comparison_count).toBe(1);
+  expect(research.retention_planning.rows[0].retention_gap_days).toBe(15);
+  expect(research.retention_planning.rows[0].next_retention_check_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  expect(JSON.stringify(research.retention_planning)).not.toContain('wall_ms');
 });
 
 test('Research view keeps same-numbered questions from separate sessions distinct', async ({ page }) => {
@@ -2093,6 +2130,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   await setCheckbox(page, 'modelDevelopmentApproved', true);
   await setValue(page, 'governanceReference', 'SECRET-GOVERNANCE-REFERENCE');
   await setValue(page, 'governanceReviewDate', '2027-06-01');
+  await setValue(page, 'retentionGapDays', 21);
   await setValue(page, 'startLevel', 4);
   await setValue(page, 'sessionMax', 1);
 
@@ -2110,6 +2148,11 @@ test('pseudonymised AI research export excludes direct identifiers and free text
       model_development: true
     }),
     authority_evidence_stored_in_choice_train: false
+  }));
+  expect(sessionPayload.retention_planning).toEqual(expect.objectContaining({
+    version: '1.0.0',
+    configured_gap_days: 21,
+    minimum_scored_opportunities_per_observation: 3
   }));
   await page.locator('#teacherExitHold').focus();
   await page.locator('#teacherExitHold').press('Enter');
@@ -2260,6 +2303,11 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(payload.sessions[0].starting_level).toBe(4);
   expect(payload.sessions[0].ending_level).toBe(5);
   expect(payload.sessions[0].session_task_mode).toBe('auto');
+  expect(payload.sessions[0].retention_planning).toEqual({
+    version: '1.0.0',
+    configured_gap_days: 21,
+    minimum_scored_opportunities_per_observation: 3
+  });
   expect(payload.sessions[0].trials[0].skill_ids).toContain('recognition.named_object');
   expect(payload.sessions[0].trials[0].coverage_strategy).toBe('balanced-before-repeat');
   expect(payload.sessions[0].trials[0].correct).toBe(true);

@@ -35,9 +35,9 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
 });
 
 test('Research summary schema matches its runtime export version and category/AI composition sections', () => {
-  const contract = schema('choice-train-research-summary-v1.7.schema.json');
+  const contract = schema('choice-train-research-summary-v1.8.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('RESEARCH_WORKSPACE_EXPORT_VERSION'));
-  ['category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition']
+  ['retention_planning', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition']
     .forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
   assert.equal(contract.properties.data_quality.$ref, 'choice-train-data-quality-v1.schema.json');
   const profile = contract.properties.model_dataset_composition;
@@ -45,6 +45,15 @@ test('Research summary schema matches its runtime export version and category/AI
   assert.equal(profile.properties.split_policy.properties.participant_separated_split_required.const, true);
   assert.equal(profile.properties.split_policy.properties.automatic_split_performed.const, false);
   assert.equal(profile.properties.split_policy.properties.random_trial_split_allowed.const, false);
+  const retention = contract.properties.retention_planning;
+  assert.equal(retention.properties.version.const, runtimeConstant('RETENTION_PLANNING_VERSION'));
+  assert.equal(retention.properties.configured_gap_days.minimum, 1);
+  assert.equal(retention.properties.configured_gap_days.maximum, 365);
+  assert.equal(retention.properties.minimum_scored_opportunities_per_observation.const, 3);
+  assert.deepEqual(new Set(retention.properties.rows.items.properties.retention_due_status.enum), new Set(['due', 'not-yet-due']));
+  const datePattern = new RegExp(retention.properties.rows.items.properties.next_retention_check_date.pattern);
+  assert.equal(datePattern.test('2026-11-07'), true);
+  assert.equal(datePattern.test('07-11-2026'), false);
 });
 
 test('data-quality schema locks recording-completeness fields and flags', () => {
@@ -87,7 +96,11 @@ test('model-development schema locks privacy and human-oversight invariants', ()
   Object.values(contract.properties.privacy_manifest.properties)
     .forEach(definition => assert.equal(definition.const, false));
   assert.ok(contract.properties.sessions.items.required.includes('eeg_marker_diagnostics'));
+  assert.ok(contract.properties.sessions.items.required.includes('retention_planning'));
   assert.equal(contract.properties.sessions.items.properties.eeg_marker_diagnostics.$ref, '#/$defs/privacySafeMarkerDiagnostics');
+  assert.equal(contract.properties.sessions.items.properties.retention_planning.oneOf[0].$ref, '#/$defs/privacySafeRetentionPlanning');
+  assert.equal(contract.$defs.privacySafeRetentionPlanning.additionalProperties, false);
+  assert.equal(contract.$defs.privacySafeRetentionPlanning.properties.configured_gap_days.maximum, 365);
   const diagnostics = contract.$defs.privacySafeMarkerDiagnostics;
   assert.equal(diagnostics.additionalProperties, false);
   assert.equal(diagnostics.properties.hardware_synchronization_verified.const, false);

@@ -10,7 +10,7 @@ const EXPECTED_CONTRACTS = Object.freeze({
   dataSchema: '8',
   skillGraph: '1.4.0',
   generator: '1.6.0',
-  researchWorkspaceExport: '1.7.0',
+  researchWorkspaceExport: '1.8.0',
   dataQuality: '1.0.0'
 });
 
@@ -94,7 +94,7 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
 check('machine-readable research contracts are present and parseable', () => {
   [
     'schemas/choice-train-trial-v8.schema.json',
-    'schemas/choice-train-research-summary-v1.7.schema.json',
+    'schemas/choice-train-research-summary-v1.8.schema.json',
     'schemas/choice-train-data-quality-v1.schema.json',
     'schemas/choice-train-model-dataset-v1.schema.json'
   ].forEach((file) => {

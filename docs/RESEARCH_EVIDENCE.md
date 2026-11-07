@@ -182,6 +182,7 @@ The papers above were used to support these broad feature areas:
   Supported mainly by Brooker et al. (2020), Xu et al. (2022), Jiang et al. (2019), and Tymofiyeva & Gaschler (2021).
 
 - **V1.8 skill graph, longitudinal trends, retention checks, and interpretable recommendations**
+  Cepeda et al. (2006) supports recording practice spacing and delayed observations while cautioning against one universal interval. V1.8 therefore makes the planning interval configurable, freezes the selected value for reproducibility, and reports observed comparisons without claiming that the interval is optimal or that retention occurred between sessions.
   Supported mainly by Corbett and Anderson (1994), Cepeda et al. (2006), Roediger and Karpicke (2006), Camerota et al. (2019), and the transfer caution from Ganesan et al. (2024). These papers inform what should be measured; they do not validate ChoiceTrain's future recommendation rules.
 
 - **V1.8 category matching, group completion, category difference, exemplar breadth, and Research profiles**

@@ -18,16 +18,21 @@ The alpha retains raw trial records and adds recomputable, versioned planning fi
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `practice_status_version` | string | Version of the transparent skill-state rules |
-| `recommendation_version` | string | Version of the deterministic proposal, review, and explicit application rules; current alpha value `1.2.0` |
+| `recommendation_version` | string | Version of the deterministic proposal, review, and explicit application rules; current alpha value `1.3.0` |
+| `privacy_export_version` | string | Version of the governance-gated model-development export; current alpha value `1.1.0` |
+| `retention_planning` | object | Versioned planning interval, comparison minimum, due/comparison rules, and interpretation boundary frozen into new sessions |
 | `local_recommendation_summary.practice_states` | array | Per-skill opportunity, recency, accuracy, independence, trend, retention, and support summaries |
 | `practice_status` | enum | `not-scored`, `insufficient-sample`, `needs-support`, `developing`, or `consistent-current-sample` |
 | `recent_window_sessions` | number | Number of latest observed sessions used, up to three |
 | `retention_status` | enum | Observed spaced comparison or an explicit no/small-sample state |
 | `retention_gap_days` | number or null | Whole-day gap between the two compared observations |
+| `retention_threshold_days` | number | Configured 1-365-day interval used for due status and observed comparisons |
+| `retention_due_status` | enum | `due` or `not-yet-due`, calculated from the latest observed practice date under the selected interval |
+| `next_retention_check_date` | string or null | Day-level planned check date in a Research scope summary; exact timestamps are not included there |
 | `suggested_next_session` | object | Local proposal, rationale codes, source sessions, task, level, support direction, and interpretation boundary |
 | `teacher_review_history` | array | Local approve/adjust/decline/defer audit records for proposals |
 
-Current alpha rules label samples below five scored opportunities or two sessions as needing more observations. `consistent-current-sample` requires at least eight recent scored opportunities, 80% recent accuracy, and 70% independent success. A retention comparison requires a gap of at least seven days and at least three scored opportunities on both sides; otherwise the sample is labelled too small.
+Current alpha rules label samples below five scored opportunities or two sessions as needing more observations. `consistent-current-sample` requires at least eight recent scored opportunities, 80% recent accuracy, and 70% independent success. A retention comparison requires a gap of at least the configured 1-365-day interval and at least three scored opportunities on both sides; otherwise the sample is labelled too small. Seven days remains the backward-compatible default, not a validated universal interval.
 
 Teacher review records preserve the proposal, decision, optional override, approved final task and level where applicable, note, reviewer label, timestamp, and any superseded review ID. `approved` accepts the proposal, `adjusted` approves a recorded alternative, `declined` rejects it for now, and `deferred` records that more information or time is needed. Declined and deferred reviews have `final_plan: null`. A proposal never changes session settings automatically.
 
@@ -81,7 +86,7 @@ The Research demand view derives per-session mean displayed option count, mean d
 
 ### Research workspace summary export
 
-`Download scope summary` creates local JSON with `export_schema_version: 1.7.0` for the current Research scope. It contains derived `coverage_by_session`, `data_quality`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `model_dataset_composition`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
+`Download scope summary` creates local JSON with `export_schema_version: 1.8.0` for the current Research scope. It contains derived `coverage_by_session`, `data_quality`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `retention_planning`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `model_dataset_composition`, `session_context`, `eeg_readiness`, and `teacher_decisions`. Retention schedule rows use day-level dates and omit exact wall-clock timestamps. Missing values remain missing rather than being converted to zero.
 
 `model_dataset_composition` version 1.0.0 is an aggregate descriptive profile for future governed model-development planning. It records participant/session depth bands, longitudinal representation, skill and research-condition exposure, outcome and support-label counts, teacher-review counts, and current local governance eligibility. It excludes learner aliases and states that development, validation, and held-out evaluation must use participant-separated groups. `automatic_split_performed` and `random_trial_split_allowed` are both `false`. This profile does not determine dataset sufficiency, fairness, lawful use, model validity, teaching effectiveness, transfer, or neural change.
 
@@ -261,10 +266,11 @@ The fixed-condition Research rows report date, condition ID, research condition,
 
 ## V1.8 Pseudonymised Research / Model-Development Export
 
-This separate JSON uses `export_schema_version: 1.0.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
+This separate JSON uses `export_schema_version: 1.1.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
 
 - random participant codes and relative session order/spacing
 - build, schema, skill-graph, and generator versions
+- a closed retention-planning record with the rule version, configured interval, and minimum scored sample size
 - task, skill, outcome, support, reaction-time, and touch-distance features
 - privacy-safe per-skill summaries
 - relative EEG marker times and browser diagnostics

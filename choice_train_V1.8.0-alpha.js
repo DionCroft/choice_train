@@ -35,13 +35,14 @@
   const GENERATOR_VERSION = '1.6.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const DATA_QUALITY_SCHEMA_VERSION = '1.0.0';
-  const PRACTICE_STATUS_VERSION = '1.0.0';
-  const RECOMMENDATION_VERSION = '1.2.0';
+  const PRACTICE_STATUS_VERSION = '1.1.0';
+  const RETENTION_PLANNING_VERSION = '1.0.0';
+  const RECOMMENDATION_VERSION = '1.3.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.7.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.8.0';
   const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
-  const PRIVACY_EXPORT_VERSION = '1.0.0';
+  const PRIVACY_EXPORT_VERSION = '1.1.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 3;
   const MAX_IMPORT_FILES = 100;
@@ -1609,6 +1610,7 @@
       external_transmission: false,
       recommendation_version: RECOMMENDATION_VERSION,
       practice_status_version: PRACTICE_STATUS_VERSION,
+      retention_planning: retentionPlanningSnapshot(),
       learner_level: state.currentLevel,
       recent_accuracy_pct: summary.accuracy_pct,
       recent_reaction_time_ms: summary.mean_rt_ms || null,
@@ -2337,6 +2339,7 @@
       fixedConditionEnabled: !!(ui.fixedConditionEnabled && ui.fixedConditionEnabled.checked),
       protocolConditionId: fixedConditionId(),
       eegExportFormat: ui.eegExportFormat.value,
+      retentionGapDays: retentionGapDays(),
       studentFriendlyMode: studentFriendlyModeEnabled(),
       faceName: ui.faceName.value,
       contextNotes: currentContextNotes(),
@@ -2421,6 +2424,7 @@
     if(ui.fixedConditionEnabled) ui.fixedConditionEnabled.checked = !!settings.fixedConditionEnabled;
     if(ui.protocolConditionId) ui.protocolConditionId.value = settings.protocolConditionId || '';
     if(ui.eegExportFormat) ui.eegExportFormat.value = settings.eegExportFormat || 'tsv';
+    if(ui.retentionGapDays) ui.retentionGapDays.value = clamp(safeNumber(settings.retentionGapDays, 7), 1, 365);
     if(ui.studentFriendlyMode) ui.studentFriendlyMode.checked = settings.studentFriendlyMode !== false;
     if(ui.faceName) ui.faceName.value = settings.faceName || 'Mum';
     if(ui.contextNotes) ui.contextNotes.value = settings.contextNotes || settings.notes || settings.medicationContext || '';
@@ -5936,6 +5940,48 @@
     return denominator > 0 ? Math.round((numerator / denominator) * 100) : null;
   }
 
+  function retentionGapDays(){
+    return clamp(Math.round(safeNumber(ui.retentionGapDays && ui.retentionGapDays.value, 7)), 1, 365);
+  }
+
+  function retentionPlanningSnapshot(gapDays=retentionGapDays()){
+    const configuredGapDays = clamp(Math.round(safeNumber(gapDays, 7)), 1, 365);
+    return {
+      version: RETENTION_PLANNING_VERSION,
+      configured_gap_days: configuredGapDays,
+      minimum_scored_opportunities_per_observation: 3,
+      due_rule: 'A skill is due when whole days since its latest observed practice are greater than or equal to the configured gap.',
+      comparison_rule: 'The latest later observation is compared with the nearest earlier observation separated by at least the configured gap.',
+      interpretation_boundary: 'A schedule and observed comparison for planning only; not a mastery, memory, clinical, causal, or neural-plasticity measure.'
+    };
+  }
+
+  function retentionScheduleSummary(practiceStates, gapDays=retentionGapDays()){
+    const configuredGapDays = clamp(Math.round(safeNumber(gapDays, 7)), 1, 365);
+    const rows = (Array.isArray(practiceStates) ? practiceStates : []).map(item => ({
+      skill_id: item.skill_id,
+      label: item.label,
+      last_practised_wall_ms: item.last_practised_wall_ms,
+      configured_gap_days: configuredGapDays,
+      next_retention_check_wall_ms: item.next_retention_check_wall_ms,
+      retention_due_status: item.retention_due_status,
+      days_until_retention_due: item.days_until_retention_due,
+      days_past_retention_due: item.days_past_retention_due,
+      retention_status: item.retention_status,
+      retention_gap_days: item.retention_gap_days,
+      retention_difference_pct: item.retention_difference_pct
+    }));
+    return {
+      ...retentionPlanningSnapshot(configuredGapDays),
+      skill_count: rows.length,
+      due_now_count: rows.filter(item => item.retention_due_status === 'due').length,
+      not_yet_due_count: rows.filter(item => item.retention_due_status === 'not-yet-due').length,
+      observed_comparison_count: rows.filter(item => String(item.retention_status).startsWith('observed-')).length,
+      small_sample_comparison_count: rows.filter(item => item.retention_status === 'spaced-sample-small').length,
+      rows
+    };
+  }
+
   function practiceStatusLabel(status){
     const labels = {
       'not-scored': 'Not scored',
@@ -5958,6 +6004,18 @@
     return labels[status] || status;
   }
 
+  function retentionDueStatusLabel(item){
+    if(!item) return 'Not available';
+    if(item.retention_due_status === 'due'){
+      return item.days_past_retention_due > 0
+        ? `Due now (${item.days_past_retention_due}d past planned date)`
+        : 'Due now';
+    }
+    return item.days_until_retention_due === 1
+      ? 'Not yet due (1 day remaining)'
+      : `Not yet due (${item.days_until_retention_due} days remaining)`;
+  }
+
   function trendStatusLabel(status){
     const labels = {
       'not-enough-data': 'Not enough data',
@@ -5978,7 +6036,8 @@
     return labels[status] || status;
   }
 
-  function skillPracticeStatesForSessions(sessions, generatedAtWallMs=wallMs()){
+  function skillPracticeStatesForSessions(sessions, generatedAtWallMs=wallMs(), configuredRetentionGapDays=retentionGapDays()){
+    const configuredGapDays = clamp(Math.round(safeNumber(configuredRetentionGapDays, 7)), 1, 365);
     const ordered = (Array.isArray(sessions) ? sessions : [])
       .map(session => ({ session, observedAt: sessionObservedAt(session) }))
       .filter(item => Number.isFinite(item.observedAt))
@@ -6051,15 +6110,15 @@
       }
 
       let retentionStatus = 'not-observed';
-      let retentionGapDays = null;
+      let observedRetentionGapDays = null;
       let retentionDifferencePct = null;
       for(let laterIndex = observations.length - 1; laterIndex > 0; laterIndex -= 1){
         const later = observations[laterIndex];
         const earlier = observations.slice(0, laterIndex).reverse().find(candidate => (
-          later.observed_at_wall_ms - candidate.observed_at_wall_ms >= 7 * 86400000
+          later.observed_at_wall_ms - candidate.observed_at_wall_ms >= configuredGapDays * 86400000
         ));
         if(!earlier) continue;
-        retentionGapDays = Math.floor((later.observed_at_wall_ms - earlier.observed_at_wall_ms) / 86400000);
+        observedRetentionGapDays = Math.floor((later.observed_at_wall_ms - earlier.observed_at_wall_ms) / 86400000);
         if(earlier.scored_opportunities < 3 || later.scored_opportunities < 3){
           retentionStatus = 'spaced-sample-small';
         } else {
@@ -6074,6 +6133,13 @@
         }
         break;
       }
+
+      const nextRetentionCheckWallMs = Number.isFinite(latest.observed_at_wall_ms)
+        ? latest.observed_at_wall_ms + configuredGapDays * 86400000
+        : null;
+      const retentionDueStatus = daysSince != null && daysSince >= configuredGapDays ? 'due' : 'not-yet-due';
+      const daysUntilRetentionDue = daysSince == null ? null : Math.max(0, configuredGapDays - daysSince);
+      const daysPastRetentionDue = daysSince == null ? null : Math.max(0, daysSince - configuredGapDays);
 
       let supportDirection = 'observe-before-changing';
       if(recentScored >= 5){
@@ -6103,8 +6169,14 @@
         trend_status_label: trendStatusLabel(trendStatus),
         retention_status: retentionStatus,
         retention_status_label: retentionStatusLabel(retentionStatus),
-        retention_gap_days: retentionGapDays,
+        retention_planning_version: RETENTION_PLANNING_VERSION,
+        retention_threshold_days: configuredGapDays,
+        retention_gap_days: observedRetentionGapDays,
         retention_difference_pct: retentionDifferencePct,
+        next_retention_check_wall_ms: nextRetentionCheckWallMs,
+        retention_due_status: retentionDueStatus,
+        days_until_retention_due: daysUntilRetentionDue,
+        days_past_retention_due: daysPastRetentionDue,
         support_direction: supportDirection,
         support_direction_label: supportDirectionLabel(supportDirection),
         observations
@@ -6255,7 +6327,8 @@
 
   function recommendationForSessions(sessions, learnerAlias=currentPupilAlias(), generatedAtWallMs=wallMs()){
     const usableSessions = Array.isArray(sessions) ? sessions : [];
-    const states = skillPracticeStatesForSessions(usableSessions, generatedAtWallMs);
+    const configuredGapDays = retentionGapDays();
+    const states = skillPracticeStatesForSessions(usableSessions, generatedAtWallMs, configuredGapDays);
     const scoredStates = states.filter(item => item.scored_opportunities > 0);
     let selected = null;
     let action = 'collect-baseline';
@@ -6263,7 +6336,7 @@
     const rationale = [];
 
     const dueRetention = scoredStates
-      .filter(item => item.days_since_last_practice >= 7)
+      .filter(item => item.retention_due_status === 'due')
       .sort((a, b) => b.days_since_last_practice - a.days_since_last_practice)[0];
     const needsSupport = scoredStates
       .filter(item => item.practice_status === 'needs-support')
@@ -6279,7 +6352,7 @@
       selected = dueRetention;
       action = 'run-spaced-check';
       rationaleCodes.push('SPACED_CHECK_DUE');
-      rationale.push(`${dueRetention.label} was last observed ${dueRetention.days_since_last_practice} day(s) ago; a short check can provide an observed retention comparison.`);
+      rationale.push(`${dueRetention.label} was last observed ${dueRetention.days_since_last_practice} day(s) ago and has reached the configured ${configuredGapDays}-day check interval; a short check can provide an observed retention comparison.`);
     } else if(needsSupport){
       selected = needsSupport;
       action = 'strengthen-support';
@@ -6309,7 +6382,7 @@
     const sessionIds = usableSessions.map(session => session.session_id).filter(Boolean).sort();
     const idSeed = [
       RECOMMENDATION_VERSION, learnerAlias, sessionIds.join(','), action,
-      selected ? selected.skill_id : 'baseline', recommendedTask, recommendedLevel
+      selected ? selected.skill_id : 'baseline', recommendedTask, recommendedLevel, configuredGapDays
     ].join('|');
     return {
       recommendation_id: `rec-${hashStringToSeed(idSeed).toString(16).padStart(8, '0')}`,
@@ -6326,6 +6399,7 @@
       recommended_level: recommendedLevel,
       support_direction: selected ? selected.support_direction : 'observe-before-changing',
       support_direction_label: selected ? selected.support_direction_label : supportDirectionLabel('observe-before-changing'),
+      planning_parameters: retentionPlanningSnapshot(configuredGapDays),
       rationale_codes: rationaleCodes,
       rationale,
       metrics_snapshot: selected ? {
@@ -6335,7 +6409,9 @@
         recent_accuracy_pct: selected.recent_accuracy_pct,
         recent_independent_success_pct: selected.recent_independent_success_pct,
         days_since_last_practice: selected.days_since_last_practice,
-        retention_status: selected.retention_status
+        retention_status: selected.retention_status,
+        retention_due_status: selected.retention_due_status,
+        retention_threshold_days: selected.retention_threshold_days
       } : null,
       review_required: true,
       external_transmission: false,
@@ -6584,6 +6660,9 @@
       research_summary_version: RESEARCH_SUMMARY_VERSION,
       practice_status_version: PRACTICE_STATUS_VERSION,
       recommendation_version: RECOMMENDATION_VERSION,
+      retention_planning: snapshot && snapshot.retention_planning
+        ? clonePlain(snapshot.retention_planning)
+        : retentionPlanningSnapshot(),
       recommendation_application: snapshot && snapshot.recommendation_application
         ? clonePlain(snapshot.recommendation_application)
         : null,
@@ -9153,7 +9232,13 @@
       ]));
     } else renderResearchEmptyRow(ui.researchTaskVariantBody, 10);
 
-    const practiceStates = skillPracticeStatesForSessions(sessions);
+    const configuredRetentionGapDays = retentionGapDays();
+    const practiceStates = skillPracticeStatesForSessions(sessions, wallMs(), configuredRetentionGapDays);
+    const retentionSchedule = retentionScheduleSummary(practiceStates, configuredRetentionGapDays);
+    ui.researchRetentionGap.textContent = `${configuredRetentionGapDays} day${configuredRetentionGapDays === 1 ? '' : 's'}`;
+    ui.researchRetentionDueCount.textContent = String(retentionSchedule.due_now_count);
+    ui.researchRetentionScheduledCount.textContent = String(retentionSchedule.not_yet_due_count);
+    ui.researchRetentionObservedCount.textContent = String(retentionSchedule.observed_comparison_count);
     drawResearchBars(ui.researchPracticeChart, practiceStates.filter(item => item.recent_accuracy_pct != null).map(item => ({
       label: item.label,
       value: item.recent_accuracy_pct,
@@ -9163,6 +9248,12 @@
           ? themeToken('danger')
           : themeToken('primary')
     })), { maxValue: 100, suffix: '%', labelWidth: 190 });
+    drawResearchBars(ui.researchRetentionScheduleChart, [
+      { label: 'Checks due now', value: retentionSchedule.due_now_count, color: themeToken('warning') },
+      { label: 'Not yet due', value: retentionSchedule.not_yet_due_count, color: themeToken('primary') },
+      { label: 'Observed comparisons', value: retentionSchedule.observed_comparison_count, color: themeToken('success') },
+      { label: 'Spaced samples too small', value: retentionSchedule.small_sample_comparison_count, color: themeToken('danger') }
+    ], { labelWidth: 205 });
     if(practiceStates.length){
       clearNode(ui.researchPracticeBody);
       practiceStates.forEach(item => appendResearchRow(ui.researchPracticeBody, [
@@ -9173,13 +9264,16 @@
         item.recent_accuracy_pct == null ? 'Not scored' : `${item.recent_accuracy_pct}%`,
         item.recent_independent_success_pct == null ? 'Not scored' : `${item.recent_independent_success_pct}%`,
         item.last_practised_wall_ms ? `${researchDateLabel(item.last_practised_wall_ms)} (${item.days_since_last_practice}d ago)` : null,
+        item.next_retention_check_wall_ms ? researchDateLabel(item.next_retention_check_wall_ms) : null,
+        retentionDueStatusLabel(item),
         item.trend_status_label,
         item.retention_gap_days == null
           ? item.retention_status_label
           : `${item.retention_status_label} (${item.retention_gap_days}d gap)`,
         item.support_direction_label
       ]));
-    } else renderResearchEmptyRow(ui.researchPracticeBody, 10);
+    } else renderResearchEmptyRow(ui.researchPracticeBody, 12);
+    ui.researchRetentionNote.textContent = `The current Research view uses a ${configuredRetentionGapDays}-day planning interval. Due status is calculated from the latest observed practice date. A retention comparison requires two observed sessions at least ${configuredRetentionGapDays} day(s) apart and three scored opportunities on each side; no learning is inferred between observations.`;
 
     const currentAlias = currentPupilAlias();
     const currentName = currentPupilName();
@@ -10512,6 +10606,7 @@
       student_friendly_mode: studentFriendlyModeEnabled(),
       photo_library_metadata: clonePlain(photoLibraryMetadata()),
       data_governance: clonePlain(dataGovernanceSnapshot()),
+      retention_planning: clonePlain(retentionPlanningSnapshot()),
       recommendation_application: recommendationApplication ? clonePlain(recommendationApplication) : null,
       study_protocol: clonePlain(studyProtocolSnapshot(currentResearchParticipantId()))
     };
@@ -10543,6 +10638,7 @@
       learner_baseline: learnerBaselineSnapshot(),
       fidelity: fidelitySnapshot(),
       data_governance: clonePlain(state.sessionSnapshot.data_governance),
+      retention_planning: clonePlain(state.sessionSnapshot.retention_planning),
       research_condition: state.sessionSnapshot.study_protocol.research_condition,
       protocol_condition_id: state.sessionSnapshot.study_protocol.protocol_condition_id,
       fixed_condition: clonePlain(state.sessionSnapshot.study_protocol.fixed_condition),
@@ -10596,6 +10692,9 @@
       research_summary_version: RESEARCH_SUMMARY_VERSION,
       practice_status_version: PRACTICE_STATUS_VERSION,
       recommendation_version: RECOMMENDATION_VERSION,
+      retention_planning: snapshot && snapshot.retention_planning
+        ? clonePlain(snapshot.retention_planning)
+        : retentionPlanningSnapshot(),
       recommendation_application: snapshot && snapshot.recommendation_application
         ? clonePlain(snapshot.recommendation_application)
         : null,
@@ -10681,6 +10780,9 @@
       learner: sessionPupilName(),
       learner_alias: sessionPupilAlias(),
       lesson_plan: lessonPlanSnapshot(),
+      retention_planning: state.sessionSnapshot && state.sessionSnapshot.retention_planning
+        ? clonePlain(state.sessionSnapshot.retention_planning)
+        : retentionPlanningSnapshot(),
       recommendation_application: state.sessionSnapshot && state.sessionSnapshot.recommendation_application
         ? clonePlain(state.sessionSnapshot.recommendation_application)
         : null,
@@ -10785,7 +10887,9 @@
       descriptive_slope_pp_per_session: item.descriptive_slope_pp_per_session,
       observations: item.observations
     }));
-    const practiceStates = skillPracticeStatesForSessions(sessions).map(item => ({
+    const practiceStateRecords = skillPracticeStatesForSessions(sessions, wallMs(), retentionGapDays());
+    const retentionPlanning = retentionScheduleSummary(practiceStateRecords, retentionGapDays());
+    const practiceStates = practiceStateRecords.map(item => ({
       skill_id: item.skill_id,
       label: item.label,
       practice_status: item.practice_status,
@@ -10798,8 +10902,16 @@
       days_since_last_practice: item.days_since_last_practice,
       trend_status: item.trend_status,
       retention_status: item.retention_status,
+      retention_planning_version: item.retention_planning_version,
+      retention_threshold_days: item.retention_threshold_days,
       retention_gap_days: item.retention_gap_days,
       retention_difference_pct: item.retention_difference_pct,
+      next_retention_check_date: Number.isFinite(item.next_retention_check_wall_ms)
+        ? researchDateLabel(item.next_retention_check_wall_ms)
+        : null,
+      retention_due_status: item.retention_due_status,
+      days_until_retention_due: item.days_until_retention_due,
+      days_past_retention_due: item.days_past_retention_due,
       support_direction: item.support_direction
     }));
     const context = sessions.map(session => {
@@ -10899,6 +11011,32 @@
         mean_touch_distance_px: item.mean_touch_distance_px
       })),
       practice_states: practiceStates,
+      retention_planning: {
+        version: retentionPlanning.version,
+        configured_gap_days: retentionPlanning.configured_gap_days,
+        minimum_scored_opportunities_per_observation: retentionPlanning.minimum_scored_opportunities_per_observation,
+        due_rule: retentionPlanning.due_rule,
+        comparison_rule: retentionPlanning.comparison_rule,
+        skill_count: retentionPlanning.skill_count,
+        due_now_count: retentionPlanning.due_now_count,
+        not_yet_due_count: retentionPlanning.not_yet_due_count,
+        observed_comparison_count: retentionPlanning.observed_comparison_count,
+        small_sample_comparison_count: retentionPlanning.small_sample_comparison_count,
+        rows: retentionPlanning.rows.map(item => ({
+          skill_id: item.skill_id,
+          label: item.label,
+          last_practised_date: Number.isFinite(item.last_practised_wall_ms) ? researchDateLabel(item.last_practised_wall_ms) : null,
+          next_retention_check_date: Number.isFinite(item.next_retention_check_wall_ms) ? researchDateLabel(item.next_retention_check_wall_ms) : null,
+          configured_gap_days: item.configured_gap_days,
+          retention_due_status: item.retention_due_status,
+          days_until_retention_due: item.days_until_retention_due,
+          days_past_retention_due: item.days_past_retention_due,
+          retention_status: item.retention_status,
+          retention_gap_days: item.retention_gap_days,
+          retention_difference_pct: item.retention_difference_pct
+        })),
+        interpretation_boundary: retentionPlanning.interpretation_boundary
+      },
       attention_families: attentionFamilies,
       support_summary: Array.from(supportGroups.values()),
       task_exposure: Array.from(taskGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
@@ -11153,6 +11291,22 @@
     };
   }
 
+  function privacySafeRetentionPlanning(session){
+    const stored = session && session.retention_planning;
+    const settingsGap = session && session.settings && Number(session.settings.retentionGapDays);
+    const configuredGapDays = stored && Number(stored.configured_gap_days)
+      ? Number(stored.configured_gap_days)
+      : (Number.isFinite(settingsGap) ? settingsGap : null);
+    if(!Number.isFinite(configuredGapDays)) return null;
+    return {
+      version: stored && stored.version ? stored.version : RETENTION_PLANNING_VERSION,
+      configured_gap_days: clamp(Math.round(configuredGapDays), 1, 365),
+      minimum_scored_opportunities_per_observation: stored && Number.isFinite(stored.minimum_scored_opportunities_per_observation)
+        ? stored.minimum_scored_opportunities_per_observation
+        : 3
+    };
+  }
+
   function modelExportGovernanceCheck(sessions){
     const participantNames = Array.from(new Set((sessions || [])
       .map(session => String(session && session.learner || '').trim())
@@ -11219,6 +11373,7 @@
           starting_level: trials.length && Number.isFinite(trials[0].level) ? trials[0].level : null,
           ending_level: summary.current_level == null ? null : summary.current_level,
           session_task_mode: summary.task_kind || null,
+          retention_planning: privacySafeRetentionPlanning(session),
           recommendation_application: privacySafeRecommendationApplication(session),
           context_note_recorded: !!String(session.context_notes || '').trim(),
           student_friendly_mode: session.student_friendly_mode !== false,
@@ -11592,7 +11747,7 @@
       'allowLearnerHelp', 'allowLearnerBreak', 'allowLearnerStop', 'activeControlEnabled', 'eegBlockSize',
       'eegAutoPauseSec', 'researchCondition', 'studyProtocolId', 'studyVisitId', 'studyRunNumber',
       'eegAcquisitionSystem', 'eegSyncMethod', 'eegClockNotes', 'lessonSeedOverride',
-      'fixedConditionEnabled', 'protocolConditionId', 'eegExportFormat',
+      'fixedConditionEnabled', 'protocolConditionId', 'eegExportFormat', 'retentionGapDays',
       'faceName', 'contextNotes', 'rewardChoice',
       'themeChoice', 'fontChoice', 'textScale', 'motionPreference', 'feedbackSoundMode', 'celebrationIntensity',
       'communicationSupportChoice', 'preSessionPreference',
@@ -11607,7 +11762,8 @@
     ];
     settingsInputs.forEach(id => {
       if(!ui[id]) return;
-      const handler = () => {
+      const handler = event => {
+        if(id === 'retentionGapDays' && event.type === 'change') ui.retentionGapDays.value = retentionGapDays();
         saveSettingsSoon();
         saveCurrentLearnerProfile();
         if(id === 'activeControlEnabled' && ui.researchCondition){
@@ -11620,6 +11776,7 @@
         if(['dataUseStatus', 'researchAnalysisApproved', 'eegLinkageApproved', 'modelDevelopmentApproved', 'governanceReference', 'governanceReviewDate'].includes(id)) updateAiExportGovernanceStatus();
         if(['sessionTaskType', 'startLevel', 'autoLevelPath', 'maxObjects', 'findObjectSourceMode', 'findCategorySourceMode'].includes(id)) refreshContentConfiguration();
         if(id === 'sessionTaskType' || id === 'startLevel') renderStagedRecommendationNotice();
+        if(id === 'retentionGapDays' && state.panelView === 'admin' && state.adminPage === 'research') renderResearchWorkspace();
         updateFixedConditionStatus();
         updateStats();
         updateSessionReadiness();

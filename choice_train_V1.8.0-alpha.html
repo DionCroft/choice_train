@@ -1241,6 +1241,11 @@
                 <option value="all-learners">All learners</option>
               </select>
             </div>
+            <div>
+              <label for="retentionGapDays">Retention check gap (days)</label>
+              <input id="retentionGapDays" type="number" min="1" max="365" step="1" value="7" inputmode="numeric" />
+              <div class="helperText">Planning interval for delayed checks. Choose it with the study or teaching team; it is not a clinical threshold.</div>
+            </div>
             <label class="toggle"><input id="researchIncludeArchived" type="checkbox" /> Include archived sessions</label>
             <button id="refreshResearchBtn" type="button">Refresh research view</button>
             <button id="exportResearchSummaryBtn" type="button">Download scope summary</button>
@@ -1448,14 +1453,21 @@
             </div>
             <div class="chartCard span2">
               <h4>Practice status and spaced retention observations</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Configured check gap</div><div class="v" id="researchRetentionGap">7 days</div></div>
+                <div class="dashCard"><div class="k">Checks due now</div><div class="v" id="researchRetentionDueCount">0</div></div>
+                <div class="dashCard"><div class="k">Not yet due</div><div class="v" id="researchRetentionScheduledCount">0</div></div>
+                <div class="dashCard"><div class="k">Spaced comparisons observed</div><div class="v" id="researchRetentionObservedCount">0</div></div>
+              </div>
               <canvas id="researchPracticeChart" class="researchCanvas" width="760" height="280" role="img" aria-label="Recent accuracy by skill with descriptive practice-status groupings"></canvas>
+              <canvas id="researchRetentionScheduleChart" class="researchCanvas" width="760" height="220" role="img" aria-label="Skills due and not yet due for a retention check, with observed spaced comparisons"></canvas>
               <div class="tableWrap researchTableWrap">
                 <table>
-                  <thead><tr><th>Skill</th><th>Practice status</th><th>Sessions</th><th>Opportunities</th><th>Recent accuracy</th><th>Independent success</th><th>Last practised</th><th>Observed trend</th><th>Retention observation</th><th>Support direction</th></tr></thead>
+                  <thead><tr><th>Skill</th><th>Practice status</th><th>Sessions</th><th>Opportunities</th><th>Recent accuracy</th><th>Independent success</th><th>Last practised</th><th>Next planned check</th><th>Schedule status</th><th>Observed trend</th><th>Retention observation</th><th>Support direction</th></tr></thead>
                   <tbody id="researchPracticeBody"></tbody>
                 </table>
               </div>
-              <div class="compactNote">Practice status is a transparent planning aid, not a mastery judgement. Retention is only described when a later observed session follows a gap of at least seven days.</div>
+              <div id="researchRetentionNote" class="compactNote">Practice status is a transparent planning aid, not a mastery judgement. A retention comparison requires a later observed session after the configured gap; ChoiceTrain does not infer learning between observations.</div>
             </div>
             <div class="chartCard span2 recommendationReviewCard">
               <h4>Teacher-reviewed next-session planning</h4>

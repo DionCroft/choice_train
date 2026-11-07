@@ -6,7 +6,7 @@
   "required": ["app", "export_schema_version", "purpose", "privacy_status", "governance", "privacy_manifest", "participant_count", "session_count", "sessions", "teacher_decisions", "interpretation_boundary"],
   "properties": {
     "app": { "const": "ChoiceTrain for ShowMe" },
-    "export_schema_version": { "const": "1.0.0" },
+    "export_schema_version": { "const": "1.1.0" },
     "purpose": { "type": "string", "minLength": 1 },
     "privacy_status": { "const": "pseudonymised-not-anonymous" },
     "governance": {
@@ -44,9 +44,15 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["eeg_marker_diagnostics"],
+        "required": ["eeg_marker_diagnostics", "retention_planning"],
         "properties": {
           "eeg_marker_diagnostics": { "$ref": "#/$defs/privacySafeMarkerDiagnostics" },
+          "retention_planning": {
+            "oneOf": [
+              { "$ref": "#/$defs/privacySafeRetentionPlanning" },
+              { "type": "null" }
+            ]
+          },
           "recommendation_application": {
             "oneOf": [
               { "$ref": "#/$defs/privacySafeRecommendationApplication" },
@@ -64,6 +70,16 @@
     "interpretation_boundary": { "type": "string", "minLength": 1 }
   },
   "$defs": {
+    "privacySafeRetentionPlanning": {
+      "type": "object",
+      "required": ["version", "configured_gap_days", "minimum_scored_opportunities_per_observation"],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "configured_gap_days": { "type": "integer", "minimum": 1, "maximum": 365 },
+        "minimum_scored_opportunities_per_observation": { "const": 3 }
+      },
+      "additionalProperties": false
+    },
     "privacySafeMarkerDiagnostics": {
       "type": "object",
       "required": ["version", "ordered_trials", "expected_order_trials", "ordering_pct", "response_timing_comparisons", "timing_difference_count", "response_timing_tolerance_ms", "non_monotonic_marker_count", "duplicate_marker_id_count", "protocol_fields_complete", "protocol_fields_expected", "protocol_completeness_pct", "declared_sync_method", "hardware_synchronization_verified", "interpretation_boundary"],
