@@ -35,6 +35,8 @@ All notable changes to ChoiceTrain are listed here.
 - current-learner family trajectories with an accessible table and a descriptive percentage-point slope only after three observed sessions; all-learner scope deliberately suppresses slope interpretation
 - response-quality visualisations for per-session omission and commission rates, RT variability, and mean touch distance, with observed-value counts and missing values preserved
 - pooled all-learner response-quality points are left unconnected so they cannot be mistaken for one learner's longitudinal trajectory
+- a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
+- a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - 17 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 94 tests
 
 ### Planned

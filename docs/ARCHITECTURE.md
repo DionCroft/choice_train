@@ -52,11 +52,13 @@ V1.7 exports include a `sensory_preferences` object containing the selected font
 - `tests/choice-train-v170.spec.js` verifies the stable V1.7 workspace, theme, accessibility, export, and responsive-layout contract.
 - `scripts/run-browser-tests.js` starts the local static server and test process.
 - `scripts/capture-v170-visual-audit.js` creates 17 ignored, synthetic-data screenshots and a bounds manifest for repeatable desktop, tablet, mobile, state, and theme review.
+- `scripts/stamp-build.js` is the cross-platform release metadata source of truth; `scripts/stamp-build.ps1` is a Windows compatibility wrapper.
+- `scripts/stamp-build.test.js` validates replacement safety, explicit targeting, and dry-run argument handling with the built-in Node test runner.
 - `.github/workflows/ci.yml` validates branches and pull requests.
-- `.github/workflows/pages.yml` reruns the browser suite before deploying `main` to GitHub Pages.
+- `.github/workflows/pages.yml` reruns release-tool and browser suites before deploying `main` to GitHub Pages.
 
 ## Release Convention
 
-Current versioned files stay at the root with `index.html`. Superseded snapshots move to `releases/` and remain unchanged. Release metadata is stamped with `scripts/stamp-build.ps1` after a candidate has passed the browser suite.
+Current versioned files stay at the root with `index.html`. Superseded snapshots move to `releases/` and remain unchanged. Release metadata is stamped in the explicit versioned JavaScript runtime with `scripts/stamp-build.js` after a candidate has passed the browser suite. The tool defaults to the current Git branch, short commit, and UTC date, supports a no-write dry run, and refuses files with zero or multiple `APP_BUILD` blocks.
 
 A candidate can be pushed on a feature branch, but promotion requires the complete automated suite, documented review, a metadata stamp, and explicit product-owner approval. Promotion updates the stable versioned HTML, JavaScript, and CSS plus `index.html`; merely adding candidate files does not publish them. V1.7 passed 77 Playwright checks, while the visual audit remains review evidence rather than a screenshot-baseline gate. Physical school-device, staff, learner, privacy, and research-timing validation remain separate deployment and study-readiness activities.

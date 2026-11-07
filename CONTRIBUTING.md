@@ -13,6 +13,7 @@ Thank you for helping improve ChoiceTrain for teachers and SEND learners.
 
 ```bash
 npm ci
+npm run test:release
 npm run test:browser
 ```
 
@@ -30,6 +31,14 @@ npm run test:browser
 ```
 
 Do not promote a new `index.html` or stamp a stable build until the complete suite passes.
+
+Preview candidate metadata without writing the runtime:
+
+```bash
+node scripts/stamp-build.js --version 1.8.0-alpha --file choice_train_V1.8.0-alpha.js --channel experimental --dry-run
+```
+
+Always provide an explicit `--file`. Review the branch, commit, UTC date, channel, source pair, and publication status before removing `--dry-run`. The PowerShell wrapper delegates to this command and must not become a second implementation.
 
 For V1.7 and later work, also review [the V1.7 decision record](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md), [data dictionary](docs/DATA_DICTIONARY.md), and [usability test plan](docs/V1.7.0_USABILITY_TEST_PLAN.md). Do not describe a font, palette, reward, or sensory option as universally SEND-friendly or clinically proven. Preserve user choice and record the configuration used.
 

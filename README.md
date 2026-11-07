@@ -501,9 +501,19 @@ This repository is published as a static GitHub Pages site.
 Basic deployment pattern:
 
 1. Promote the tested versioned build into the repository root.
-2. Update `index.html` to the latest stable snapshot.
-3. Commit and push to `main`.
-4. GitHub Pages serves the static files from the repository root.
+2. Run the release stamper in `--dry-run` mode and review version, channel, UTC date, branch, commit, source files, and publication status.
+3. Stamp the explicit versioned JavaScript runtime only after approval.
+4. Update `index.html` to the latest stable snapshot.
+5. Run release-tool and browser tests, then commit and push to `main`.
+6. GitHub Pages serves the static files from the repository root.
+
+Example candidate dry run:
+
+```bash
+node scripts/stamp-build.js --version 1.8.0-alpha --file choice_train_V1.8.0-alpha.js --channel experimental --dry-run
+```
+
+The command refuses missing or duplicate `APP_BUILD` blocks and requires an explicit target file. Omit `--dry-run` only for a reviewed candidate or promotion. Windows users can call `scripts/stamp-build.ps1` with the equivalent parameters; it delegates to the same Node implementation.
 
 Current live URL:
 `https://dioncroft.github.io/choice_train/`
@@ -516,6 +526,7 @@ Useful commands:
 
 ```bash
 npm install
+npm run test:release
 npm run test:browser
 npm run audit:visual:v170
 ```
@@ -528,6 +539,8 @@ The `V1.7.0` release is validated with:
 The V1.7-specific suite contains 21 checks for workspace separation and focused navigation, high-legibility font loading, staff and learner contrast, semantic-token completeness, runtime-drawn theme colours, learner viewport containment, deliberate teacher return, per-pupil sensory settings, reward progression, reward-disabled manual navigation, zero external runtime requests, reduced motion, local audio/EEG metadata, exports, and tablet/mobile sizing. The broader regression suite contributes the remaining 56 checks.
 
 The isolated V1.8 suite adds 17 checks for its schema and skill graph, deterministic lesson replay, multi-seed category/target invariants, longitudinal scope isolation, accessible Research navigation, separate Attention Training family and response-quality visualisations, teacher-reviewed planning, retention observations, EEG protocol/timing diagnostics, deny-by-default governance, withdrawal handling, and pseudonymised-export exclusions. The complete stable, archive, and alpha matrix currently passes 94 Playwright tests.
+
+The release stamper has three dependency-free Node unit tests covering safe replacement, missing/duplicate-block rejection, explicit file parsing, and dry-run options. Branch and Pages CI run these before the browser matrix.
 
 `npm run audit:visual:v170` creates a repeatable local visual-review set with 17 synthetic-data captures covering teacher and Admin workspaces, active learner tasks, reward and reward-disabled feedback, break mode, tablet, mobile, and every theme. The generated screenshots are ignored by Git because they are review evidence rather than product assets.
 
