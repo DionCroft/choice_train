@@ -50,6 +50,12 @@ The support-fading table derives per-session response counts, observed support-s
 
 The teacher-observation view displays the session-start 1-5 attention and independence ratings and counts recorded maintenance/generalisation statuses. `not-run` and missing statuses are excluded from status bars but remain visible in the table. These are practitioner-entered observations, not validated task scores or evidence of transfer. Current-learner points may be connected by session date; all-learner points are unconnected.
 
+### Research content-breadth and preference views
+
+The content-breadth view derives, per session, the count of categories represented across displayed option metadata, distinct scored target IDs, repeated scored-target exposures, trials containing personalised content, and completed open-ended preference selections. Preference trials do not create scored targets. Breadth is a description of presented content, not evidence that a skill generalised.
+
+The preference view groups completed `choice-preference` trials by the actual `selected_id` and reports label, category, source, count, assisted count, and latest observed selection date. It does not use the generator's balancing anchor as a correct answer. These are context-specific choice observations and must not be presented as stable preferences or a formal reinforcer assessment.
+
 ## V1.8 Procedural Lesson Provenance
 
 Generator version `1.2.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Discriminate object`, and `Choice preference`.

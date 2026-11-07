@@ -6886,6 +6886,113 @@
       ]));
     } else renderResearchEmptyRow(ui.researchTargetBody, 7, 'No scored target exposure in this scope yet.');
 
+    const contentBreadthRows = sessions.map(session => {
+      const sessionTrials = latestTrialsByQuestion(session.trials || []);
+      const displayedCategories = new Set();
+      sessionTrials.forEach(trial => {
+        (Array.isArray(trial.option_metadata) ? trial.option_metadata : []).forEach(option => {
+          const categories = Array.isArray(option.category_ids) && option.category_ids.length
+            ? option.category_ids
+            : (option.category ? [option.category] : []);
+          categories.forEach(category => {
+            if(category) displayedCategories.add(category);
+          });
+        });
+      });
+      const scoredTargetIds = sessionTrials
+        .filter(trial => trial.task_kind !== 'choice-preference' && (trial.target_id || trial.target_label))
+        .map(trial => trial.target_id || normalizedConceptLabel(trial.target_label));
+      const distinctScoredTargets = new Set(scoredTargetIds).size;
+      const repeatExposures = Math.max(0, scoredTargetIds.length - distinctScoredTargets);
+      const personalisedTrials = sessionTrials.filter(trial => (
+        (Array.isArray(trial.option_metadata) && trial.option_metadata.some(option => option.personalised_photo))
+        || (Array.isArray(trial.photo_labels_used) && trial.photo_labels_used.length)
+      )).length;
+      const preferenceSelections = sessionTrials.filter(trial => trial.task_kind === 'choice-preference' && trial.selected_id).length;
+      return {
+        date: researchDateLabel(Number(session.updated_at_wall_ms)),
+        learner: session.learner_alias || session.learner || 'Unknown',
+        trials: sessionTrials.length,
+        displayed_categories: displayedCategories.size,
+        distinct_scored_targets: distinctScoredTargets,
+        repeat_exposures: repeatExposures,
+        repeat_pct: scoredTargetIds.length ? Math.round((repeatExposures / scoredTargetIds.length) * 100) : null,
+        personalised_trials: personalisedTrials,
+        personalised_pct: sessionTrials.length ? Math.round((personalisedTrials / sessionTrials.length) * 100) : null,
+        preference_selections: preferenceSelections
+      };
+    });
+    drawResearchMetricTrend(ui.researchContentBreadthChart, contentBreadthRows, [
+      { key: 'displayed_categories', label: 'Categories', color: themeToken('secondary', themeToken('primary')) },
+      { key: 'distinct_scored_targets', label: 'Scored targets', color: themeToken('primary') }
+    ], { connectPoints: connectLongitudinalPoints });
+    drawResearchMetricTrend(ui.researchContentMixChart, contentBreadthRows, [
+      { key: 'personalised_pct', label: 'Personalised', color: themeToken('secondary', themeToken('success')) },
+      { key: 'repeat_pct', label: 'Repeated', color: themeToken('warning') }
+    ], { maxValue: 100, suffix: '%', connectPoints: connectLongitudinalPoints });
+    if(contentBreadthRows.length){
+      clearNode(ui.researchContentBreadthBody);
+      contentBreadthRows.forEach(item => appendResearchRow(ui.researchContentBreadthBody, [
+        item.date,
+        item.learner,
+        item.trials,
+        item.displayed_categories,
+        item.distinct_scored_targets,
+        item.repeat_exposures,
+        item.personalised_trials,
+        item.preference_selections
+      ]));
+    } else renderResearchEmptyRow(ui.researchContentBreadthBody, 8);
+    ui.researchContentBreadthNote.textContent = scope === 'all-learners'
+      ? 'Pooled learners are shown as unconnected points. Breadth describes presented content and does not establish generalisation.'
+      : 'Connected points follow sessions in date order. Breadth describes presented content and does not establish generalisation.';
+
+    const preferenceMap = new Map();
+    finalTrials
+      .filter(trial => trial.task_kind === 'choice-preference' && (trial.selected_id || trial.selected_label))
+      .forEach(trial => {
+        const metadata = (Array.isArray(trial.option_metadata) ? trial.option_metadata : [])
+          .find(option => option.id === trial.selected_id) || {};
+        const key = trial.selected_id || normalizedConceptLabel(trial.selected_label);
+        if(!preferenceMap.has(key)){
+          preferenceMap.set(key, {
+            label: trial.selected_label || metadata.label || 'Unlabelled selection',
+            category: metadata.category ? categoryMeta(metadata.category).label : 'Not recorded',
+            source: metadata.source || 'not recorded',
+            selections: 0,
+            assisted: 0,
+            personalised: !!metadata.personalised_photo,
+            most_recent_wall_ms: null
+          });
+        }
+        const item = preferenceMap.get(key);
+        item.selections += 1;
+        if(trial.independence_status && trial.independence_status !== 'independent') item.assisted += 1;
+        if(metadata.personalised_photo || ['upload', 'uploaded', 'pupil-photo', 'personalised'].includes(metadata.source)) item.personalised = true;
+        const observedAt = [trial.response_wall_ms, trial.stimulus_onset_wall_ms].find(Number.isFinite);
+        if(Number.isFinite(observedAt)) item.most_recent_wall_ms = Math.max(item.most_recent_wall_ms || 0, observedAt);
+      });
+    const preferenceRows = Array.from(preferenceMap.values()).sort((a, b) => b.selections - a.selections || a.label.localeCompare(b.label));
+    ui.researchPreferenceSelections.textContent = String(preferenceRows.reduce((sum, item) => sum + item.selections, 0));
+    ui.researchPreferenceDistinct.textContent = String(preferenceRows.length);
+    ui.researchPreferencePersonalised.textContent = String(preferenceRows.reduce((sum, item) => sum + (item.personalised ? item.selections : 0), 0));
+    drawResearchBars(ui.researchPreferenceChart, preferenceRows.slice(0, 10).map(item => ({
+      label: item.label,
+      value: item.selections,
+      color: item.personalised ? themeToken('secondary', themeToken('success')) : themeToken('reward')
+    })), { labelWidth: 150 });
+    if(preferenceRows.length){
+      clearNode(ui.researchPreferenceBody);
+      preferenceRows.forEach(item => appendResearchRow(ui.researchPreferenceBody, [
+        item.label,
+        item.category,
+        item.source,
+        item.selections,
+        item.assisted,
+        item.most_recent_wall_ms ? researchDateLabel(item.most_recent_wall_ms) : null
+      ]));
+    } else renderResearchEmptyRow(ui.researchPreferenceBody, 6, 'No open-ended preference selections in this scope yet.');
+
     const qualityRows = sessions.map(session => {
       const markerSet = coreMarkerCompleteness(session);
       const diagnostics = session.eeg_marker_diagnostics || markerDiagnostics(session);

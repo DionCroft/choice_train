@@ -1372,6 +1372,42 @@
               <div class="compactNote">Repeated success with one target is shown separately from broader content coverage. Preference tasks are excluded because they have no scored target.</div>
             </div>
             <div class="chartCard span2">
+              <h4>Content breadth over time</h4>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Displayed categories and distinct scored targets</div>
+                  <canvas id="researchContentBreadthChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Displayed category and distinct scored target counts across sessions"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Personalised and repeated exposure (%)</div>
+                  <canvas id="researchContentMixChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Personalised content and repeated target exposure percentages across sessions"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Trials</th><th>Displayed categories</th><th>Distinct scored targets</th><th>Repeat exposures</th><th>Personalised trials</th><th>Preference selections</th></tr></thead>
+                  <tbody id="researchContentBreadthBody"></tbody>
+                </table>
+              </div>
+              <div id="researchContentBreadthNote" class="compactNote">Breadth describes what was presented, not whether learning generalised beyond the practised content.</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Open-ended preference selections</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Selections</div><div class="v" id="researchPreferenceSelections">0</div></div>
+                <div class="dashCard"><div class="k">Distinct selections</div><div class="v" id="researchPreferenceDistinct">0</div></div>
+                <div class="dashCard"><div class="k">Personalised selections</div><div class="v" id="researchPreferencePersonalised">0</div></div>
+              </div>
+              <canvas id="researchPreferenceChart" class="researchCanvas" width="760" height="240" role="img" aria-label="Counts of open-ended preference selections"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Selected item</th><th>Category</th><th>Source</th><th>Selections</th><th>Assisted</th><th>Most recent</th></tr></thead>
+                  <tbody id="researchPreferenceBody"></tbody>
+                </table>
+              </div>
+              <div class="compactNote">Selections are context-specific observations. They are not accuracy scores, stable preference claims, or a formal reinforcer assessment.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Fidelity, artifacts, and EEG marker readiness</h4>
               <div class="dashboard">
                 <div class="dashCard"><div class="k">Mean fidelity</div><div class="v" id="researchFidelity">&mdash;</div></div>

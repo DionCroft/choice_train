@@ -215,6 +215,12 @@ test('Find object balances configured categories before repeating and preserves 
   await expect(page.locator('#researchDistinctTargets')).toHaveText('6');
   await expect(page.locator('#researchRepeatTargets')).toHaveText('0');
   await expect(page.locator('#researchTargetBody tr')).toHaveCount(6);
+  await expect(page.locator('#researchContentBreadthChart')).toBeVisible();
+  const breadthCells = page.locator('#researchContentBreadthBody tr').first().locator('td');
+  await expect(breadthCells.nth(2)).toHaveText('6');
+  await expect(breadthCells.nth(4)).toHaveText('6');
+  await expect(breadthCells.nth(5)).toHaveText('0');
+  await expect(breadthCells.nth(7)).toHaveText('0');
 });
 
 test('Find category rotates fair categories and keeps exactly one correct option across seeds', async ({ page }) => {
@@ -335,6 +341,22 @@ test('Choice preference accepts every configured option and exports an unscored 
     expect(trial.generator_constraints.open_ended_choice).toBe(true);
     expect(trial.generator_constraints.procedural_variant).toBe('category-balanced-preference');
   });
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-session');
+  const selectedLabels = Array.from(new Set(payload.trials.map(trial => trial.selected_label)));
+  await expect(page.locator('#researchPreferenceChart')).toBeVisible();
+  await expect(page.locator('#researchPreferenceSelections')).toHaveText('4');
+  await expect(page.locator('#researchPreferenceDistinct')).toHaveText(String(selectedLabels.length));
+  await expect(page.locator('#researchPreferenceBody tr')).toHaveCount(selectedLabels.length);
+  for(const label of selectedLabels) await expect(page.locator('#researchPreferenceBody')).toContainText(label);
+  const breadthCells = page.locator('#researchContentBreadthBody tr').first().locator('td');
+  await expect(breadthCells.nth(4)).toHaveText('0');
+  await expect(breadthCells.nth(5)).toHaveText('0');
+  await expect(breadthCells.nth(7)).toHaveText('4');
 });
 
 test('Research is a separate admin destination with accessible visual equivalents', async ({ page }) => {
