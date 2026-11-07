@@ -416,6 +416,10 @@
     adminPage: 'overview',
     phase: 'idle',
     sessionId: '',
+    lessonPlanId: null,
+    lessonPlan: null,
+    lessonSeed: null,
+    lessonSeedSource: null,
     sessionStartMs: 0,
     questionIndex: 0,
     attemptIndex: 0,
@@ -467,7 +471,8 @@
       dashboardLastRenderAt: 0,
       dashboardDirty: false,
       trailFrame: 0,
-      currentTouchPoint: null
+      currentTouchPoint: null,
+      questionRandom: null
     },
     eeg: {
       markers: []
@@ -521,8 +526,33 @@
     });
   }
 
+  function hashStringToSeed(value){
+    let hash = 2166136261;
+    const text = String(value || '');
+    for(let index = 0; index < text.length; index += 1){
+      hash ^= text.charCodeAt(index);
+      hash = Math.imul(hash, 16777619);
+    }
+    return (hash >>> 0) || 1;
+  }
+
+  function createSeededRandom(seed){
+    let value = (Number(seed) >>> 0) || 1;
+    return () => {
+      value += 0x6D2B79F5;
+      let result = value;
+      result = Math.imul(result ^ (result >>> 15), result | 1);
+      result ^= result + Math.imul(result ^ (result >>> 7), result | 61);
+      return ((result ^ (result >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function randomUnit(){
+    return state.runtime.questionRandom ? state.runtime.questionRandom() : Math.random();
+  }
+
   function rand(max){
-    return Math.floor(Math.random() * max);
+    return max > 0 ? Math.floor(randomUnit() * max) : 0;
   }
 
   function shuffle(items){
@@ -761,7 +791,64 @@
   }
 
   function currentLessonPlanId(){
-    return state.sessionId ? `${state.sessionId}:lesson-plan` : null;
+    return state.lessonPlanId || (state.sessionId ? `${state.sessionId}:lesson-plan` : null);
+  }
+
+  function initializeLessonPlan(){
+    const overrideText = ui.lessonSeedOverride ? String(ui.lessonSeedOverride.value || '').trim() : '';
+    const overrideValue = Number(overrideText);
+    const hasOverride = overrideText !== '' && Number.isFinite(overrideValue) && overrideValue > 0;
+    state.lessonSeed = hasOverride
+      ? ((Math.floor(overrideValue) >>> 0) || 1)
+      : hashStringToSeed(`${GENERATOR_VERSION}|${state.sessionId}|${currentPupilAlias()}|${state.currentLevel}|${state.sessionTaskType}`);
+    state.lessonSeedSource = hasOverride ? 'admin-override' : 'session-generated';
+    state.lessonPlanId = `lesson-${state.lessonSeed.toString(16).padStart(8, '0')}-${state.sessionId.slice(0, 8)}`;
+    state.lessonPlan = {
+      lesson_plan_id: state.lessonPlanId,
+      lesson_seed: state.lessonSeed,
+      lesson_seed_source: state.lessonSeedSource,
+      generator_version: GENERATOR_VERSION,
+      generator_mode: 'deterministic-seeded',
+      constraints: {
+        learner_alias: currentPupilAlias(),
+        level: state.currentLevel,
+        task_mode: state.sessionTaskType,
+        total_questions: state.totalQuestions,
+        max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
+        research_condition: researchCondition(),
+        content_configuration: exportableContentConfiguration(state.sessionContentConfig)
+      }
+    };
+  }
+
+  function lessonPlanSnapshot(){
+    if(state.lessonPlan){
+      return {
+        ...state.lessonPlan,
+        constraints: {
+          ...state.lessonPlan.constraints,
+          content_configuration: state.lessonPlan.constraints.content_configuration
+            ? { ...state.lessonPlan.constraints.content_configuration }
+            : null
+        }
+      };
+    }
+    return {
+      lesson_plan_id: currentLessonPlanId(),
+      lesson_seed: state.lessonSeed,
+      lesson_seed_source: state.lessonSeedSource,
+      generator_version: GENERATOR_VERSION,
+      generator_mode: 'deterministic-seeded',
+      constraints: {
+        learner_alias: currentPupilAlias(),
+        level: state.currentLevel,
+        task_mode: selectedSessionTaskMode(),
+        total_questions: state.totalQuestions,
+        max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
+        research_condition: researchCondition(),
+        content_configuration: exportableContentConfiguration(state.sessionContentConfig)
+      }
+    };
   }
 
   function generatorConstraintsForQuestion(question){
@@ -1661,6 +1748,7 @@
       eegBlockSize: ui.eegBlockSize.value,
       eegAutoPauseSec: ui.eegAutoPauseSec.value,
       researchCondition: ui.researchCondition.value,
+      lessonSeedOverride: ui.lessonSeedOverride ? ui.lessonSeedOverride.value : '',
       eegExportFormat: ui.eegExportFormat.value,
       studentFriendlyMode: studentFriendlyModeEnabled(),
       faceName: ui.faceName.value,
@@ -1736,6 +1824,7 @@
     if(ui.eegBlockSize) ui.eegBlockSize.value = settings.eegBlockSize || 4;
     if(ui.eegAutoPauseSec) ui.eegAutoPauseSec.value = settings.eegAutoPauseSec || 6;
     if(ui.researchCondition) ui.researchCondition.value = settings.researchCondition || 'training';
+    if(ui.lessonSeedOverride) ui.lessonSeedOverride.value = settings.lessonSeedOverride || '';
     if(ui.eegExportFormat) ui.eegExportFormat.value = settings.eegExportFormat || 'tsv';
     if(ui.studentFriendlyMode) ui.studentFriendlyMode.checked = settings.studentFriendlyMode !== false;
     if(ui.faceName) ui.faceName.value = settings.faceName || 'Mum';
@@ -2785,8 +2874,8 @@
     const key = `q-${index}-${movable ? 'move' : 'still'}`;
     if(!state.questionLayouts[key]){
       state.questionLayouts[key] = {
-        left: movable ? 16 + Math.random() * 68 : 50,
-        top: movable ? 24 + Math.random() * 42 : 56
+        left: movable ? 16 + randomUnit() * 68 : 50,
+        top: movable ? 24 + randomUnit() * 42 : 56
       };
     }
     return state.questionLayouts[key];
@@ -2988,6 +3077,24 @@
     }
 
     return buildQuestionFromKind(currentKind, index);
+  }
+
+  function buildSeededQuestion(index){
+    const lessonSeed = state.lessonSeed || hashStringToSeed(`${state.sessionId}|${currentPupilAlias()}|${state.currentLevel}`);
+    const questionSeed = hashStringToSeed(`${GENERATOR_VERSION}|${lessonSeed}|question-${index}`);
+    const previousRandom = state.runtime.questionRandom;
+    state.runtime.questionRandom = createSeededRandom(questionSeed);
+    try {
+      const question = buildQuestion(index);
+      return {
+        ...question,
+        lessonSeed,
+        questionSeed,
+        generatorMode: 'deterministic-seeded'
+      };
+    } finally {
+      state.runtime.questionRandom = previousRandom;
+    }
   }
 
   function buildQuestionFromKind(kind, index){
@@ -3355,6 +3462,7 @@
       skill_ids: skillIdsForTask(question.kind),
       lesson_plan_id: currentLessonPlanId(),
       lesson_seed: question.lessonSeed == null ? null : question.lessonSeed,
+      question_seed: question.questionSeed == null ? null : question.questionSeed,
       generator_version: GENERATOR_VERSION,
       generator_mode: question.generatorMode || 'legacy-stochastic',
       generator_constraints: generatorConstraintsForQuestion(question),
@@ -4228,7 +4336,7 @@
   }
 
   function startQuestion(){
-    const question = buildQuestion(state.questionIndex);
+    const question = buildSeededQuestion(state.questionIndex);
     beginQuestion(question, 1);
   }
 
@@ -4817,6 +4925,8 @@
       generator_version: GENERATOR_VERSION,
       research_summary_version: RESEARCH_SUMMARY_VERSION,
       lesson_plan_id: currentLessonPlanId(),
+      lesson_seed: state.lessonSeed,
+      lesson_plan: lessonPlanSnapshot(),
       skill_graph: skillGraphSnapshot(),
       settings: settingsSnapshot(),
       learner_snapshot: currentLearnerRecord(),
@@ -5769,6 +5879,10 @@
     clearTimeout(state.timers.blank);
     clearTimeout(state.timers.session);
     state.sessionId = uuid4();
+    state.lessonPlanId = null;
+    state.lessonPlan = null;
+    state.lessonSeed = null;
+    state.lessonSeedSource = null;
     state.sessionStartMs = 0;
     state.questionIndex = 0;
     state.attemptIndex = 0;
@@ -5828,6 +5942,10 @@
     clearTimeout(state.timers.blank);
     clearTimeout(state.timers.session);
     state.sessionId = uuid4();
+    state.lessonPlanId = null;
+    state.lessonPlan = null;
+    state.lessonSeed = null;
+    state.lessonSeedSource = null;
     state.logs = [];
     state.trials = [];
     state.sessionTarget = null;
@@ -5841,6 +5959,7 @@
     state.currentLevel = clamp(safeNumber(ui.startLevel.value, 1), 1, 10);
     state.sessionTaskType = ui.sessionTaskType.value === 'auto' ? 'auto' : ui.sessionTaskType.value;
     state.singleTargetRepetitions = clamp(safeNumber(ui.singleTargetReps.value, 3), 1, 10);
+    initializeLessonPlan();
     state.sessionEndedEarly = false;
     state.blockPause = null;
     state.eeg.markers = [];
@@ -5856,6 +5975,8 @@
       skill_graph_version: SKILL_GRAPH_VERSION,
       generator_version: GENERATOR_VERSION,
       lesson_plan_id: currentLessonPlanId(),
+      lesson_seed: state.lessonSeed,
+      lesson_seed_source: state.lessonSeedSource,
       response_window_ms: responseWindowMs(),
       inter_trial_interval_ms: interTrialDelayMs(),
       blank_interval_enabled: blankIntervalEnabled(),
@@ -5901,6 +6022,8 @@
       generator_version: GENERATOR_VERSION,
       research_summary_version: RESEARCH_SUMMARY_VERSION,
       lesson_plan_id: currentLessonPlanId(),
+      lesson_seed: state.lessonSeed,
+      lesson_plan: lessonPlanSnapshot(),
       skill_graph: skillGraphSnapshot(),
       exported_at_wall_ms: wallMs(),
       session_id: state.sessionId,
@@ -5924,7 +6047,9 @@
         support_level: state.promptState.highestLevel,
         build_version: APP_BUILD.version,
         skill_graph_version: SKILL_GRAPH_VERSION,
-        generator_version: GENERATOR_VERSION
+        generator_version: GENERATOR_VERSION,
+        lesson_plan_id: currentLessonPlanId(),
+        lesson_seed: state.lessonSeed
       },
       learner_profile: currentLearnerRecord(),
       summary,
@@ -5964,6 +6089,7 @@
       build: buildExportMeta(),
       session_id: state.sessionId,
       learner: currentPupilName(),
+      lesson_plan: lessonPlanSnapshot(),
       research_condition: researchCondition(),
       eeg_mode: eegModeEnabled(),
       sensory_preferences: sensoryPreferenceSnapshot(),

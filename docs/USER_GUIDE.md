@@ -115,6 +115,8 @@ The development-only V1.8 alpha adds a separate `Research` destination inside `A
 
 Research scope can be set to the current session, current learner history, or all locally stored learners. Archived sessions are excluded unless `Include archived sessions` is selected. The workspace pairs each chart with a table or text summary and covers session trends, accuracy and response speed, outcomes, versioned skills, support and independence, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and classroom-transfer observations.
 
+Procedural questions in V1.8 use a stored lesson seed. The session export records the frozen lesson constraints and a separate seed for each question, allowing an authorised researcher to audit or replay the same generated content. `Lesson replay seed` in Admin and research is optional and intended for controlled comparison or debugging; leave it blank for normal sessions so ChoiceTrain creates a seed automatically.
+
 The V1.8 research view is descriptive. It does not diagnose a learner, establish durable transfer, or prove neural plasticity.
 
 ---

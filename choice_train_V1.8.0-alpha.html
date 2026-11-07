@@ -843,6 +843,11 @@
             <div class="helperText">Lets the same game layout run either as the training condition or a matched control condition.</div>
           </div>
           <div>
+            <label for="lessonSeedOverride">Lesson replay seed (optional)</label>
+            <input id="lessonSeedOverride" type="number" min="1" max="4294967295" step="1" placeholder="Generated automatically" />
+            <div class="helperText">Use the same seed with the same settings and content to reproduce generated targets, options, and Attention Training conditions. Leave blank for a new seed.</div>
+          </div>
+          <div>
             <label for="eegExportFormat">Advanced export format</label>
             <select id="eegExportFormat">
               <option value="tsv">Marker TSV</option>

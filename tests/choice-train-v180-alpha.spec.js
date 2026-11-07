@@ -90,8 +90,14 @@ test('a learner trial exports skill, generator, and descriptive research metadat
   expect(trial.skill_graph_version).toBe('1.0.0');
   expect(trial.skill_ids).toEqual(['recognition.named_object']);
   expect(trial.lesson_plan_id).toBe(payload.lesson_plan_id);
-  expect(trial.lesson_seed).toBeNull();
-  expect(trial.generator_mode).toBe('legacy-stochastic');
+  expect(trial.lesson_seed).toEqual(expect.any(Number));
+  expect(trial.question_seed).toEqual(expect.any(Number));
+  expect(trial.generator_mode).toBe('deterministic-seeded');
+  expect(payload.lesson_plan).toEqual(expect.objectContaining({
+    lesson_seed: trial.lesson_seed,
+    generator_mode: 'deterministic-seeded'
+  }));
+  expect(payload.lesson_plan.constraints.level).toBe(4);
   expect(trial.generator_constraints).toEqual(expect.objectContaining({
     task_kind: 'find-object',
     level: 4
@@ -108,6 +114,47 @@ test('a learner trial exports skill, generator, and descriptive research metadat
   }));
   expect(skill.median_reaction_time_ms).not.toBeNull();
   expect(payload.research_summary.interpretation_boundary).toContain('not a diagnostic');
+});
+
+test('a fixed lesson seed reproduces target, options, and prompt wording', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+  await setValue(page, 'lessonSeedOverride', 246813579);
+
+  async function completeAndExport(){
+    await page.locator('#quickStartSessionBtn').click();
+    const target = page.locator('#choiceGrid [data-role="correct-target"]').first();
+    await expect(target).toBeVisible();
+    await target.click();
+    await expect(page.locator('#screenSummary.active')).toBeVisible();
+    return downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+  }
+
+  const first = await completeAndExport();
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await setValue(page, 'startLevel', 4);
+  const second = await completeAndExport();
+
+  const firstTrial = first.trials[0];
+  const secondTrial = second.trials[0];
+  expect(first.lesson_plan.lesson_seed).toBe(246813579);
+  expect(first.lesson_plan.lesson_seed_source).toBe('admin-override');
+  expect(first.lesson_plan.constraints.level).toBe(4);
+  expect(second.lesson_plan.constraints.level).toBe(4);
+  expect(secondTrial.question_seed).toBe(firstTrial.question_seed);
+  expect(secondTrial.target_id).toBe(firstTrial.target_id);
+  expect(secondTrial.option_labels).toEqual(firstTrial.option_labels);
+  expect(secondTrial.option_metadata.map(item => item.id)).toEqual(firstTrial.option_metadata.map(item => item.id));
+  expect(secondTrial.prompt_wording).toBe(firstTrial.prompt_wording);
+  expect(firstTrial.option_metadata.filter(item => item.id === firstTrial.target_id)).toHaveLength(1);
 });
 
 test('Research is a separate admin destination with accessible visual equivalents', async ({ page }) => {

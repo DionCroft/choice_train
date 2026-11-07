@@ -11,7 +11,7 @@ ChoiceTrain is a static, browser-based learning and research-support tool design
 
 Stable `V1.7.0` remains the live GitHub Pages application. Development continues separately on `feature/v1.8.0-research-personalisation` in `choice_train_V1.8.0-alpha.html`; the alpha is not loaded by `index.html`.
 
-The current alpha adds schema-versioned skill data and a dedicated local-only `Research` destination. It can visualise current-session, current-learner, or all-learner data across accuracy, independent responding, reaction time, outcomes, skills, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and classroom-transfer observations. Every chart has a table or text equivalent. These outputs are descriptive teaching and study-support data, not diagnostic results or evidence that neural change has occurred.
+The current alpha adds schema-versioned skill data, reproducible seeded lesson generation, and a dedicated local-only `Research` destination. It can visualise current-session, current-learner, or all-learner data across accuracy, independent responding, reaction time, outcomes, skills, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and classroom-transfer observations. Every chart has a table or text equivalent. Session exports retain the generator version, frozen constraints, lesson seed, and per-question seed so an authorised researcher can audit or replay a generated plan. These outputs are descriptive teaching and study-support data, not diagnostic results or evidence that neural change has occurred.
 
 The current stable release is `V1.7.0`. Historical versioned builds and the reviewed V1.7 alpha candidate remain available for traceability.
 
@@ -530,7 +530,7 @@ The V1.7-specific suite contains 21 checks for workspace separation and focused 
 
 Planned or likely next steps include:
 
-- a comprehensive Research workspace for attention-family performance, accuracy and latency, omissions and commissions, touch behaviour, support and independence, learning slopes, retention, category exposure, transfer, fidelity, artifacts, EEG marker quality, and recommendation history
+- interpretable practice-status, retention, and recommendation histories within the new Research workspace
 - deeper EEG workflow integration
 - additional AT variants that preserve the research-informed attention rules
 - stronger classroom transfer and maintenance measures

@@ -11,13 +11,13 @@ All notable changes to ChoiceTrain are listed here.
 - a separate `Research` Admin destination with current-session, current-learner, and all-learner scopes; archived sessions remain excluded unless selected
 - accessible chart-and-table views for session accuracy and independent responding, speed versus accuracy, outcome balance, skill profiles, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and transfer observations
 - corrected longitudinal trial grouping so question numbers from separate sessions are not collapsed together
-- 6 focused V1.8 browser tests; the complete stable-plus-alpha matrix currently passes 83 tests
+- deterministic, constraint-first procedural questions with exported lesson and question seeds, a frozen lesson-plan snapshot, and an optional Admin replay seed
+- browser coverage proving that a fixed seed reproduces the exact target, ordered options, and prompt wording while preserving the original level after progression
+- 7 focused V1.8 browser tests; the complete stable-plus-alpha matrix currently passes 84 tests
 
 ### Planned
 
-- versioned skill graph and reproducible procedural lesson plans
 - longitudinal, interpretable learner-state and retention summaries
-- dedicated Research workspace with accessible visualisations across behavioural, touch, support, content, transfer, fidelity, artifact, EEG-quality, and recommendation data
 - teacher-reviewed recommendations and privacy-preserving AI-training exports
 - additional EEG protocol and synchronization-diagnostic fields without claiming hardware-synchronised triggers
 
