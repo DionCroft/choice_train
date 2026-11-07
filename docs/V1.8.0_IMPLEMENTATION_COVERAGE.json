@@ -212,11 +212,13 @@
       "summary": "Promotion requires a frozen exact commit, complete external evidence, accepted limitations, a passing guard, and explicit product-owner authorisation.",
       "implementation_evidence": [
         { "path": "scripts/check-v180-promotion.js", "contains": "promotion_authorised must be true" },
-        { "path": "docs/V1.8.0_PROMOTION_EVIDENCE.json", "contains": "\"promotion_authorised\": false" }
+        { "path": "docs/V1.8.0_PROMOTION_EVIDENCE.json", "contains": "\"promotion_authorised\": false" },
+        { "path": "scripts/create-v180-review-pack.js", "contains": "Pupil-data-free engineering hand-off for external V1.8 review" }
       ],
       "automated_evidence": [
         { "path": "scripts/check-v180-promotion.test.js", "contains": "a pending record cannot authorise release" },
-        { "path": "scripts/check-v180-promotion.test.js", "contains": "complete evidence for the exact frozen commit passes the manual guard" }
+        { "path": "scripts/check-v180-promotion.test.js", "contains": "complete evidence for the exact frozen commit passes the manual guard" },
+        { "path": "scripts/create-v180-review-pack.test.js", "contains": "review pack is pupil-data-free and excludes protected evidence fields" }
       ],
       "limitations": ["Automation can reject incomplete evidence but cannot perform or approve product-owner, school, safeguarding, governance, ethics, device, access, or EEG reviews."]
     },

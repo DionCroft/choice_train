@@ -153,10 +153,10 @@ check('candidate runtime contains no external transport implementation', () => {
   assert(!networkPrimitive.test(source), 'found a browser network transport primitive in the candidate runtime');
 });
 
-check('CI validates release, promotion-guard, schema, coverage, candidate, and browser gates', () => {
+check('CI validates release, promotion-guard, schema, coverage, review-pack, candidate, and browser gates', () => {
   ['.github/workflows/ci.yml', '.github/workflows/pages.yml'].forEach((file) => {
     const workflow = read(file);
-    ['npm run test:release', 'npm run test:promotion', 'npm run test:schema', 'npm run test:coverage', 'npm run check:candidate:v180', 'npm run test:browser', 'npm run test:browser:compat']
+    ['npm run test:release', 'npm run test:promotion', 'npm run test:schema', 'npm run test:coverage', 'npm run test:review-pack', 'npm run check:candidate:v180', 'npm run test:browser', 'npm run test:browser:compat']
       .forEach((command) => assert(workflow.includes(command), `${file} does not run ${command}`));
     assert(/playwright install --with-deps chromium webkit/.test(workflow), `${file} does not install Chromium and WebKit`);
   });

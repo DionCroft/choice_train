@@ -7,6 +7,8 @@
     "test:promotion": "node --test scripts/check-v180-promotion.test.js && node scripts/check-v180-promotion.js --structure-check",
     "test:schema": "node --test scripts/schema-contract.test.js",
     "test:coverage": "node --test scripts/check-v180-coverage.test.js && node scripts/check-v180-coverage.js",
+    "test:review-pack": "node --test scripts/create-v180-review-pack.test.js",
+    "build:review-pack:v180": "node scripts/create-v180-review-pack.js",
     "check:candidate:v180": "node scripts/check-v180-candidate.js",
     "check:promotion:v180": "node scripts/check-v180-promotion.js",
     "test:browser": "node scripts/run-browser-tests.js",

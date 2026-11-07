@@ -26,6 +26,8 @@ The repository's repeatable visual-audit script uses synthetic/default pupil dat
 
 The V1.8 Device readiness report is a separate pupil-data-free support artifact. It contains build metadata, the browser user-agent and platform, current viewport/orientation/safe-area values, reported pointer/touch and storage capabilities, selected accessibility media preferences, and current interface measurements. Its closed schema has no pupil, session, response, note, image, or research fields, and ChoiceTrain does not upload or automatically retain it. A user-agent and device configuration can still identify a managed school device, so staff should review the file and store or share it only through the school's approved validation process.
 
+The V1.8 engineering review pack is also pupil-data-free and is written only to the ignored `test-results/` directory when a developer runs the build command. It contains build/Git provenance, stable hashes, implementation requirement IDs, promotion-gate status codes, and required command names. It excludes pupil/session data, reviewer identities, evidence references, consent or authority records, and EEG recordings; it is not uploaded by ChoiceTrain and does not authorise promotion.
+
 ## School Responsibilities
 
 Schools should define an appropriate lawful basis, consent process, retention period, device-access policy, and export-storage process before using identifiable pupil data. Use aliases where possible and avoid unnecessary diagnostic or sensitive detail in context notes.

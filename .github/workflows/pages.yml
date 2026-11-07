@@ -43,6 +43,9 @@ jobs:
       - name: Validate V1.8 implementation coverage
         run: npm run test:coverage
 
+      - name: Test V1.8 review-pack tooling
+        run: npm run test:review-pack
+
       - name: Check V1.8 candidate readiness
         run: npm run check:candidate:v180
 
