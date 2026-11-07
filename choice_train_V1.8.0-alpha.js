@@ -6707,6 +6707,78 @@
       ]));
     } else renderResearchEmptyRow(ui.researchSkillBody, 10);
 
+    const taskVariantMap = new Map();
+    finalTrials.forEach(trial => {
+      const condition = trial.research_condition || 'not recorded';
+      const taskKind = trial.task_kind || 'unknown';
+      const variant = trial.variant_label || trial.task_variant || 'Default';
+      const key = `${condition}|${taskKind}|${variant}`;
+      if(!taskVariantMap.has(key)){
+        taskVariantMap.set(key, {
+          condition,
+          task_kind: taskKind,
+          task_label: taskLabel(taskKind),
+          variant,
+          trials: 0,
+          scored: 0,
+          correct: 0,
+          support_observed: 0,
+          independent: 0,
+          omissions: 0,
+          commissions: 0,
+          response_times: []
+        });
+      }
+      const item = taskVariantMap.get(key);
+      const isPreference = skillIdsForTask(taskKind).includes('choice.preference');
+      const scored = trial.scored_response !== false && !isPreference;
+      const supportObserved = ['independent', 'prompted', 'assisted'].includes(trial.independence_status);
+      item.trials += 1;
+      if(scored){
+        item.scored += 1;
+        if(trial.correct) item.correct += 1;
+      }
+      if(supportObserved){
+        item.support_observed += 1;
+        if(trial.independence_status === 'independent') item.independent += 1;
+      }
+      if(trial.omission) item.omissions += 1;
+      if(trial.commission) item.commissions += 1;
+      if(Number.isFinite(trial.response_time_ms)) item.response_times.push(trial.response_time_ms);
+    });
+    const taskVariantRows = Array.from(taskVariantMap.values()).map(item => ({
+      ...item,
+      accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null,
+      independent_pct: item.support_observed ? Math.round((item.independent / item.support_observed) * 100) : null,
+      median_rt_ms: item.response_times.length ? Math.round(median(item.response_times)) : null
+    })).sort((a, b) => b.trials - a.trials || a.task_label.localeCompare(b.task_label) || a.variant.localeCompare(b.variant));
+    ui.researchTaskTypeCount.textContent = String(new Set(taskVariantRows.map(item => item.task_kind)).size);
+    ui.researchTaskVariantCount.textContent = String(new Set(taskVariantRows.map(item => `${item.task_kind}|${item.variant}`)).size);
+    ui.researchConditionCount.textContent = String(new Set(taskVariantRows.map(item => item.condition)).size);
+    drawResearchBars(ui.researchTaskVariantChart, taskVariantRows
+      .filter(item => item.accuracy_pct != null)
+      .slice(0, 12)
+      .map(item => ({
+        label: `${item.task_label}: ${item.variant}`,
+        value: item.accuracy_pct,
+        color: item.condition === 'active-control' ? themeToken('warning') : themeToken('primary')
+      })), { maxValue: 100, suffix: '%', labelWidth: 240 });
+    if(taskVariantRows.length){
+      clearNode(ui.researchTaskVariantBody);
+      taskVariantRows.forEach(item => appendResearchRow(ui.researchTaskVariantBody, [
+        RESEARCH_CONDITION_LABELS[item.condition] || item.condition,
+        item.task_label,
+        item.variant,
+        item.trials,
+        item.scored,
+        item.accuracy_pct == null ? 'Not scored' : `${item.accuracy_pct}%`,
+        item.independent_pct == null ? null : `${item.independent_pct}%`,
+        item.omissions,
+        item.commissions,
+        item.median_rt_ms == null ? null : `${item.median_rt_ms} ms`
+      ]));
+    } else renderResearchEmptyRow(ui.researchTaskVariantBody, 10);
+
     const practiceStates = skillPracticeStatesForSessions(sessions);
     drawResearchBars(ui.researchPracticeChart, practiceStates.filter(item => item.recent_accuracy_pct != null).map(item => ({
       label: item.label,
@@ -7154,6 +7226,55 @@
     ui.researchTransferNote.textContent = scope === 'all-learners'
       ? 'Teacher-rating points from different learners are not connected. Status bars count recorded observations only; not-run and missing statuses are excluded. These observations do not establish transfer or causation.'
       : 'Connected teacher-rating points follow sessions in date order. These practitioner observations should be analysed separately from task accuracy and EEG outcomes.';
+
+    const contextRows = sessions.map((session, index) => {
+      const sessionTrials = latestTrialsByQuestion(session.trials || []);
+      const contextTrial = sessionTrials.find(trial => trial.session_context && typeof trial.session_context === 'object');
+      const baselineTrial = sessionTrials.find(trial => trial.learner_baseline && typeof trial.learner_baseline === 'object');
+      const context = contextTrial ? contextTrial.session_context : {};
+      const trialBaseline = baselineTrial ? baselineTrial.learner_baseline : {};
+      const profileBaseline = session.learner_snapshot && session.learner_snapshot.baseline ? session.learner_snapshot.baseline : {};
+      const trend = sessionRows[index] || sessionTrendRow(session);
+      const breaksValue = Number.isFinite(context.breaks_used)
+        ? context.breaks_used
+        : (Number.isFinite(profileBaseline.breakCount) ? profileBaseline.breakCount : null);
+      return {
+        date: trend.date,
+        learner: trend.learner,
+        readiness: context.fatigue_level || profileBaseline.fatigueLevel || 'not-recorded',
+        sensory_state: context.sensory_state || profileBaseline.sensoryState || 'not-recorded',
+        sleep: trialBaseline.sleep_quality || profileBaseline.sleepQuality || profileBaseline.sleep_quality || 'not-recorded',
+        breaks: breaksValue,
+        pre_session_choice: context.pre_session_preference || profileBaseline.preSessionPreference || 'not-recorded',
+        accuracy_pct: trend.accuracy_pct,
+        independent_pct: trend.independent_pct
+      };
+    });
+    const contextCountRows = key => Array.from(contextRows.reduce((counts, item) => {
+      const value = item[key] || 'not-recorded';
+      counts.set(value, (counts.get(value) || 0) + 1);
+      return counts;
+    }, new Map()).entries()).map(([value, count]) => ({
+      label: String(value).replace(/-/g, ' '),
+      value: count,
+      color: themeToken('secondary', themeToken('primary'))
+    }));
+    drawResearchBars(ui.researchReadinessChart, contextCountRows('readiness'), { labelWidth: 125 });
+    drawResearchBars(ui.researchSensoryStateChart, contextCountRows('sensory_state'), { labelWidth: 125 });
+    if(contextRows.length){
+      clearNode(ui.researchContextBody);
+      contextRows.forEach(item => appendResearchRow(ui.researchContextBody, [
+        item.date,
+        item.learner,
+        String(item.readiness).replace(/-/g, ' '),
+        String(item.sensory_state).replace(/-/g, ' '),
+        String(item.sleep).replace(/-/g, ' '),
+        item.breaks,
+        String(item.pre_session_choice).replace(/-/g, ' '),
+        item.accuracy_pct == null ? null : `${item.accuracy_pct}%`,
+        item.independent_pct == null ? null : `${item.independent_pct}%`
+      ]));
+    } else renderResearchEmptyRow(ui.researchContextBody, 9);
   }
 
   function redrawThemeVisuals(){

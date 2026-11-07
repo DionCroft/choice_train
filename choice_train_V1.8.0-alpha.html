@@ -1275,6 +1275,22 @@
               </div>
             </div>
             <div class="chartCard span2">
+              <h4>Task, variant, and research-condition profile</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Task types</div><div class="v" id="researchTaskTypeCount">0</div></div>
+                <div class="dashCard"><div class="k">Task variants</div><div class="v" id="researchTaskVariantCount">0</div></div>
+                <div class="dashCard"><div class="k">Conditions</div><div class="v" id="researchConditionCount">0</div></div>
+              </div>
+              <canvas id="researchTaskVariantChart" class="researchCanvas" width="760" height="300" role="img" aria-label="Accuracy by task, variant, and research condition"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Condition</th><th>Task</th><th>Variant</th><th>Trials</th><th>Scored</th><th>Accuracy</th><th>Independent</th><th>Omissions</th><th>Commissions</th><th>Median RT</th></tr></thead>
+                  <tbody id="researchTaskVariantBody"></tbody>
+                </table>
+              </div>
+              <div class="compactNote">Rows describe observed in-app task performance. Differences between variants or conditions are not causal estimates.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Practice status and spaced retention observations</h4>
               <canvas id="researchPracticeChart" class="researchCanvas" width="760" height="280" role="img" aria-label="Recent accuracy by skill with descriptive practice-status groupings"></canvas>
               <div class="tableWrap researchTableWrap">
@@ -1463,6 +1479,26 @@
                 </table>
               </div>
               <div id="researchTransferNote" class="compactNote">These are practitioner observations. They should be analysed separately from task accuracy and EEG outcomes.</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Session context observations</h4>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Readiness / fatigue observations</div>
+                  <canvas id="researchReadinessChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Session counts by recorded readiness or fatigue state"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Sensory-state observations</div>
+                  <canvas id="researchSensoryStateChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Session counts by recorded sensory state"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Readiness</th><th>Sensory state</th><th>Sleep</th><th>Breaks</th><th>Pre-session choice</th><th>Accuracy</th><th>Independent</th></tr></thead>
+                  <tbody id="researchContextBody"></tbody>
+                </table>
+              </div>
+              <div class="compactNote">Context is practitioner-entered and may help interpret a session. It does not prove that fatigue, sensory state, sleep, or breaks caused a performance difference.</div>
             </div>
           </div>
 

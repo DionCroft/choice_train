@@ -45,6 +45,8 @@ All notable changes to ChoiceTrain are listed here.
 - per-session browser-marker completeness, ordering, protocol-coverage, and heuristic block-quality trends, with pooled-learner lines suppressed
 - practitioner-logged Movement, Blink, Speech, Cap adjust, and Interruption distributions with event counts, affected-session counts, and transparent heuristic weights
 - aggregate EEG-readiness bars now preserve missing values instead of drawing unavailable checks as zero
+- task/variant/condition profiles with trials, scored opportunities, accuracy, observed independence, omissions, commissions, and median RT
+- session-context visualisations and tables for practitioner-recorded readiness/fatigue, sensory state, sleep, breaks, and pre-session choice alongside descriptive outcomes
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary

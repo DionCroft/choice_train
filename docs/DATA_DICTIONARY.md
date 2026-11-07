@@ -56,6 +56,12 @@ The content-breadth view derives, per session, the count of categories represent
 
 The preference view groups completed `choice-preference` trials by the actual `selected_id` and reports label, category, source, count, assisted count, and latest observed selection date. It does not use the generator's balancing anchor as a correct answer. These are context-specific choice observations and must not be presented as stable preferences or a formal reinforcer assessment.
 
+### Research task and context views
+
+The task/variant profile groups final trials by `research_condition`, `task_kind`, and `variant_label`/`task_variant`. It reports trial and scored counts, accuracy, observed independence, omissions, commissions, and median reaction time. Open-ended preferences remain unscored. Rows are descriptive and are not adjusted causal comparisons between tasks, variants, or research conditions.
+
+The session-context view uses the frozen trial/session snapshot for `fatigue_level`, `sensory_state`, `sleep_quality`, `breaks_used`, and `pre_session_preference`, with profile fallbacks for older records. It places the recorded context beside session accuracy and observed independence. The view does not infer context from behaviour and must not be used to claim that a context factor caused performance.
+
 ## V1.8 Procedural Lesson Provenance
 
 Generator version `1.2.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Discriminate object`, and `Choice preference`.

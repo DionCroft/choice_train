@@ -415,6 +415,10 @@ test('Research separates Attention Training families and avoids unsupported slop
   await expect(page.locator('#researchAttentionFamilyBody')).toContainText('100%');
   await expect(page.locator('#researchAttentionFamilyBody')).toContainText('Need 3 sessions');
   await expect(page.locator('#researchAttentionFamilyNote')).toContainText('do not establish transfer');
+  await expect(page.locator('#researchTaskVariantChart')).toBeVisible();
+  await expect(page.locator('#researchTaskVariantBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchTaskVariantBody')).toContainText('AT selective');
+  await expect(page.locator('#researchTaskVariantBody')).toContainText('Training condition');
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchAttentionFamilyBody')).toContainText('Use learner scope');
@@ -462,6 +466,10 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
   await setValue(page, 'teacherIndependenceRating', 2);
   await setValue(page, 'maintenanceStatus', 'maintained');
   await setValue(page, 'generalisationStatus', 'generalised');
+  await setValue(page, 'fatigueLevel', 'fatigued');
+  await setValue(page, 'sensoryState', 'seeking');
+  await setValue(page, 'sleepQuality', 'poor');
+  await setValue(page, 'breakCount', 2);
   await setValue(page, 'dosageMinutesTarget', 12);
   await setCheckbox(page, 'fidelityEnvironmentReady', true);
   await setCheckbox(page, 'fidelityRuleShown', true);
@@ -487,6 +495,13 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
   await expect(page.locator('#researchTransferBody')).toContainText('2/5');
   await expect(page.locator('#researchTransferBody')).toContainText('maintained');
   await expect(page.locator('#researchTransferBody')).toContainText('generalised');
+  await expect(page.locator('#researchReadinessChart')).toBeVisible();
+  await expect(page.locator('#researchSensoryStateChart')).toBeVisible();
+  await expect(page.locator('#researchContextBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchContextBody')).toContainText('fatigued');
+  await expect(page.locator('#researchContextBody')).toContainText('seeking');
+  await expect(page.locator('#researchContextBody')).toContainText('poor');
+  await expect(page.locator('#researchContextBody')).toContainText('2');
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchSupportTrendNote')).toContainText('unconnected points');
