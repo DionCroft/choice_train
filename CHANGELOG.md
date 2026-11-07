@@ -31,7 +31,9 @@ All notable changes to ChoiceTrain are listed here.
 - per-pupil local data-use declarations for research analysis, EEG linkage, and model-development purposes, with a separately held authority reference and review date
 - deny-by-default pseudonymised model-development export that checks every pupil profile in scope and remains blocked for missing, classroom-only, or withdrawn declarations
 - full exports retain the local governance declaration for audit, while the privacy-minimised dataset excludes authority references and review dates
-- 15 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 92 tests
+- a dedicated Attention Training family profile for sustained, selective-spatial, orienting, and executive performance, including accuracy, independence, omissions, commissions, RT, RT variability, and touch distance
+- current-learner family trajectories with an accessible table and a descriptive percentage-point slope only after three observed sessions; all-learner scope deliberately suppresses slope interpretation
+- 16 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 93 tests
 
 ### Planned
 

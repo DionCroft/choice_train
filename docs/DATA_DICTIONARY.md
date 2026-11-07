@@ -32,6 +32,12 @@ Teacher review records preserve the proposal, decision, optional override, final
 
 V1.8 freezes the selected local pupil name, export alias, profile snapshot, context, presentation settings, and photo metadata when a session starts. Later profile selection cannot relabel that session. The export alias is a display/pseudonym field rather than the local identity key, so two profiles may share an alias without their longitudinal records being merged.
 
+### Research attention-family view
+
+The Research workspace recomputes a separate descriptive profile for `sustained`, `selective-spatial`, `orienting`, and `executive` trials. For each observed family it shows session and opportunity counts, accuracy, independent correct responses, omissions, commissions, median reaction time, reaction-time variability, and mean touch distance. These values remain missing when the relevant signal was not observed; missing timing or touch data is not replaced with zero.
+
+`Descriptive slope` is an on-screen percentage-point change per observed session, calculated from family-level session accuracy only when the current-learner scope contains at least three sessions for that family. It is not calculated in all-learner scope and is not a validated learning, transfer, or neural-plasticity estimate.
+
 ## V1.8 Procedural Lesson Provenance
 
 Generator version `1.1.0` adds a `balanced-before-repeat` coverage strategy for `Find object` and `Find category`.

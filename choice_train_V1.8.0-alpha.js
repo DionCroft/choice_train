@@ -6155,6 +6155,135 @@
     ctx.restore();
   }
 
+  function attentionDomainForTrial(trial){
+    const domain = trial.attention_domain || trial.attentionDomain || taskMeta(trial.task_kind).domain;
+    return ['sustained', 'selective-spatial', 'orienting', 'executive'].includes(domain) ? domain : null;
+  }
+
+  function descriptiveLinearSlope(values){
+    if(values.length < 3) return null;
+    const xMean = (values.length - 1) / 2;
+    const yMean = mean(values);
+    const numerator = values.reduce((sum, value, index) => sum + ((index - xMean) * (value - yMean)), 0);
+    const denominator = values.reduce((sum, value, index) => sum + Math.pow(index - xMean, 2), 0);
+    return denominator ? Number((numerator / denominator).toFixed(1)) : null;
+  }
+
+  function attentionFamilyResearchRows(sessions, allowLongitudinalSlope){
+    const domains = ['sustained', 'selective-spatial', 'orienting', 'executive'];
+    const aggregates = new Map(domains.map(domain => [domain, {
+      domain,
+      label: ATTENTION_FAMILY_LABELS[domain],
+      sessions: 0,
+      opportunities: 0,
+      correct: 0,
+      independentCorrect: 0,
+      omissions: 0,
+      commissions: 0,
+      responseTimes: [],
+      touchDistances: [],
+      observations: []
+    }]));
+
+    sessions.forEach((session, sessionIndex) => {
+      const finalTrials = latestTrialsByQuestion(session.trials || []);
+      domains.forEach(domain => {
+        const matching = finalTrials.filter(trial => attentionDomainForTrial(trial) === domain);
+        if(!matching.length) return;
+        const item = aggregates.get(domain);
+        const correct = matching.filter(trial => trial.correct).length;
+        item.sessions += 1;
+        item.opportunities += matching.length;
+        item.correct += correct;
+        item.independentCorrect += matching.filter(trial => trial.correct && (!trial.independence_status || trial.independence_status === 'independent')).length;
+        item.omissions += matching.filter(trial => trial.omission).length;
+        item.commissions += matching.filter(trial => trial.commission).length;
+        item.responseTimes.push(...finiteTrialValues(matching, 'response_time_ms'));
+        item.touchDistances.push(...finiteTrialValues(matching, 'distance_to_target_px'));
+        item.observations.push({
+          session_index: sessionIndex,
+          date: researchDateLabel(Number(session.updated_at_wall_ms)),
+          learner: session.learner_alias || session.learner || 'Unknown',
+          opportunities: matching.length,
+          accuracy_pct: Math.round((correct / matching.length) * 100)
+        });
+      });
+    });
+
+    return domains.map(domain => {
+      const item = aggregates.get(domain);
+      const accuracyValues = item.observations.map(observation => observation.accuracy_pct);
+      return {
+        ...item,
+        accuracy_pct: item.opportunities ? Math.round((item.correct / item.opportunities) * 100) : null,
+        independent_success_pct: item.opportunities ? Math.round((item.independentCorrect / item.opportunities) * 100) : null,
+        median_rt_ms: item.responseTimes.length ? Math.round(median(item.responseTimes)) : null,
+        rt_variability_ms: item.responseTimes.length > 1 ? Math.round(standardDeviation(item.responseTimes)) : null,
+        mean_touch_distance_px: item.touchDistances.length ? Number(mean(item.touchDistances).toFixed(1)) : null,
+        descriptive_slope_pp_per_session: allowLongitudinalSlope ? descriptiveLinearSlope(accuracyValues) : null
+      };
+    }).filter(item => item.opportunities > 0);
+  }
+
+  function drawResearchAttentionTrend(canvas, rows, sessionCount, allowLongitudinalTrend){
+    const ctx = prepareResearchCanvas(canvas);
+    const plot = { left: 44, top: 24, right: canvas.width - 20, bottom: canvas.height - 48 };
+    ctx.strokeStyle = themeToken('border', '#738c91');
+    ctx.fillStyle = themeToken('text-muted', '#52656d');
+    ctx.textAlign = 'right';
+    [0, 50, 100].forEach(value => {
+      const y = plot.bottom - ((plot.bottom - plot.top) * value / 100);
+      ctx.beginPath();
+      ctx.moveTo(plot.left, y);
+      ctx.lineTo(plot.right, y);
+      ctx.stroke();
+      ctx.fillText(`${value}%`, plot.left - 7, y);
+    });
+    if(!allowLongitudinalTrend){
+      ctx.textAlign = 'left';
+      ctx.fillText('Choose Current learner history to view family trajectories.', plot.left + 12, (plot.top + plot.bottom) / 2);
+      return;
+    }
+    if(!rows.length){
+      ctx.textAlign = 'left';
+      ctx.fillText('No Attention Training sessions in this scope', plot.left + 12, (plot.top + plot.bottom) / 2);
+      return;
+    }
+    const colors = {
+      sustained: themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue),
+      'selective-spatial': themeToken('success', STIMULUS_COLOR_FALLBACKS.green),
+      orienting: themeToken('warning', STIMULUS_COLOR_FALLBACKS.amber),
+      executive: themeToken('danger', STIMULUS_COLOR_FALLBACKS.red)
+    };
+    rows.forEach((row, seriesIndex) => {
+      const color = colors[row.domain];
+      ctx.strokeStyle = color;
+      ctx.fillStyle = color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      row.observations.forEach((observation, index) => {
+        const x = plot.left + ((plot.right - plot.left) * (sessionCount <= 1 ? 0.5 : observation.session_index / (sessionCount - 1)));
+        const y = plot.bottom - ((plot.bottom - plot.top) * observation.accuracy_pct / 100);
+        if(index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      row.observations.forEach(observation => {
+        const x = plot.left + ((plot.right - plot.left) * (sessionCount <= 1 ? 0.5 : observation.session_index / (sessionCount - 1)));
+        const y = plot.bottom - ((plot.bottom - plot.top) * observation.accuracy_pct / 100);
+        ctx.beginPath();
+        ctx.arc(x, y, 4, 0, Math.PI * 2);
+        ctx.fill();
+      });
+      const legendX = plot.left + ((seriesIndex % 2) * 250);
+      const legendY = canvas.height - 30 + (Math.floor(seriesIndex / 2) * 16);
+      ctx.fillRect(legendX, legendY - 2, 12, 4);
+      ctx.fillStyle = themeToken('text', '#172b35');
+      ctx.textAlign = 'left';
+      ctx.fillText(row.label, legendX + 18, legendY);
+    });
+  }
+
   function researchReviewsForSessions(sessions){
     const scope = ui.researchScopeSelect ? ui.researchScopeSelect.value : 'current-learner';
     const reviews = [];
@@ -6371,6 +6500,44 @@
     ];
     drawResearchBars(ui.researchOutcomeChart, outcomes, { labelWidth: 135 });
     ui.researchOutcomeSummary.textContent = outcomes.map(item => `${item.label}: ${item.value}`).join(' | ');
+
+    const allowAttentionLongitudinal = scope === 'current-learner';
+    const attentionFamilyRows = attentionFamilyResearchRows(sessions, allowAttentionLongitudinal);
+    drawResearchBars(ui.researchAttentionFamilyChart, attentionFamilyRows.map(item => ({
+      label: item.label,
+      value: item.accuracy_pct,
+      color: item.domain === 'sustained'
+        ? themeToken('primary')
+        : item.domain === 'selective-spatial'
+          ? themeToken('success')
+          : item.domain === 'orienting'
+            ? themeToken('warning')
+            : themeToken('danger')
+    })), { maxValue: 100, suffix: '%', labelWidth: 190 });
+    drawResearchAttentionTrend(ui.researchAttentionTrendChart, attentionFamilyRows, sessions.length, allowAttentionLongitudinal);
+    if(attentionFamilyRows.length){
+      clearNode(ui.researchAttentionFamilyBody);
+      attentionFamilyRows.forEach(item => appendResearchRow(ui.researchAttentionFamilyBody, [
+        item.label,
+        item.sessions,
+        item.opportunities,
+        `${item.accuracy_pct}%`,
+        `${item.independent_success_pct}%`,
+        item.omissions,
+        item.commissions,
+        item.median_rt_ms == null ? null : `${item.median_rt_ms} ms`,
+        item.rt_variability_ms == null ? null : `${item.rt_variability_ms} ms`,
+        item.mean_touch_distance_px == null ? null : `${item.mean_touch_distance_px} px`,
+        !allowAttentionLongitudinal
+          ? 'Use learner scope'
+          : item.descriptive_slope_pp_per_session == null
+            ? 'Need 3 sessions'
+            : `${item.descriptive_slope_pp_per_session > 0 ? '+' : ''}${item.descriptive_slope_pp_per_session} pp/session`
+      ]));
+    } else renderResearchEmptyRow(ui.researchAttentionFamilyBody, 11, 'No Attention Training trials in this scope yet.');
+    ui.researchAttentionFamilyNote.textContent = scope === 'all-learners'
+      ? 'Family totals are shown across learners. Select Current learner history before interpreting longitudinal change.'
+      : 'Descriptive slopes require at least three observed sessions in a family. They summarise in-app practice only and do not establish transfer, causation, or neural change.';
 
     const skillRows = researchSummary.skill_summaries;
     drawResearchBars(ui.researchSkillChart, skillRows.filter(item => item.accuracy_pct != null).map(item => ({

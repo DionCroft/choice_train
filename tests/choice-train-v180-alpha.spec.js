@@ -289,6 +289,36 @@ test('Research workspace contains wide data tables on a tablet viewport', async 
   expect(['auto', 'scroll']).toContain(layout.tableOverflow);
 });
 
+test('Research separates Attention Training families and avoids unsupported slope claims', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'sessionTaskType', 'cpat-selective');
+  await setValue(page, 'startLevel', 8);
+  await setValue(page, 'sessionMax', 1);
+
+  await completeSessionAndExport(page, 1);
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-learner');
+
+  await expect(page.locator('#researchAttentionFamilyChart')).toBeVisible();
+  await expect(page.locator('#researchAttentionTrendChart')).toBeVisible();
+  await expect(page.locator('#researchAttentionFamilyBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchAttentionFamilyBody')).toContainText('AT selective');
+  await expect(page.locator('#researchAttentionFamilyBody')).toContainText('100%');
+  await expect(page.locator('#researchAttentionFamilyBody')).toContainText('Need 3 sessions');
+  await expect(page.locator('#researchAttentionFamilyNote')).toContainText('do not establish transfer');
+
+  await setValue(page, 'researchScopeSelect', 'all-learners');
+  await expect(page.locator('#researchAttentionFamilyBody')).toContainText('Use learner scope');
+});
+
 test('teacher-reviewed recommendations persist locally and export an audit record', async ({ page }) => {
   await gotoAlpha(page);
   await setCheckbox(page, 'ttsToggle', false);
