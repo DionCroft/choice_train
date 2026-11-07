@@ -1,0 +1,105 @@
+{
+  "manifest_version": "1.0.0",
+  "candidate_version": "1.8.0-alpha",
+  "promotion_target": "1.8.0",
+  "candidate_commit": null,
+  "last_reviewed_date": null,
+  "promotion_authorised": false,
+  "privacy": {
+    "declared_no_pupil_data": true,
+    "external_evidence_stored_outside_repository": true
+  },
+  "gates": {
+    "automated_engineering": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "branch_ci": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "product_owner_approval": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "staff_usability": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "learner_safeguarding": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "information_governance": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "legal_ethics": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "windows_touchscreen": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "ipad_safari": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "android_chrome": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "kindle_silk": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "assistive_access": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    },
+    "eeg_hardware_timing": {
+      "status": "pending",
+      "evidence_reference": "",
+      "reviewed_by": "",
+      "reviewed_date": null,
+      "limitations": ""
+    }
+  }
+}

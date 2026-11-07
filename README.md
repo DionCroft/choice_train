@@ -3,7 +3,7 @@
 [![Browser tests](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml)
 
-**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.8 research plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md)** | **[V1.8 release readiness](docs/V1.8.0_RELEASE_READINESS.md)** | **[V1.7 design decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
+**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.8 research plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md)** | **[V1.8 release readiness](docs/V1.8.0_RELEASE_READINESS.md)** | **[Promotion evidence](docs/V1.8.0_PROMOTION_EVIDENCE.md)** | **[V1.7 design decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
@@ -544,13 +544,16 @@ Useful commands:
 ```bash
 npm install
 npm run test:release
+npm run test:promotion
 npm run test:schema
 npm run check:candidate:v180
 npm run test:browser
 npm run audit:visual:v170
 ```
 
-`npm run check:candidate:v180` is a fail-fast engineering gate for the isolated V1.8 candidate. It protects the live V1.7 entry point, checks paired assets and versioned data contracts, rejects implemented browser network transports, and confirms that CI retains the full release/schema/candidate/browser sequence. A pass prepares a candidate for review; it does not authorise promotion or replace school, governance, physical-device, or EEG hardware validation. See the [V1.8 release-readiness checklist](docs/V1.8.0_RELEASE_READINESS.md).
+`npm run check:candidate:v180` is a fail-fast engineering gate for the isolated V1.8 candidate. It protects the live V1.7 entry point, checks paired assets and versioned data contracts, rejects implemented browser network transports, and confirms that CI retains the full release/promotion-guard/schema/candidate/browser sequence. A pass prepares a candidate for review; it does not authorise promotion or replace school, governance, physical-device, or EEG hardware validation. See the [V1.8 release-readiness checklist](docs/V1.8.0_RELEASE_READINESS.md).
+
+`npm run check:promotion:v180` is intentionally different: it fails until the candidate is frozen and every human, device, governance, ethics, and EEG-timing gate has an authorised evidence reference in the [promotion record](docs/V1.8.0_PROMOTION_EVIDENCE.json). CI tests that this guard is fail-closed but cannot approve those external gates.
 
 The `V1.7.0` release is validated with:
 
@@ -559,7 +562,7 @@ The `V1.7.0` release is validated with:
 
 The V1.7-specific suite contains 21 checks for workspace separation and focused navigation, high-legibility font loading, staff and learner contrast, semantic-token completeness, runtime-drawn theme colours, learner viewport containment, deliberate teacher return, per-pupil sensory settings, reward progression, reward-disabled manual navigation, zero external runtime requests, reduced motion, local audio/EEG metadata, exports, and tablet/mobile sizing. The broader regression suite contributes the remaining 56 checks.
 
-The isolated V1.8 suite adds 38 checks for its schema and skill graph, non-destructive and idempotent legacy-data migration, deterministic lesson replay, multi-seed category/target, single-cue match, two-cue group-completion, category-difference and teacher-declared-colour invariants, established Level 6 category rotation plus conditional colour practice, longitudinal scope isolation, independent recomputation of session and skill rows from raw exports, category-by-skill learner-state and pooled-scope safeguards, zero external runtime requests, accessible Research navigation, domain-coverage and versioned trial-completeness audits, normalised touch-map evidence, explicit table/text relationships for every Research canvas, future-AI dataset composition and participant-separated split safeguards, prompt/agency event visualisation, session-completion/timing persistence including zero-response learner stops, separate Attention Training family and response-quality visualisations, teacher-reviewed planning and explicit plan-to-session provenance, retention observations, EEG protocol/timing diagnostics, fixed-condition persistence/drift blocking/replay/export visualisation, deny-by-default governance, withdrawal handling, pseudonymised-export exclusions, question-to-answer blank timing, and phone/Kindle-sized/short-laptop learner containment. The complete stable, archive, and alpha matrix currently passes 115 Playwright tests.
+The isolated V1.8 suite adds 39 checks for its schema and skill graph, non-destructive and idempotent legacy-data migration, deterministic lesson replay, multi-seed category/target, single-cue match, two-cue group-completion, category-difference and teacher-declared-colour invariants, established Level 6 category rotation plus conditional colour practice, longitudinal scope isolation, independent recomputation of session and skill rows from raw exports, category-by-skill learner-state and pooled-scope safeguards, explicit teacher-rating observation safeguards, zero external runtime requests, accessible Research navigation, domain-coverage and versioned trial-completeness audits, normalised touch-map evidence, explicit table/text relationships for every Research canvas, future-AI dataset composition and participant-separated split safeguards, prompt/agency event visualisation, session-completion/timing persistence including zero-response learner stops, separate Attention Training family and response-quality visualisations, teacher-reviewed planning and explicit plan-to-session provenance, retention observations, EEG protocol/timing diagnostics, fixed-condition persistence/drift blocking/replay/export visualisation, deny-by-default governance, withdrawal handling, pseudonymised-export exclusions, question-to-answer blank timing, and phone/Kindle-sized/short-laptop learner containment. The complete stable, archive, and alpha matrix currently passes 116 Playwright tests.
 
 The release stamper has three dependency-free Node unit tests covering safe replacement, missing/duplicate-block rejection, explicit file parsing, and dry-run options. Branch and Pages CI run these, the machine-readable schema checks, and the V1.8 candidate gate before the browser matrix.
 

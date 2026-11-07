@@ -34,6 +34,9 @@ jobs:
       - name: Test release tooling
         run: npm run test:release
 
+      - name: Test fail-closed promotion guard
+        run: npm run test:promotion
+
       - name: Validate research data contracts
         run: npm run test:schema
 

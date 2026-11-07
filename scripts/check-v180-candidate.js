@@ -112,16 +112,37 @@ check('machine-readable research contracts are present and parseable', () => {
   });
 });
 
+check('promotion evidence record has the complete pupil-data-free structure', () => {
+  const evidence = JSON.parse(read('docs/V1.8.0_PROMOTION_EVIDENCE.json'));
+  const requiredGates = [
+    'automated_engineering', 'branch_ci', 'product_owner_approval', 'staff_usability',
+    'learner_safeguarding', 'information_governance', 'legal_ethics',
+    'windows_touchscreen', 'ipad_safari', 'android_chrome', 'kindle_silk',
+    'assistive_access', 'eeg_hardware_timing'
+  ];
+  const validStatuses = ['pending', 'passed', 'passed-with-limitations', 'failed'];
+  assert(evidence.manifest_version === '1.0.0', 'promotion evidence manifest version drifted');
+  assert(evidence.candidate_commit === null || /^[0-9a-f]{40}$/i.test(evidence.candidate_commit),
+    'promotion evidence candidate_commit must be null or a full Git SHA');
+  assert(typeof evidence.promotion_authorised === 'boolean', 'promotion_authorised must be Boolean');
+  assert(evidence.privacy && evidence.privacy.declared_no_pupil_data === true,
+    'promotion record must declare that it contains no pupil data');
+  requiredGates.forEach(gate => {
+    assert(evidence.gates && evidence.gates[gate], `promotion evidence gate ${gate} is missing`);
+    assert(validStatuses.includes(evidence.gates[gate].status), `promotion evidence gate ${gate} has an invalid status`);
+  });
+});
+
 check('candidate runtime contains no external transport implementation', () => {
   const source = read('choice_train_V1.8.0-alpha.js');
   const networkPrimitive = /\b(?:fetch|XMLHttpRequest|WebSocket|EventSource|sendBeacon)\s*(?:\(|\.)/;
   assert(!networkPrimitive.test(source), 'found a browser network transport primitive in the candidate runtime');
 });
 
-check('CI validates release, schema, candidate, and browser gates', () => {
+check('CI validates release, promotion-guard, schema, candidate, and browser gates', () => {
   ['.github/workflows/ci.yml', '.github/workflows/pages.yml'].forEach((file) => {
     const workflow = read(file);
-    ['npm run test:release', 'npm run test:schema', 'npm run check:candidate:v180', 'npm run test:browser']
+    ['npm run test:release', 'npm run test:promotion', 'npm run test:schema', 'npm run check:candidate:v180', 'npm run test:browser']
       .forEach((command) => assert(workflow.includes(command), `${file} does not run ${command}`));
   });
 });
@@ -131,6 +152,7 @@ check('promotion and external validation boundaries remain documented', () => {
   assert(/product owner explicitly approves promotion/i.test(plan), 'explicit promotion approval gate is missing');
   assert(/true LSL or hardware-trigger integration/i.test(plan), 'hardware synchronisation boundary is missing');
   assert(/school\/legal\/ethics approval/i.test(plan), 'school, legal, and ethics boundary is missing');
+  assert(/V1\.8\.0_PROMOTION_EVIDENCE\.json/.test(plan), 'machine-readable promotion evidence record is missing from the plan');
 });
 
 console.log('');
