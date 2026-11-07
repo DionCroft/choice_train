@@ -219,6 +219,12 @@ Recommended browsers:
 
 Older iPads and Kindle-based devices may work more reliably with the hosted GitHub Pages version than with direct `file://` opening.
 
+### Different Devices and Orientations
+
+ChoiceTrain is browser-first and is intended to adapt to desktop computers, Windows touchscreens, tablets, phones, and Kindle-sized displays. Use the latest supported browser where possible. In the V1.8 development build, learner questions resize for compact landscape screens, safe-area insets, and orientation changes; rotating during an unanswered question should keep the same prompt and answers without restarting the trial. Teacher and Admin navigation is also designed to remain reachable on narrow screens and with the in-app text size set to 130%.
+
+Before classroom use on a new device, test both portrait and landscape, the pupil's intended answer count, text size, touch or access method, speech, Help/Break/Stop controls, and the press-and-hold teacher return. Browser simulation cannot reproduce every physical screen, browser toolbar, keyboard, switch, zoom, speech, performance, or touch behavior, so record checks on the actual school devices. The V1.8 improvements remain experimental until that release is explicitly approved and promoted; the GitHub Pages link continues to run stable V1.7.0.
+
 ---
 
 ## 4. Teacher Panel and Admin Panel

@@ -103,6 +103,13 @@
 html {
   font-size: calc(16px * var(--text-scale));
   scroll-behavior: smooth;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+body {
+  max-width: 100%;
+  overflow-x: hidden;
 }
 
 html,
@@ -174,6 +181,24 @@ body.motion-reduced *::after {
   background: var(--shell-canvas) !important;
   border-right: 1px solid var(--shell-border);
   box-shadow: var(--shell-shadow-soft);
+  min-width: 0;
+}
+
+.panel .section,
+.panel .menuBody,
+.panel .teacherSection,
+.panel .adminSection,
+.panel .row,
+.panel .brandCopy {
+  min-width: 0;
+}
+
+.panel button,
+.panel label,
+.panel .helperText,
+.panel .compactNote,
+.panel .sub {
+  overflow-wrap: anywhere;
 }
 
 .panel > .section:first-child {
@@ -283,7 +308,7 @@ body.panel-view-admin .adminWorkspaceNav {
 }
 
 .panel .adminNavBtn {
-  min-height: 42px;
+  min-height: 44px;
   padding: 8px;
   border-color: transparent;
   background: transparent;
@@ -1526,6 +1551,10 @@ body.panel-view-admin th {
     height: 100dvh;
     min-height: 0;
     gap: 8px;
+    padding-top: max(8px, env(safe-area-inset-top));
+    padding-right: max(8px, env(safe-area-inset-right));
+    padding-bottom: max(8px, env(safe-area-inset-bottom));
+    padding-left: max(8px, env(safe-area-inset-left));
   }
 
   .wrap.learner .topBar {
@@ -1655,5 +1684,164 @@ body.panel-view-admin th {
 
   .wrap.learner .choiceSmall {
     font-size: 10px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 540px) {
+  .wrap.learner .stage {
+    gap: 6px;
+    padding: 6px;
+    padding-top: max(6px, env(safe-area-inset-top));
+    padding-right: max(6px, env(safe-area-inset-right));
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    padding-left: max(6px, env(safe-area-inset-left));
+  }
+
+  .wrap.learner .topBar {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .wrap.learner .learnerBanner {
+    grid-column: 1;
+    padding: 4px 7px;
+    font-size: 0.78rem;
+  }
+
+  .student-friendly-on .wrap.learner .learnerBanner .tiny {
+    display: none;
+  }
+
+  .wrap.learner .trackWrap {
+    grid-column: 2;
+    min-width: 0;
+    max-width: none;
+    padding: 4px 8px;
+    overflow: hidden;
+    border-radius: 12px;
+  }
+
+  .wrap.learner #levelBadge {
+    grid-column: 3;
+    padding: 4px 8px;
+  }
+
+  .wrap.learner .track {
+    min-width: 0;
+    gap: 5px;
+  }
+
+  .wrap.learner .station {
+    width: 24px;
+    height: 24px;
+    font-size: 0.68rem;
+  }
+
+  .wrap.learner .trackLine {
+    min-width: 6px;
+    height: 4px;
+  }
+
+  .wrap.learner .playArea {
+    min-height: 0;
+    border-radius: 18px;
+  }
+
+  .wrap.learner #screenChoice.active {
+    display: grid;
+    grid-template-columns: minmax(150px, 0.34fr) minmax(0, 1fr);
+    align-items: center;
+    justify-items: stretch;
+    gap: 8px;
+    padding: 8px;
+    overflow: hidden;
+  }
+
+  .wrap.learner #screenChoice .promptBox,
+  .wrap.learner #screenChoice .grid {
+    width: 100%;
+    max-width: none;
+    min-width: 0;
+  }
+
+  .wrap.learner #screenChoice .promptBox {
+    max-height: 100%;
+    padding: 8px 10px;
+    overflow: auto;
+  }
+
+  .wrap.learner #screenChoice .promptText {
+    font-size: clamp(1.25rem, 4.5vw, 2rem);
+  }
+
+  .wrap.learner #screenChoice .grid {
+    grid-template-columns: repeat(auto-fit, minmax(116px, 1fr));
+    align-content: center;
+    gap: 8px;
+  }
+
+  .wrap.learner #screenChoice .choice {
+    gap: 5px;
+    padding: 7px;
+    border-width: 2px;
+    border-radius: 14px;
+  }
+
+  .wrap.learner #screenChoice .choiceMedia {
+    width: min(100%, 62px);
+    font-size: 34px;
+    border-radius: 12px;
+  }
+
+  .wrap.learner #screenChoice .choiceLabel {
+    font-size: 0.9rem;
+    line-height: 1.15;
+  }
+
+  .wrap.learner #screenChoice .choiceSmall {
+    font-size: 0.68rem;
+    line-height: 1.1;
+  }
+
+  .wrap.learner .footerBar {
+    min-height: 44px;
+    flex: 0 0 auto;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+    padding: 4px 8px;
+    border-radius: 12px;
+  }
+
+  .wrap.learner .footerBar > div:first-child {
+    flex: 1 1 180px;
+    width: auto;
+    min-width: 0;
+    font-size: 0.78rem;
+    line-height: 1.2;
+  }
+
+  .wrap.learner .learnerControls {
+    width: auto;
+    flex: 0 0 auto;
+    flex-wrap: nowrap;
+    gap: 5px;
+  }
+
+  .wrap.learner .learnerControls button {
+    flex: 0 0 auto;
+    min-width: 68px;
+    min-height: 44px;
+    padding: 6px 9px;
+  }
+
+  .wrap.learner .teacherExitHint {
+    top: 6px;
+    right: max(6px, env(safe-area-inset-right));
+    width: 44px;
+    min-height: 44px;
   }
 }

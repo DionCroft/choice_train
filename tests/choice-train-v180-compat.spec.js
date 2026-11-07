@@ -91,3 +91,41 @@ test('V1.8 learner pacing and Q&A layout remain usable in the compatibility prof
   expect(runtimeErrors).toEqual([]);
   expect(externalRequests).toEqual([]);
 });
+
+test('V1.8 teacher and admin navigation remain reachable in the compatibility profile', async ({ page }, testInfo) => {
+  const runtimeErrors = [];
+  page.on('pageerror', error => runtimeErrors.push(error.message));
+  page.on('console', message => {
+    if(message.type() === 'error') runtimeErrors.push(message.text());
+  });
+
+  await page.goto(APP_PATH);
+  await expect(page.locator('#teacherPanelTab')).toBeVisible();
+  await setValue(page, 'textScale', 1.3);
+
+  await page.locator('#adminPanelTab').click();
+  await expect(page.locator('#adminNavOverview')).toBeVisible();
+  await page.locator('#adminNavResearch').click();
+  await expect(page.locator('#researchScopeSelect')).toBeVisible();
+
+  const layout = await page.evaluate(() => ({
+    viewportWidth: document.documentElement.clientWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    tabs: Array.from(document.querySelectorAll('#teacherPanelTab, #adminPanelTab')).map(node => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, right: rect.right };
+    }),
+    navigation: Array.from(document.querySelectorAll('.adminWorkspaceNav button')).map(node => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, height: rect.height };
+    })
+  }));
+
+  expect(layout.documentWidth, `${testInfo.project.name} should not overflow horizontally`).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  [...layout.tabs, ...layout.navigation].forEach(rect => {
+    expect(rect.left).toBeGreaterThanOrEqual(0);
+    expect(rect.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  });
+  layout.navigation.forEach(rect => expect(rect.height).toBeGreaterThanOrEqual(44));
+  expect(runtimeErrors).toEqual([]);
+});

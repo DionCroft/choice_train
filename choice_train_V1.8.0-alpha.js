@@ -536,6 +536,7 @@
       dashboardLastRenderAt: 0,
       dashboardDirty: false,
       trailFrame: 0,
+      layoutFrame: 0,
       currentTouchPoint: null,
       questionRandom: null
     },
@@ -1759,29 +1760,42 @@
   function learnerViewportSize(){
     const viewport = window.visualViewport;
     return {
-      width: Math.max((viewport && viewport.width) || window.innerWidth || 0, 320),
-      height: Math.max((viewport && viewport.height) || window.innerHeight || 0, 320)
+      width: Math.max((viewport && viewport.width) || window.innerWidth || 0, 280),
+      height: Math.max((viewport && viewport.height) || window.innerHeight || 0, 240)
     };
+  }
+
+  function compactLandscapeViewport(viewport=learnerViewportSize()){
+    return viewport.width > viewport.height && viewport.height <= 540;
   }
 
   function responsiveActivityGridHeight(){
     const viewport = learnerViewportSize();
     const playHeight = ui.playArea && ui.playArea.clientHeight ? ui.playArea.clientHeight : viewport.height * 0.66;
+    const compactLandscape = compactLandscapeViewport(viewport);
     const widthCap = viewport.width < 520 ? viewport.width * 0.95 : 420;
-    return Math.round(clamp(Math.min(playHeight * 0.68, viewport.height * 0.52, widthCap), 180, 420));
+    const fittedHeight = Math.min(
+      playHeight * (compactLandscape ? 0.9 : 0.68),
+      viewport.height * (compactLandscape ? 0.66 : 0.52),
+      widthCap
+    );
+    return Math.round(clamp(fittedHeight, compactLandscape ? 136 : 180, 420));
   }
 
   function responsiveChoiceMinHeight(baseHeight){
     const viewport = learnerViewportSize();
-    const viewportCap = Math.max(104, Math.min(220, viewport.height * 0.24));
-    return Math.round(clamp(baseHeight * getAdaptiveTouchScale(), 104, viewportCap));
+    const compactLandscape = compactLandscapeViewport(viewport);
+    const minimum = compactLandscape ? 76 : 104;
+    const viewportCap = Math.max(minimum, Math.min(compactLandscape ? 112 : 220, viewport.height * 0.25));
+    return Math.round(clamp(baseHeight * getAdaptiveTouchScale(), minimum, viewportCap));
   }
 
   function responsiveTargetSize(requestedSize){
     const viewport = learnerViewportSize();
     const gridHeight = responsiveActivityGridHeight();
     const fitted = Math.min(requestedSize, gridHeight * 0.62, viewport.width * 0.55);
-    return Math.round(clamp(fitted, 88, Math.max(88, requestedSize)));
+    const minimum = compactLandscapeViewport(viewport) ? 68 : 88;
+    return Math.round(clamp(fitted, minimum, Math.max(minimum, requestedSize)));
   }
 
   function getAdaptiveHitRadius(){
@@ -4448,6 +4462,18 @@
     const ctx = ui.trailCanvas.getContext('2d');
     ctx.setTransform(window.devicePixelRatio, 0, 0, window.devicePixelRatio, 0, 0);
     drawTrail();
+  }
+
+  function scheduleAdaptiveLayoutRefresh(){
+    if(state.runtime.layoutFrame) return;
+    state.runtime.layoutFrame = window.requestAnimationFrame(() => {
+      state.runtime.layoutFrame = 0;
+      resizeCanvas();
+      // Relayout the same question without restarting timers or emitting duplicate research markers.
+      if(state.viewMode === 'learner' && state.phase === 'choice' && state.currentQuestion){
+        renderChoiceScreen(state.currentQuestion);
+      }
+    });
   }
 
   function getPlayAreaPoint(clientX, clientY){
@@ -12628,7 +12654,11 @@
         }
       }, { passive: true });
     }
-    window.addEventListener('resize', resizeCanvas);
+    window.addEventListener('resize', scheduleAdaptiveLayoutRefresh);
+    window.addEventListener('orientationchange', scheduleAdaptiveLayoutRefresh);
+    if(window.visualViewport){
+      window.visualViewport.addEventListener('resize', scheduleAdaptiveLayoutRefresh);
+    }
     document.addEventListener('fullscreenchange', updateFullscreenButton);
   }
 

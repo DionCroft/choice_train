@@ -182,6 +182,56 @@ function trackErrors(page) {
   return errors;
 }
 
+async function learnerLayoutSnapshot(page) {
+  return page.evaluate(() => {
+    const bounds = selector => document.querySelector(selector).getBoundingClientRect();
+    const stage = bounds('.stage');
+    const playArea = bounds('#playArea');
+    const footer = bounds('.footerBar');
+    const choices = Array.from(document.querySelectorAll('#choiceGrid .choice')).map(node => {
+      const rect = node.getBoundingClientRect();
+      return {
+        id: node.dataset.id || '',
+        top: rect.top,
+        right: rect.right,
+        bottom: rect.bottom,
+        left: rect.left,
+        width: rect.width,
+        height: rect.height
+      };
+    });
+    return {
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+      viewportHeight: window.innerHeight,
+      stageBottom: stage.bottom,
+      footerBottom: footer.bottom,
+      playArea: {
+        top: playArea.top,
+        right: playArea.right,
+        bottom: playArea.bottom,
+        left: playArea.left
+      },
+      choices
+    };
+  });
+}
+
+function expectLearnerLayoutContained(layout, expectedChoices) {
+  expect(layout.choices).toHaveLength(expectedChoices);
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.stageBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  expect(layout.footerBottom).toBeLessThanOrEqual(layout.viewportHeight + 1);
+  layout.choices.forEach(rect => {
+    expect(rect.left).toBeGreaterThanOrEqual(layout.playArea.left - 1);
+    expect(rect.right).toBeLessThanOrEqual(layout.playArea.right + 1);
+    expect(rect.top).toBeGreaterThanOrEqual(layout.playArea.top - 1);
+    expect(rect.bottom).toBeLessThanOrEqual(layout.playArea.bottom + 1);
+    expect(rect.width).toBeGreaterThanOrEqual(44);
+    expect(rect.height).toBeGreaterThanOrEqual(44);
+  });
+}
+
 test('V1.8 alpha is versioned without changing the stable entry point', async ({ page }) => {
   await gotoAlpha(page);
   await expect(page).toHaveTitle(/V1\.8\.0-alpha/);
@@ -2891,5 +2941,95 @@ test('optional blank interval occurs between the question and answer choices', a
       expect(rect.top).toBeGreaterThanOrEqual(layout.playTop - 1);
       expect(rect.bottom).toBeLessThanOrEqual(layout.playBottom + 1);
     });
+  });
+});
+
+test('learner Q&A fits compact landscape with enlarged text and six choices', async ({ page }) => {
+  await page.setViewportSize({ width: 844, height: 390 });
+  await gotoAlpha(page);
+  await setValue(page, 'textScale', 1.3);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'startLevel', 6);
+  await setValue(page, 'sessionMax', 1);
+  await setValue(page, 'maxObjects', 6);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useBlankInterval', false);
+  await setCheckbox(page, 'ttsToggle', false);
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+
+  expectLearnerLayoutContained(await learnerLayoutSnapshot(page), 6);
+});
+
+test('active learner question relayouts after portrait-to-landscape rotation without changing the task', async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAlpha(page);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+  await setValue(page, 'maxObjects', 4);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useBlankInterval', false);
+  await setCheckbox(page, 'ttsToggle', false);
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+
+  const promptBefore = await page.locator('#questionText').textContent();
+  const targetBefore = await page.locator('#choiceGrid [data-role="correct-target"]').getAttribute('data-id');
+  const portrait = await learnerLayoutSnapshot(page);
+
+  await page.setViewportSize({ width: 844, height: 390 });
+  await expect.poll(async () => (await learnerLayoutSnapshot(page)).choices[0].height).toBeLessThan(portrait.choices[0].height);
+
+  const landscape = await learnerLayoutSnapshot(page);
+  expectLearnerLayoutContained(landscape, 4);
+  await expect(page.locator('#questionText')).toHaveText(promptBefore);
+  await expect(page.locator('#choiceGrid [data-role="correct-target"]')).toHaveAttribute('data-id', targetBefore);
+  await expect(page.locator('#qIndex')).toHaveText('1 / 1');
+
+  const payload = await downloadJsonAfter(page, async () => {
+    await page.locator('#choiceGrid [data-role="correct-target"]').click();
+    await expect(page.locator('#screenSummary.active')).toBeVisible();
+    await page.locator('#summaryExport').click();
+  });
+  expect(payload.events.filter(event => event.type === 'stimulus_onset')).toHaveLength(1);
+  expect(payload.eeg_markers.filter(marker => marker.name === 'stimulus_onset')).toHaveLength(1);
+  expect(payload.trials).toHaveLength(1);
+});
+
+test('teacher and admin workspaces remain reachable without horizontal overflow on a narrow enlarged-text viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await gotoAlpha(page);
+  await setValue(page, 'textScale', 1.3);
+
+  const teacherLayout = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+    teacherTab: document.querySelector('#teacherPanelTab').getBoundingClientRect(),
+    adminTab: document.querySelector('#adminPanelTab').getBoundingClientRect()
+  }));
+  expect(teacherLayout.documentWidth).toBeLessThanOrEqual(teacherLayout.viewportWidth + 1);
+  expect(teacherLayout.teacherTab.left).toBeGreaterThanOrEqual(0);
+  expect(teacherLayout.adminTab.right).toBeLessThanOrEqual(teacherLayout.viewportWidth + 1);
+
+  await page.locator('#adminPanelTab').click();
+  await expect(page.locator('#adminNavOverview')).toBeVisible();
+  await page.locator('#adminNavResearch').click();
+  await expect(page.locator('#researchScopeSelect')).toBeVisible();
+
+  const adminLayout = await page.evaluate(() => ({
+    documentWidth: document.documentElement.scrollWidth,
+    viewportWidth: document.documentElement.clientWidth,
+    navRects: Array.from(document.querySelectorAll('.adminWorkspaceNav button')).map(node => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, width: rect.width, height: rect.height };
+    })
+  }));
+  expect(adminLayout.documentWidth).toBeLessThanOrEqual(adminLayout.viewportWidth + 1);
+  adminLayout.navRects.forEach(rect => {
+    expect(rect.left).toBeGreaterThanOrEqual(0);
+    expect(rect.right).toBeLessThanOrEqual(adminLayout.viewportWidth + 1);
+    expect(rect.width).toBeGreaterThanOrEqual(44);
+    expect(rect.height).toBeGreaterThanOrEqual(44);
   });
 });
