@@ -38,7 +38,7 @@
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.4.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.5.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
@@ -7718,6 +7718,79 @@
     })).sort((a, b) => b.trials - a.trials || a.category.localeCompare(b.category));
   }
 
+  function categoryLessonCoverageRows(trials){
+    const categoryKinds = new Set(['find-category', 'match-category', 'complete-category-group', 'category-exclusion']);
+    const groups = new Map();
+    (Array.isArray(trials) ? trials : [])
+      .filter(trial => categoryKinds.has(trial.task_kind))
+      .forEach(trial => {
+        const categoryId = trial.reference_category || trial.target_category || 'not-recorded';
+        const category = trial.reference_category_label || trial.target_category_label || categoryId || 'Not recorded';
+        if(!groups.has(categoryId)){
+          groups.set(categoryId, {
+            category_id: categoryId,
+            category,
+            trials: 0,
+            task_counts: {
+              'find-category': 0,
+              'match-category': 0,
+              'complete-category-group': 0,
+              'category-exclusion': 0
+            },
+            scored: 0,
+            correct: 0,
+            independent_correct: 0,
+            omissions: 0,
+            personalised_trials: 0,
+            target_ids: new Set(),
+            cue_ids: new Set(),
+            displayed_ids: new Set()
+          });
+        }
+        const item = groups.get(categoryId);
+        item.trials += 1;
+        item.task_counts[trial.task_kind] += 1;
+        if(trial.scored_response !== false){
+          item.scored += 1;
+          if(trial.correct) item.correct += 1;
+          if(trial.correct && trial.independence_status === 'independent') item.independent_correct += 1;
+        }
+        if(trial.omission) item.omissions += 1;
+        if(trial.target_id) item.target_ids.add(trial.target_id);
+        const cueIds = Array.isArray(trial.cue_ids) && trial.cue_ids.length
+          ? trial.cue_ids
+          : (trial.cue_id ? [trial.cue_id] : []);
+        cueIds.forEach(id => item.cue_ids.add(id));
+        (Array.isArray(trial.option_metadata) ? trial.option_metadata : []).forEach(option => {
+          if(option.id) item.displayed_ids.add(option.id);
+        });
+        (Array.isArray(trial.cue_metadata_list) ? trial.cue_metadata_list : []).forEach(option => {
+          if(option.id) item.displayed_ids.add(option.id);
+        });
+        if(trial.cue_metadata && trial.cue_metadata.id) item.displayed_ids.add(trial.cue_metadata.id);
+        const personalised = (Array.isArray(trial.option_metadata) && trial.option_metadata.some(option => option.personalised_photo))
+          || (Array.isArray(trial.cue_metadata_list) && trial.cue_metadata_list.some(option => option.personalised_photo))
+          || (trial.cue_metadata && trial.cue_metadata.personalised_photo);
+        if(personalised) item.personalised_trials += 1;
+      });
+    return Array.from(groups.values()).map(item => ({
+      category_id: item.category_id,
+      category: item.category,
+      trials: item.trials,
+      find_category_trials: item.task_counts['find-category'],
+      match_category_trials: item.task_counts['match-category'],
+      complete_group_trials: item.task_counts['complete-category-group'],
+      category_exclusion_trials: item.task_counts['category-exclusion'],
+      distinct_targets: item.target_ids.size,
+      distinct_cues: item.cue_ids.size,
+      distinct_displayed_items: item.displayed_ids.size,
+      personalised_trials: item.personalised_trials,
+      accuracy_pct: item.scored ? percentage(item.correct, item.scored) : null,
+      independent_success_pct: item.scored ? percentage(item.independent_correct, item.scored) : null,
+      omissions: item.omissions
+    })).sort((a, b) => b.trials - a.trials || a.category.localeCompare(b.category));
+  }
+
   function renderResearchWorkspace(){
     if(!ui.researchScopeSelect) return;
     const sessions = researchSessionsInScope();
@@ -8559,6 +8632,47 @@
     ui.researchExclusionCategoryNote.textContent = scope === 'all-learners'
       ? 'Rows pool learners and are not a single learning trajectory. This profile describes delivered in-app category-difference trials; it does not demonstrate conceptual mastery, transfer, or neural change.'
       : 'This profile describes delivered in-app category-difference trials. Generator integrity checks that exactly one stored option is outside the reference category; it is not a pupil outcome or evidence of conceptual mastery, transfer, or neural change.';
+
+    const categoryLessonRows = categoryLessonCoverageRows(finalTrials);
+    const categoryLessonTrials = categoryLessonRows.reduce((sum, item) => sum + item.trials, 0);
+    const categoryLessonTasks = new Set();
+    categoryLessonRows.forEach(item => {
+      if(item.find_category_trials) categoryLessonTasks.add('find-category');
+      if(item.match_category_trials) categoryLessonTasks.add('match-category');
+      if(item.complete_group_trials) categoryLessonTasks.add('complete-category-group');
+      if(item.category_exclusion_trials) categoryLessonTasks.add('category-exclusion');
+    });
+    const categoryLessonPersonalised = categoryLessonRows.reduce((sum, item) => sum + item.personalised_trials, 0);
+    ui.researchCategoryLessonTrials.textContent = String(categoryLessonTrials);
+    ui.researchCategoryLessonCategories.textContent = String(categoryLessonRows.length);
+    ui.researchCategoryLessonTasks.textContent = String(categoryLessonTasks.size);
+    ui.researchCategoryLessonPersonalised.textContent = String(categoryLessonPersonalised);
+    drawResearchBars(ui.researchCategoryLessonChart, categoryLessonRows.map(item => ({
+      label: item.category,
+      value: item.trials,
+      color: themeToken('secondary', themeToken('primary'))
+    })), { labelWidth: 145 });
+    if(categoryLessonRows.length){
+      clearNode(ui.researchCategoryLessonBody);
+      categoryLessonRows.forEach(item => appendResearchRow(ui.researchCategoryLessonBody, [
+        item.category,
+        item.trials,
+        item.find_category_trials,
+        item.match_category_trials,
+        item.complete_group_trials,
+        item.category_exclusion_trials,
+        item.distinct_targets,
+        item.distinct_cues,
+        item.distinct_displayed_items,
+        item.personalised_trials,
+        item.accuracy_pct == null ? null : `${item.accuracy_pct}%`,
+        item.independent_success_pct == null ? null : `${item.independent_success_pct}%`,
+        item.omissions
+      ]));
+    } else renderResearchEmptyRow(ui.researchCategoryLessonBody, 13, 'No category lessons in this scope yet.');
+    ui.researchCategoryLessonNote.textContent = scope === 'all-learners'
+      ? 'Rows pool delivered category lessons across learners and are not one progression sequence. Counts describe exposure balance and observed in-app outcomes; they do not establish equivalent difficulty, generalisation, or treatment effects.'
+      : 'Counts describe delivered category-task exposure and observed in-app outcomes. Use them to identify narrow or uneven practice, not as proof of equivalent difficulty, generalisation, or conceptual mastery.';
 
     const contentBreadthRows = sessions.map(session => {
       const sessionTrials = latestTrialsByQuestion(session.trials || []);
@@ -9686,6 +9800,7 @@
       category_matching: categoryMatchResearchRows(finalTrials),
       category_group_completion: categoryGroupCompletionResearchRows(finalTrials),
       category_exclusion: categoryExclusionResearchRows(finalTrials),
+      category_lesson_coverage: categoryLessonCoverageRows(finalTrials),
       session_context: context,
       eeg_readiness: eegReadiness,
       teacher_decisions: teacherDecisions,

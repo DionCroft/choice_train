@@ -367,11 +367,18 @@ test('Match category uses a distinct cue and same-category target with reproduci
   await expect(page.locator('#researchMatchIntegrity')).toHaveText('100%');
   await expect(page.locator('#researchMatchCategoryBody tr')).toHaveCount(2);
   await expect(page.locator('#researchMatchCategoryNote')).toContainText('engineering/data-quality');
+  await expect(page.locator('#researchCategoryLessonTrials')).toHaveText('8');
+  await expect(page.locator('#researchCategoryLessonTasks')).toHaveText('4');
+  await expect(page.locator('#researchCategoryLessonBody tr')).not.toHaveCount(0);
+  await expect(page.locator('#researchCategoryLessonNote')).toContainText('exposure');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.4.0');
+  expect(researchPayload.export_schema_version).toBe('1.5.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
+  expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.trials, 0)).toBe(8);
+  expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.complete_group_trials, 0)).toBe(2);
+  expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.category_exclusion_trials, 0)).toBe(2);
 });
 
 test('Complete the group uses two distinct cues and one same-category answer across seeds', async ({ page }) => {
@@ -444,7 +451,7 @@ test('Complete the group uses two distinct cues and one same-category answer acr
   await expect(page.locator('#researchGroupCategoryNote')).toContainText('multiple examples');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.4.0');
+  expect(researchPayload.export_schema_version).toBe('1.5.0');
   expect(researchPayload.category_group_completion).toHaveLength(4);
   expect(researchPayload.category_group_completion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -512,7 +519,7 @@ test('Find the different one keeps exactly one outside-category target and visua
   await expect(page.locator('#researchExclusionCategoryNote')).toContainText('not a pupil outcome');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.4.0');
+  expect(researchPayload.export_schema_version).toBe('1.5.0');
   expect(researchPayload.category_exclusion).toHaveLength(4);
   expect(researchPayload.category_exclusion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -747,7 +754,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('1.4.0');
+  expect(researchPayload.export_schema_version).toBe('1.5.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);
