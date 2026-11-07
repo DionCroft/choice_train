@@ -29,10 +29,10 @@
   const FAMILIAR_FACE_ASSET_KEY = 'profile:familiarFace';
   const CUSTOM_IMAGES_ASSET_KEY = 'profile:customImages';
   const SESSION_ARCHIVE_LIMIT = 60;
-  const LOCAL_DATA_MIGRATION_VERSION = 6;
+  const LOCAL_DATA_MIGRATION_VERSION = 7;
   const DATA_SCHEMA_VERSION = 8;
   const SKILL_GRAPH_VERSION = '1.4.0';
-  const GENERATOR_VERSION = '1.6.0';
+  const GENERATOR_VERSION = '1.7.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const DATA_QUALITY_SCHEMA_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.1.0';
@@ -42,11 +42,11 @@
   const RECOMMENDATION_VERSION = '1.5.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.1.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.2.0';
   const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
   const PRIVACY_EXPORT_VERSION = '1.3.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
-  const PHOTO_SCHEMA_VERSION = 3;
+  const PHOTO_SCHEMA_VERSION = 4;
   const MAX_IMPORT_FILES = 100;
   const MAX_IMAGE_FILE_BYTES = 12 * 1024 * 1024;
   const MAX_DECODED_IMAGE_PIXELS = 40_000_000;
@@ -1385,6 +1385,7 @@
       cue_category: question.cueCategory || null,
       procedural_variant: question.proceduralVariant || null,
       discrimination_contrast: question.discriminationContrast || null,
+      discrimination_set_applied: !!question.discriminationSetApplied,
       open_ended_choice: !!question.openEndedChoice,
       content_configuration: question.contentConfiguration || null
     };
@@ -1396,6 +1397,14 @@
 
   function normalizeCategoryLabel(value){
     return String(value || '').trim().replace(/\s+/g, ' ');
+  }
+
+  function normalizeDiscriminationSet(value){
+    return normalizeCategoryLabel(value).slice(0, 64);
+  }
+
+  function discriminationSetKey(value){
+    return normalizeDiscriminationSet(value).toLowerCase();
   }
 
   function categorySlug(value){
@@ -1608,6 +1617,7 @@
       category_memberships: optionCategoryMemberships(item),
       source: normalizeImageSource(item.source),
       relationship_type: item.relationshipType || '',
+      discrimination_set: normalizeDiscriminationSet(item.discriminationSet),
       declared_attributes: optionDeclaredAttributes(item),
       attribute_source: item.attributeSource || '',
       use_in_questions: item.useInQuestions !== false,
@@ -2787,6 +2797,7 @@
       categoryIds: categoryMemberships(category),
       source: normalizeImageSource(item.source || 'personalised'),
       relationshipType: item.relationshipType || '',
+      discriminationSet: normalizeDiscriminationSet(item.discriminationSet || item.discrimination_set),
       attributes,
       attributeSource: Object.keys(attributes).length ? (item.attributeSource || item.attribute_source || 'teacher') : '',
       useInQuestions: item.useInQuestions !== false,
@@ -2979,6 +2990,11 @@
         colourSelect.appendChild(option);
       });
       colourSelect.value = optionDeclaredAttributes(item).colour || '';
+      const discriminationSetInput = document.createElement('input');
+      discriminationSetInput.type = 'text';
+      discriminationSetInput.maxLength = 64;
+      discriminationSetInput.placeholder = 'e.g. similar cups';
+      discriminationSetInput.value = normalizeDiscriminationSet(item.discriminationSet);
       const useLabel = document.createElement('label');
       useLabel.className = 'toggle';
       const useInput = document.createElement('input');
@@ -2990,12 +3006,14 @@
         createPhotoField('Category', categorySelect),
         createPhotoField('Source', sourceSelect),
         createPhotoField('Declared colour', colourSelect),
+        createPhotoField('Discrimination set', discriminationSetInput),
         useLabel
       );
       const meta = document.createElement('div');
       meta.className = 'photoMetaTiny';
       const declaredColour = optionDeclaredAttributes(item).colour;
-      meta.textContent = `${categoryMeta(item.category).label}${item.relationshipType ? ` | ${item.relationshipType}` : ''}${declaredColour ? ` | Teacher-labelled ${contentAttributeValueLabel('colour', declaredColour).toLowerCase()}` : ''} | ${item.originalWidth || '?'} x ${item.originalHeight || '?'} prepared pixels`;
+      const discriminationSet = normalizeDiscriminationSet(item.discriminationSet);
+      meta.textContent = `${categoryMeta(item.category).label}${item.relationshipType ? ` | ${item.relationshipType}` : ''}${declaredColour ? ` | Teacher-labelled ${contentAttributeValueLabel('colour', declaredColour).toLowerCase()}` : ''}${discriminationSet ? ` | Discrimination set: ${discriminationSet}` : ''} | ${item.originalWidth || '?'} x ${item.originalHeight || '?'} prepared pixels`;
       const actions = document.createElement('div');
       actions.className = 'photoActions';
       const saveBtn = document.createElement('button');
@@ -3014,6 +3032,7 @@
         item.source = normalizeImageSource(sourceSelect.value);
         item.attributes = normalizeContentAttributes({ colour: colourSelect.value });
         item.attributeSource = Object.keys(item.attributes).length ? 'teacher' : '';
+        item.discriminationSet = normalizeDiscriminationSet(discriminationSetInput.value);
         item.useInQuestions = useInput.checked;
         item.updatedAt = wallMs();
         const saved = await persistAssets();
@@ -3049,6 +3068,7 @@
     if(ui.photoUpload) ui.photoUpload.value = '';
     if(ui.photoCategory) ui.photoCategory.value = 'people';
     if(ui.photoColour) ui.photoColour.value = '';
+    if(ui.photoDiscriminationSet) ui.photoDiscriminationSet.value = '';
     if(ui.photoUseInQuestions) ui.photoUseInQuestions.checked = true;
   }
 
@@ -3151,6 +3171,7 @@
         category,
         source: 'personalised',
         relationshipType: ui.photoType ? ui.photoType.value.trim() : '',
+        discriminationSet: ui.photoDiscriminationSet ? ui.photoDiscriminationSet.value : '',
         attributes: { colour: ui.photoColour ? ui.photoColour.value : '' },
         attributeSource: ui.photoColour && ui.photoColour.value ? 'teacher' : '',
         useInQuestions: !!(ui.photoUseInQuestions && ui.photoUseInQuestions.checked)
@@ -3295,6 +3316,7 @@
       categoryIds: optionCategoryMemberships(item),
       source: normalizeImageSource(item.source),
       relationshipType: item.relationshipType || '',
+      discriminationSet: normalizeDiscriminationSet(item.discriminationSet),
       attributes: optionDeclaredAttributes(item),
       attributeSource: item.attributeSource || '',
       personalised_photo: true
@@ -3303,6 +3325,27 @@
 
   function normalizedConceptLabel(value){
     return normalizeCategoryLabel(value).toLowerCase();
+  }
+
+  function teacherDeclaredDiscriminationGroups(items){
+    const groups = new Map();
+    (items || []).forEach(item => {
+      const setKey = discriminationSetKey(item && item.discriminationSet);
+      if(!setKey) return;
+      const category = canonicalCategoryId(item.category);
+      const key = `${category}|${setKey}`;
+      if(!groups.has(key)) groups.set(key, { key, category, items: [] });
+      groups.get(key).items.push(item);
+    });
+    return Array.from(groups.values())
+      .map(group => ({ ...group, items: uniqueOptions(group.items, true) }))
+      .filter(group => group.items.length >= 2)
+      .sort((a, b) => a.key.localeCompare(b.key));
+  }
+
+  function discriminationGroupToken(groupKey){
+    const seed = hashStringToSeed(`${GENERATOR_VERSION}|${state.lessonSeed || 1}|discrimination-group|${groupKey}`);
+    return `dg-${seed.toString(16).padStart(8, '0')}`;
   }
 
   function sourceModeMatches(option, sourceMode){
@@ -3420,7 +3463,8 @@
       source: normalizeImageSource(item.source),
       personalised_photo: !!item.personalised_photo,
       attributes: optionDeclaredAttributes(item),
-      attribute_source: item.attributeSource || ''
+      attribute_source: item.attributeSource || '',
+      discrimination_group_token: item.discriminationGroupToken || ''
     };
   }
 
@@ -3921,28 +3965,52 @@
       const eligible = uniqueOptions(sessionPoolFor('discriminate-object'), true);
       const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
       const occurrence = taskOccurrenceIndex(currentKind, index);
-      const configuredCategories = lessonCategoriesWithFocus(snapshot.findObject.categories
-        .map(item => item.id)
-        .filter(category => eligible.some(item => optionMatchesCategory(item, category))), snapshot);
-      const targetCategory = balancedLessonChoice(configuredCategories, occurrence, 'discriminate-object:categories', item => item);
-      const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, configuredCategories.length)) + 1;
-      const exactCategoryTargets = eligible.filter(item => canonicalCategoryId(item.category) === targetCategory);
-      const targetCandidates = exactCategoryTargets.length
-        ? exactCategoryTargets
-        : eligible.filter(item => optionMatchesCategory(item, targetCategory));
-      const target = balancedLessonChoice(targetCandidates, categoryOccurrence, `discriminate-object:${targetCategory}:targets`)
-        || balancedLessonChoice(eligible, occurrence, 'discriminate-object:all-targets');
-      const otherOptions = eligible.filter(item => item.id !== target.id && normalizedConceptLabel(item.label) !== normalizedConceptLabel(target.label));
-      const withinCategory = otherOptions.filter(item => optionMatchesCategory(item, targetCategory));
-      const distractorPool = withinCategory.length ? withinCategory : otherOptions;
-      const distractor = balancedLessonChoice(distractorPool, occurrence, `discriminate-object:${targetCategory}:distractors:${target.id}`);
-      const discriminationContrast = withinCategory.length ? 'within-category' : 'cross-category';
+      const declaredGroups = teacherDeclaredDiscriminationGroups(eligible);
+      let target;
+      let distractor;
+      let targetCategory;
+      let discriminationContrast;
+      let discriminationSetApplied = false;
+      let proceduralVariant = 'category-balanced-discrimination';
+      if(declaredGroups.length){
+        const group = balancedLessonChoice(declaredGroups, occurrence, 'discriminate-object:declared-groups', item => item.key);
+        const groupOccurrence = Math.floor((occurrence - 1) / declaredGroups.length) + 1;
+        const groupTarget = balancedLessonChoice(group.items, groupOccurrence, `discriminate-object:${group.key}:targets`);
+        const groupDistractors = group.items.filter(item => item.id !== groupTarget.id && normalizedConceptLabel(item.label) !== normalizedConceptLabel(groupTarget.label));
+        const groupDistractor = balancedLessonChoice(groupDistractors, groupOccurrence, `discriminate-object:${group.key}:distractors:${groupTarget.id}`);
+        const groupToken = discriminationGroupToken(group.key);
+        target = { ...groupTarget, discriminationGroupToken: groupToken };
+        distractor = { ...groupDistractor, discriminationGroupToken: groupToken };
+        targetCategory = group.category;
+        discriminationContrast = 'teacher-declared-set';
+        discriminationSetApplied = true;
+        proceduralVariant = 'teacher-declared-discrimination-set';
+      } else {
+        const configuredCategories = lessonCategoriesWithFocus(snapshot.findObject.categories
+          .map(item => item.id)
+          .filter(category => eligible.some(item => optionMatchesCategory(item, category))), snapshot);
+        targetCategory = balancedLessonChoice(configuredCategories, occurrence, 'discriminate-object:categories', item => item);
+        const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, configuredCategories.length)) + 1;
+        const exactCategoryTargets = eligible.filter(item => canonicalCategoryId(item.category) === targetCategory);
+        const targetCandidates = exactCategoryTargets.length
+          ? exactCategoryTargets
+          : eligible.filter(item => optionMatchesCategory(item, targetCategory));
+        target = balancedLessonChoice(targetCandidates, categoryOccurrence, `discriminate-object:${targetCategory}:targets`)
+          || balancedLessonChoice(eligible, occurrence, 'discriminate-object:all-targets');
+        const otherOptions = eligible.filter(item => item.id !== target.id && normalizedConceptLabel(item.label) !== normalizedConceptLabel(target.label));
+        const withinCategory = otherOptions.filter(item => optionMatchesCategory(item, targetCategory));
+        const distractorPool = withinCategory.length ? withinCategory : otherOptions;
+        distractor = balancedLessonChoice(distractorPool, occurrence, `discriminate-object:${targetCategory}:distractors:${target.id}`);
+        discriminationContrast = withinCategory.length ? 'within-category' : 'cross-category';
+      }
       return {
         ...baseQuestion,
         prompt: buildFindPrompt(target.label, index),
-        cueSummary: discriminationContrast === 'within-category'
-          ? 'Choose the named item from two options in the same category.'
-          : 'Choose the named item from two category-balanced options.',
+        cueSummary: discriminationSetApplied
+          ? 'Choose the named item from a teacher-configured two-item discrimination set.'
+          : discriminationContrast === 'within-category'
+            ? 'Choose the named item from two options in the same category.'
+            : 'Choose the named item from two category-balanced options.',
         target,
         options: shuffle([target, distractor]),
         correctId: target.id,
@@ -3951,8 +4019,9 @@
         targetCategory,
         targetCategoryLabel: targetCategory ? categoryMeta(targetCategory).label : '',
         contentConfiguration: exportableContentConfiguration(snapshot).find_object,
-        proceduralVariant: 'category-balanced-discrimination',
+        proceduralVariant,
         discriminationContrast,
+        discriminationSetApplied,
         expectedResponseType: 'hit'
       };
     }
@@ -4689,6 +4758,7 @@
       content_configuration: question.contentConfiguration || null,
       procedural_variant: question.proceduralVariant || '',
       discrimination_contrast: question.discriminationContrast || '',
+      discrimination_set_applied: !!question.discriminationSetApplied,
       open_ended_choice: !!question.openEndedChoice,
       scored_response: !question.openEndedChoice,
       student_friendly_mode: studentFriendlyModeEnabled(),
@@ -9070,6 +9140,109 @@
     })).sort((a, b) => b.trials - a.trials || a.category.localeCompare(b.category));
   }
 
+  function discriminationContrastLabel(value){
+    const labels = {
+      'teacher-declared-set': 'Teacher-declared set',
+      'within-category': 'Same category fallback',
+      'cross-category': 'Cross-category fallback'
+    };
+    return labels[value] || 'Not recorded';
+  }
+
+  function discriminationSelectionIntegrity(trial){
+    if(!trial || trial.task_kind !== 'discriminate-object') return { observed: false, valid: false };
+    const options = Array.isArray(trial.option_metadata) ? trial.option_metadata : [];
+    const observed = !!(trial.target_id && trial.target_category && options.length === 2);
+    if(!observed) return { observed: false, valid: false };
+    const uniqueOptionsValid = new Set(options.map(option => option.id)).size === 2
+      && new Set(options.map(option => normalizedConceptLabel(option.label))).size === 2
+      && options.filter(option => option.id === trial.target_id).length === 1;
+    if(!uniqueOptionsValid) return { observed: true, valid: false };
+    if(trial.discrimination_contrast === 'teacher-declared-set'){
+      const tokens = options.map(option => option.discrimination_group_token).filter(Boolean);
+      return {
+        observed: true,
+        valid: trial.discrimination_set_applied === true
+          && tokens.length === 2
+          && new Set(tokens).size === 1
+          && options.every(option => normalizeImageSource(option.source) === 'personalised')
+          && options.every(option => storedOptionMatchesCategory(option, trial.target_category))
+      };
+    }
+    if(trial.discrimination_contrast === 'within-category'){
+      return {
+        observed: true,
+        valid: trial.discrimination_set_applied !== true
+          && options.every(option => storedOptionMatchesCategory(option, trial.target_category))
+      };
+    }
+    if(trial.discrimination_contrast === 'cross-category'){
+      return {
+        observed: true,
+        valid: trial.discrimination_set_applied !== true
+          && options.some(option => !storedOptionMatchesCategory(option, trial.target_category))
+      };
+    }
+    return { observed: true, valid: false };
+  }
+
+  function discriminationSelectionResearchRows(trials){
+    const groups = new Map();
+    (Array.isArray(trials) ? trials : [])
+      .filter(trial => trial.task_kind === 'discriminate-object')
+      .forEach(trial => {
+        const contrast = trial.discrimination_contrast || 'not-recorded';
+        if(!groups.has(contrast)){
+          groups.set(contrast, {
+            contrast,
+            contrast_label: discriminationContrastLabel(contrast),
+            trials: 0,
+            correct: 0,
+            independent_correct: 0,
+            omissions: 0,
+            personalised_trials: 0,
+            target_ids: new Set(),
+            displayed_ids: new Set(),
+            response_times: [],
+            integrity_observed: 0,
+            integrity_valid: 0
+          });
+        }
+        const item = groups.get(contrast);
+        const options = Array.isArray(trial.option_metadata) ? trial.option_metadata : [];
+        item.trials += 1;
+        if(trial.correct) item.correct += 1;
+        if(trial.correct && trial.independence_status === 'independent') item.independent_correct += 1;
+        if(trial.omission) item.omissions += 1;
+        if(trial.target_id) item.target_ids.add(trial.target_id);
+        options.forEach(option => {
+          if(option.id) item.displayed_ids.add(option.id);
+        });
+        if(options.some(option => option.personalised_photo)) item.personalised_trials += 1;
+        if(Number.isFinite(trial.response_time_ms)) item.response_times.push(trial.response_time_ms);
+        const integrity = discriminationSelectionIntegrity(trial);
+        if(integrity.observed){
+          item.integrity_observed += 1;
+          if(integrity.valid) item.integrity_valid += 1;
+        }
+      });
+    return Array.from(groups.values()).map(item => ({
+      contrast: item.contrast,
+      contrast_label: item.contrast_label,
+      trials: item.trials,
+      distinct_targets: item.target_ids.size,
+      distinct_displayed_items: item.displayed_ids.size,
+      personalised_trials: item.personalised_trials,
+      accuracy_pct: percentage(item.correct, item.trials),
+      independent_success_pct: percentage(item.independent_correct, item.trials),
+      omissions: item.omissions,
+      median_reaction_time_ms: item.response_times.length ? Math.round(median(item.response_times)) : null,
+      generator_integrity_observed: item.integrity_observed,
+      generator_integrity_valid: item.integrity_valid,
+      generator_integrity_pct: item.integrity_observed ? percentage(item.integrity_valid, item.integrity_observed) : null
+    })).sort((a, b) => b.trials - a.trials || a.contrast_label.localeCompare(b.contrast_label));
+  }
+
   function attributeSelectionIntegrity(trial){
     if(!trial || trial.task_kind !== 'find-attribute') return { observed: false, valid: false };
     const options = Array.isArray(trial.option_metadata) ? trial.option_metadata : [];
@@ -10411,6 +10584,48 @@
         `${item.assisted}/${item.trials}`
       ]));
     } else renderResearchEmptyRow(ui.researchTargetBody, 7, 'No scored target exposure in this scope yet.');
+
+    const discriminationRows = discriminationSelectionResearchRows(finalTrials);
+    const discriminationTrialCount = discriminationRows.reduce((sum, item) => sum + item.trials, 0);
+    const discriminationTeacherSetCount = discriminationRows
+      .filter(item => item.contrast === 'teacher-declared-set')
+      .reduce((sum, item) => sum + item.trials, 0);
+    const discriminationTargets = discriminationRows.reduce((sum, item) => sum + item.distinct_targets, 0);
+    const discriminationIntegrityObserved = discriminationRows.reduce((sum, item) => sum + item.generator_integrity_observed, 0);
+    const discriminationIntegrityValid = discriminationRows.reduce((sum, item) => sum + item.generator_integrity_valid, 0);
+    ui.researchDiscriminationTrials.textContent = String(discriminationTrialCount);
+    ui.researchDiscriminationTeacherSet.textContent = String(discriminationTeacherSetCount);
+    ui.researchDiscriminationTargets.textContent = String(discriminationTargets);
+    ui.researchDiscriminationIntegrity.textContent = discriminationIntegrityObserved
+      ? `${percentage(discriminationIntegrityValid, discriminationIntegrityObserved)}%`
+      : 'Not recorded';
+    drawResearchBars(ui.researchDiscriminationChart, discriminationRows.map(item => ({
+      label: item.contrast_label,
+      value: item.accuracy_pct,
+      color: item.contrast === 'teacher-declared-set'
+        ? themeToken('secondary', themeToken('primary'))
+        : themeToken('primary')
+    })), { maxValue: 100, suffix: '%', labelWidth: 190 });
+    if(discriminationRows.length){
+      clearNode(ui.researchDiscriminationBody);
+      discriminationRows.forEach(item => appendResearchRow(ui.researchDiscriminationBody, [
+        item.contrast_label,
+        item.trials,
+        item.distinct_targets,
+        item.distinct_displayed_items,
+        item.personalised_trials,
+        `${item.accuracy_pct}%`,
+        `${item.independent_success_pct}%`,
+        item.omissions,
+        item.median_reaction_time_ms == null ? null : `${item.median_reaction_time_ms} ms`,
+        item.generator_integrity_pct == null
+          ? 'Not recorded'
+          : `${item.generator_integrity_valid}/${item.generator_integrity_observed} (${item.generator_integrity_pct}%)`
+      ]));
+    } else renderResearchEmptyRow(ui.researchDiscriminationBody, 10, 'No object discrimination trials in this scope yet.');
+    ui.researchDiscriminationNote.textContent = scope === 'all-learners'
+      ? 'Rows pool learners and are not one learning trajectory. Teacher-set contrasts use local practitioner metadata; ChoiceTrain does not inspect image pixels or verify perceptual similarity. Pooled results do not demonstrate transfer, neural change, or diagnostic ability.'
+      : 'Teacher-set contrasts use local practitioner-entered grouping metadata. ChoiceTrain does not inspect image pixels or verify perceptual similarity. Results describe delivered in-app practice, not transfer, neural change, or diagnostic ability.';
 
     const matchRows = categoryMatchResearchRows(finalTrials);
     const matchTrialCount = matchRows.reduce((sum, item) => sum + item.trials, 0);
@@ -11821,6 +12036,7 @@
       support_summary: Array.from(supportGroups.values()),
       task_exposure: Array.from(taskGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
       category_exposure: Array.from(categoryGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
+      discrimination_selection: discriminationSelectionResearchRows(finalTrials),
       category_matching: categoryMatchResearchRows(finalTrials),
       category_group_completion: categoryGroupCompletionResearchRows(finalTrials),
       category_exclusion: categoryExclusionResearchRows(finalTrials),
@@ -11937,6 +12153,7 @@
       coverage_strategy: trial.generator_constraints && trial.generator_constraints.coverage_strategy || null,
       procedural_variant: trial.procedural_variant || null,
       discrimination_contrast: trial.discrimination_contrast || null,
+      discrimination_set_applied: !!trial.discrimination_set_applied,
       open_ended_choice: !!trial.open_ended_choice,
       scored_response: trial.scored_response !== false,
       research_condition: trial.research_condition || null,

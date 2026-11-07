@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 
 const APP_PATH = '/choice_train_V1.8.0-alpha.html';
 const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.schema.json', 'utf8'));
-const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v2.1.schema.json', 'utf8'));
+const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v2.2.schema.json', 'utf8'));
 const DATA_QUALITY_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-data-quality-v1.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
 
@@ -362,7 +362,7 @@ test('legacy local data migrates non-destructively and idempotently', async ({ p
   await expect.poll(async () => {
     const snapshot = await readMigrationState();
     return snapshot.marker && snapshot.marker.version;
-  }).toBe(6);
+  }).toBe(7);
 
   const first = await readMigrationState();
   expect(first.legacySettings).toEqual(seeded.legacySettings);
@@ -389,7 +389,8 @@ test('legacy local data migrates non-destructively and idempotently', async ({ p
     attributes: { colour: 'blue' },
     attributeSource: 'teacher',
     useInQuestions: true,
-    schemaVersion: 3
+    discriminationSet: '',
+    schemaVersion: 4
   }));
   expect(first.assets.value[0].originalSrc).toBe(first.assets.value[0].src);
   expect(first.assets.value[0].edit).toEqual(expect.objectContaining({
@@ -405,7 +406,7 @@ test('legacy local data migrates non-destructively and idempotently', async ({ p
   await expect.poll(async () => {
     const snapshot = await readMigrationState();
     return snapshot.marker && snapshot.marker.version;
-  }).toBe(6);
+  }).toBe(7);
   const second = await readMigrationState();
 
   expect(second).toEqual(first);
@@ -418,7 +419,7 @@ test('V1.8 export declares the versioned research contract and preserves missing
   expect(payload.build.version).toBe('1.8.0-alpha');
   expect(payload.schema_version).toBe(8);
   expect(payload.skill_graph_version).toBe('1.4.0');
-  expect(payload.generator_version).toBe('1.6.0');
+  expect(payload.generator_version).toBe('1.7.0');
   expect(payload.research_summary_version).toBe('1.0.0');
   expect(payload.skill_graph).toEqual(expect.arrayContaining([
     expect.objectContaining({ skill_id: 'access.touch_screen' }),
@@ -565,7 +566,7 @@ test('Find object balances configured categories before repeating and preserves 
     await setValue(page, 'lessonSeedOverride', seed);
     await setValue(page, 'startLevel', 4);
     const payload = await completeSessionAndExport(page, 6);
-    expect(payload.generator_version).toBe('1.6.0');
+    expect(payload.generator_version).toBe('1.7.0');
     expect(payload.lesson_plan.constraints.coverage_strategy).toBe('balanced-before-repeat');
     expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(6);
     expect(new Set(payload.trials.map(trial => trial.target_id)).size).toBe(6);
@@ -790,7 +791,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
     await expect(page.locator('#screenSummary.active')).toBeVisible();
     const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
     expect(payload.schema_version).toBe(8);
-    expect(payload.generator_version).toBe('1.6.0');
+    expect(payload.generator_version).toBe('1.7.0');
     expect(payload.skill_graph_version).toBe('1.4.0');
     expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(4);
 
@@ -849,7 +850,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.1.0');
+  expect(researchPayload.export_schema_version).toBe('2.2.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.trials, 0)).toBe(8);
@@ -885,7 +886,7 @@ test('Complete the group uses two distinct cues and one same-category answer acr
     await expect(page.locator('#screenSummary.active')).toBeVisible();
     const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
     expect(payload.schema_version).toBe(8);
-    expect(payload.generator_version).toBe('1.6.0');
+    expect(payload.generator_version).toBe('1.7.0');
     expect(payload.skill_graph_version).toBe('1.4.0');
     expect(new Set(payload.trials.map(trial => trial.reference_category)).size).toBe(4);
 
@@ -927,7 +928,7 @@ test('Complete the group uses two distinct cues and one same-category answer acr
   await expect(page.locator('#researchGroupCategoryNote')).toContainText('multiple examples');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('2.1.0');
+  expect(researchPayload.export_schema_version).toBe('2.2.0');
   expect(researchPayload.category_group_completion).toHaveLength(4);
   expect(researchPayload.category_group_completion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -952,7 +953,7 @@ test('Find the different one keeps exactly one outside-category target and visua
     await setValue(page, 'startLevel', 6);
     const payload = await completeSessionAndExport(page, 8);
     expect(payload.schema_version).toBe(8);
-    expect(payload.generator_version).toBe('1.6.0');
+    expect(payload.generator_version).toBe('1.7.0');
     expect(payload.skill_graph_version).toBe('1.4.0');
     expect(new Set(payload.trials.map(trial => trial.reference_category)).size).toBe(4);
 
@@ -995,7 +996,7 @@ test('Find the different one keeps exactly one outside-category target and visua
   await expect(page.locator('#researchExclusionCategoryNote')).toContainText('not a pupil outcome');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('2.1.0');
+  expect(researchPayload.export_schema_version).toBe('2.2.0');
   expect(researchPayload.category_exclusion).toHaveLength(4);
   expect(researchPayload.category_exclusion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -1044,7 +1045,7 @@ test('Find by colour uses teacher-declared metadata with deterministic one-answe
   await setValue(page, 'lessonSeedOverride', 1618033);
 
   const first = await completeSessionAndExport(page, 6);
-  expect(first.generator_version).toBe('1.6.0');
+  expect(first.generator_version).toBe('1.7.0');
   expect(first.skill_graph_version).toBe('1.4.0');
   expect(first.photo_library_metadata.every(item => item.attribute_source === 'teacher')).toBe(true);
   expect(first.photo_library_metadata.map(item => item.declared_attributes.colour).sort()).toEqual(['blue', 'blue', 'green', 'green', 'red', 'red']);
@@ -1125,7 +1126,7 @@ test('Find by colour uses teacher-declared metadata with deterministic one-answe
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.1.0');
+  expect(researchPayload.export_schema_version).toBe('2.2.0');
   expect(researchPayload.attribute_selection).toHaveLength(1);
   expect(researchPayload.attribute_selection.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.find_attribute_trials, 0)).toBe(1);
@@ -1148,7 +1149,7 @@ test('Discriminate object uses configured categories and a reproducible two-opti
   await setValue(page, 'lessonSeedOverride', 86420);
 
   const payload = await completeSessionAndExport(page, 6);
-  expect(payload.generator_version).toBe('1.6.0');
+  expect(payload.generator_version).toBe('1.7.0');
   expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(6);
   expect(new Set(payload.trials.map(trial => trial.target_id)).size).toBe(6);
   payload.trials.forEach(trial => {
@@ -1165,6 +1166,115 @@ test('Discriminate object uses configured categories and a reproducible two-opti
     expect(trial.target_source).toBe('stock');
     expect(trial.generator_constraints.procedural_variant).toBe('category-balanced-discrimination');
   });
+});
+
+test('teacher-declared discrimination sets are reproducible, visualised, and privacy minimised', async ({ page }) => {
+  test.slow();
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'itiSec', 0);
+  await setValue(page, 'dataUseStatus', 'recorded-separately');
+  await setCheckbox(page, 'researchAnalysisApproved', true);
+  await setCheckbox(page, 'modelDevelopmentApproved', true);
+  await setValue(page, 'governanceReference', 'TEST-APPROVAL-SET');
+  await setValue(page, 'governanceReviewDate', '2027-06-01');
+  await page.locator('#teacherNavPersonalise').click();
+
+  const privateSetName = 'Near matching classroom animals';
+  const photos = [
+    { label: 'Bear facing left', set: privateSetName, fill: '#9a6f48' },
+    { label: 'Bear facing right', set: privateSetName, fill: '#a77b53' },
+    { label: 'Striped tiger', set: 'Separate comparison', fill: '#d18a38' }
+  ];
+  for(const photo of photos){
+    await page.locator('#photoLabel').fill(photo.label);
+    await page.locator('#photoCategory').selectOption('animals');
+    await page.locator('#photoDiscriminationSet').fill(photo.set);
+    await page.locator('#photoUpload').setInputFiles({
+      name: `${photo.label.toLowerCase().replaceAll(' ', '-')}.svg`,
+      mimeType: 'image/svg+xml',
+      buffer: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="12" fill="${photo.fill}"/></svg>`)
+    });
+    await page.locator('#addPhotoBtn').click();
+  }
+  await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(3);
+  await expect(page.locator('#photoLibraryList')).toContainText(`Discrimination set: ${privateSetName}`);
+
+  await page.locator('#teacherNavToday').click();
+  await setValue(page, 'sessionTaskType', 'discriminate-object');
+  await setValue(page, 'findObjectSourceMode', 'personalised');
+  await setValue(page, 'startLevel', 5);
+  await setValue(page, 'sessionMax', 4);
+  await setValue(page, 'maxObjects', 2);
+  await setValue(page, 'lessonSeedOverride', 424242);
+
+  const first = await completeSessionAndExport(page, 4);
+  expect(first.generator_version).toBe('1.7.0');
+  expect(first.photo_library_metadata.filter(item => item.discrimination_set === privateSetName)).toHaveLength(2);
+  first.trials.forEach(trial => {
+    expectCoreSchema(trial, TRIAL_SCHEMA, 'trial');
+    expect(trial.procedural_variant).toBe('teacher-declared-discrimination-set');
+    expect(trial.discrimination_contrast).toBe('teacher-declared-set');
+    expect(trial.discrimination_set_applied).toBe(true);
+    expect(trial.generator_constraints.discrimination_set_applied).toBe(true);
+    expect(trial.option_metadata).toHaveLength(2);
+    expect(trial.option_metadata.every(option => option.source === 'personalised')).toBe(true);
+    expect(new Set(trial.option_metadata.map(option => option.id)).size).toBe(2);
+    expect(new Set(trial.option_metadata.map(option => option.label.toLowerCase())).size).toBe(2);
+    const tokens = trial.option_metadata.map(option => option.discrimination_group_token);
+    expect(tokens.every(token => /^dg-[0-9a-f]{8}$/.test(token))).toBe(true);
+    expect(new Set(tokens).size).toBe(1);
+  });
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  const second = await completeSessionAndExport(page, 4);
+  expect(second.trials.map(trial => ({
+    target: trial.target_id,
+    options: trial.option_metadata.map(option => option.id),
+    prompt: trial.prompt_wording
+  }))).toEqual(first.trials.map(trial => ({
+    target: trial.target_id,
+    options: trial.option_metadata.map(option => option.id),
+    prompt: trial.prompt_wording
+  })));
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-session');
+  await expect(page.locator('#researchDiscriminationTrials')).toHaveText('4');
+  await expect(page.locator('#researchDiscriminationTeacherSet')).toHaveText('4');
+  await expect(page.locator('#researchDiscriminationTargets')).toHaveText('2');
+  await expect(page.locator('#researchDiscriminationIntegrity')).toHaveText('100%');
+  await expect(page.locator('#researchDiscriminationBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchDiscriminationNote')).toContainText('does not inspect image pixels');
+
+  const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
+  expect(researchPayload.discrimination_selection).toEqual([
+    expect.objectContaining({
+      contrast: 'teacher-declared-set',
+      trials: 4,
+      distinct_targets: 2,
+      generator_integrity_pct: 100
+    })
+  ]);
+
+  await setValue(page, 'researchScopeSelect', 'current-learner');
+  const aiPayload = await downloadJsonAfter(page, () => page.locator('#adminExportAiDatasetBtn').evaluate(node => node.click()));
+  const aiText = JSON.stringify(aiPayload);
+  expect(aiText).not.toContain(privateSetName);
+  expect(aiText).not.toMatch(/dg-[0-9a-f]{8}/);
+  expect(aiPayload.sessions.flatMap(session => session.trials).every(trial => (
+    trial.discrimination_contrast === 'teacher-declared-set'
+    && trial.discrimination_set_applied === true
+  ))).toBe(true);
 });
 
 test('Choice preference accepts every configured option and exports an unscored preference response', async ({ page }) => {
@@ -1192,7 +1302,7 @@ test('Choice preference accepts every configured option and exports an unscored 
   await expect(page.locator('#screenSummary.active')).toBeVisible();
   const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
 
-  expect(payload.generator_version).toBe('1.6.0');
+  expect(payload.generator_version).toBe('1.7.0');
   expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(4);
   payload.trials.forEach(trial => {
     expect(trial.procedural_variant).toBe('category-balanced-preference');
@@ -1396,7 +1506,7 @@ test('Research visualises future AI dataset composition without performing a mod
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.1.0');
+  expect(researchPayload.export_schema_version).toBe('2.2.0');
   expect(researchPayload.model_dataset_composition).toEqual(expect.objectContaining({
     profile_version: '1.0.0',
     participant_count: 2,
@@ -1565,7 +1675,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('2.1.0');
+  expect(researchPayload.export_schema_version).toBe('2.2.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);
@@ -1873,7 +1983,7 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.1.0');
+  expect(researchPayload.export_schema_version).toBe('2.2.0');
   expect(researchPayload.teacher_decisions[0].human_observation_context).toEqual({
     version: '1.0.0',
     observation_available: true,
@@ -2204,7 +2314,7 @@ test('Research visualises versioned category-by-skill learner state without pool
 
   const research = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(research, RESEARCH_SCHEMA);
-  expect(research.export_schema_version).toBe('2.1.0');
+  expect(research.export_schema_version).toBe('2.2.0');
   expect(research.category_skill_states).toEqual(expect.objectContaining({
     version: '1.0.0',
     scope_mode: 'single-learner',

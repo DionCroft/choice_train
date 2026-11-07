@@ -10,7 +10,7 @@
     "session_id": { "type": "string", "minLength": 1 },
     "schema_version": { "const": 8 },
     "skill_graph_version": { "const": "1.4.0" },
-    "generator_version": { "const": "1.6.0" },
+    "generator_version": { "const": "1.7.0" },
     "recommendation_id": { "type": ["string", "null"] },
     "recommendation_review_id": { "type": ["string", "null"] },
     "recommendation_version": { "type": ["string", "null"] },
@@ -56,6 +56,8 @@
     "target_attribute_value": { "type": "string" },
     "attribute_source": { "type": "string" },
     "attribute_relation": { "type": "string" },
+    "discrimination_contrast": { "enum": ["", "teacher-declared-set", "within-category", "cross-category"] },
+    "discrimination_set_applied": { "type": "boolean" },
     "support_code": { "type": "string" },
     "independence_status": { "type": "string" },
     "student_friendly_mode": { "type": "boolean" }

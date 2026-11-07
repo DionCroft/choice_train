@@ -32,14 +32,20 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
   assert.deepEqual(new Set(contract.properties.skill_ids.items.enum), new Set(objectKeys('SKILL_GRAPH')));
   assert.deepEqual(new Set(contract.properties.recommendation_review_decision.oneOf[0].enum), new Set(['approved', 'adjusted']));
   assert.equal(contract.properties.recommendation_application_status.oneOf[0].const, 'applied-as-reviewed');
+  assert.deepEqual(new Set(contract.properties.discrimination_contrast.enum), new Set(['', 'teacher-declared-set', 'within-category', 'cross-category']));
+  assert.equal(contract.properties.discrimination_set_applied.type, 'boolean');
 });
 
-test('Research summary schema matches its runtime export version and category/AI composition sections', () => {
-  const contract = schema('choice-train-research-summary-v2.1.schema.json');
+test('Research summary schema matches its runtime export version and discrimination/category/AI sections', () => {
+  const contract = schema('choice-train-research-summary-v2.2.schema.json');
   const previousContract = schema('choice-train-research-summary-v2.0.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('RESEARCH_WORKSPACE_EXPORT_VERSION'));
-  ['retention_planning', 'category_skill_states', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition', 'recommendation_application_summary', 'teacher_decisions']
+  ['retention_planning', 'category_skill_states', 'discrimination_selection', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition', 'recommendation_application_summary', 'teacher_decisions']
     .forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
+  assert.deepEqual(
+    new Set(contract.properties.discrimination_selection.items.properties.contrast.enum),
+    new Set(['teacher-declared-set', 'within-category', 'cross-category', 'not-recorded'])
+  );
   assert.equal(contract.properties.data_quality.$ref, 'choice-train-data-quality-v1.schema.json');
   const profile = previousContract.properties.model_dataset_composition;
   assert.equal(profile.properties.profile_version.const, runtimeConstant('MODEL_DATASET_PROFILE_VERSION'));

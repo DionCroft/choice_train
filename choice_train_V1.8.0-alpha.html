@@ -633,6 +633,11 @@
             <div class="helperText">Optional. Used only for colour lessons. ChoiceTrain stores the teacher's label and does not analyse the image.</div>
           </div>
           <div>
+            <label for="photoDiscriminationSet">Discrimination set</label>
+            <input id="photoDiscriminationSet" type="text" maxlength="64" placeholder="e.g. similar cups" />
+            <div class="helperText">Optional local teacher code. Give visually similar items the same code so Level 5 can present a controlled two-item contrast. ChoiceTrain does not analyse the image or verify similarity.</div>
+          </div>
+          <div>
             <label for="photoUpload">Upload photo</label>
             <input id="photoUpload" type="file" accept="image/*" />
             <div class="helperText">Photos stay local on this device unless you choose to export image data later.</div>
@@ -1700,6 +1705,23 @@
                 <table><thead><tr><th>Target</th><th>Category</th><th>Source</th><th>Trials</th><th>Accuracy</th><th>Median RT</th><th>Assisted</th></tr></thead><tbody id="researchTargetBody"></tbody></table>
               </div>
               <div class="compactNote">Repeated success with one target is shown separately from broader content coverage. Preference tasks are excluded because they have no scored target.</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Object discrimination profile</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Discrimination trials</div><div class="v" id="researchDiscriminationTrials">0</div></div>
+                <div class="dashCard"><div class="k">Teacher-set contrasts</div><div class="v" id="researchDiscriminationTeacherSet">0</div></div>
+                <div class="dashCard"><div class="k">Distinct targets</div><div class="v" id="researchDiscriminationTargets">0</div></div>
+                <div class="dashCard"><div class="k">Generator integrity observed</div><div class="v" id="researchDiscriminationIntegrity">&mdash;</div></div>
+              </div>
+              <canvas id="researchDiscriminationChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Object discrimination accuracy by delivered contrast basis"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Contrast basis</th><th>Trials</th><th>Targets</th><th>Displayed items</th><th>Personalised</th><th>Accuracy</th><th>Independent success</th><th>Omissions</th><th>Median RT</th><th>Generator integrity</th></tr></thead>
+                  <tbody id="researchDiscriminationBody"></tbody>
+                </table>
+              </div>
+              <div id="researchDiscriminationNote" class="compactNote">Teacher-set contrasts use local practitioner-entered grouping metadata. ChoiceTrain does not inspect image pixels or verify perceptual similarity. Results describe delivered in-app practice, not transfer, neural change, or diagnostic ability.</div>
             </div>
             <div class="chartCard span2">
               <h4>Category matching profile</h4>

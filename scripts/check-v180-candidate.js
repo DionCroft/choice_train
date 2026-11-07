@@ -8,9 +8,11 @@ const ROOT = path.resolve(__dirname, '..');
 const PROTECTED_STABLE_SHA256 = '77b4033411d9b20caafaaa6739f7c5317eef1efb010cf88c92a1571ed58e16aa';
 const EXPECTED_CONTRACTS = Object.freeze({
   dataSchema: '8',
+  localDataMigration: '7',
+  photoSchema: '4',
   skillGraph: '1.4.0',
-  generator: '1.6.0',
-  researchWorkspaceExport: '2.1.0',
+  generator: '1.7.0',
+  researchWorkspaceExport: '2.2.0',
   categorySkillState: '1.0.0',
   humanObservationContext: '1.0.0',
   recommendation: '1.5.0',
@@ -89,6 +91,8 @@ check('V1.8 build metadata remains experimental and unpublished', () => {
 check('runtime contract versions match the reviewed V1.8 schemas', () => {
   const source = read('choice_train_V1.8.0-alpha.js');
   assert(new RegExp(`const DATA_SCHEMA_VERSION = ${EXPECTED_CONTRACTS.dataSchema};`).test(source), 'data schema version drifted');
+  assert(new RegExp(`const LOCAL_DATA_MIGRATION_VERSION = ${EXPECTED_CONTRACTS.localDataMigration};`).test(source), 'local data migration version drifted');
+  assert(new RegExp(`const PHOTO_SCHEMA_VERSION = ${EXPECTED_CONTRACTS.photoSchema};`).test(source), 'photo schema version drifted');
   assert(new RegExp(`const SKILL_GRAPH_VERSION = ['"]${EXPECTED_CONTRACTS.skillGraph.replaceAll('.', '\\.')}['"];`).test(source), 'skill graph version drifted');
   assert(new RegExp(`const GENERATOR_VERSION = ['"]${EXPECTED_CONTRACTS.generator.replaceAll('.', '\\.')}['"];`).test(source), 'generator version drifted');
   assert(new RegExp(`const RESEARCH_WORKSPACE_EXPORT_VERSION = ['"]${EXPECTED_CONTRACTS.researchWorkspaceExport.replaceAll('.', '\\.')}['"];`).test(source), 'research export version drifted');
@@ -102,7 +106,7 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
 check('machine-readable research contracts are present and parseable', () => {
   [
     'schemas/choice-train-trial-v8.schema.json',
-    'schemas/choice-train-research-summary-v2.1.schema.json',
+    'schemas/choice-train-research-summary-v2.2.schema.json',
     'schemas/choice-train-data-quality-v1.schema.json',
     'schemas/choice-train-model-dataset-v1.schema.json'
   ].forEach((file) => {
