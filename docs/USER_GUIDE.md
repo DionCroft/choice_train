@@ -139,6 +139,8 @@ Use `Download scope summary` beside the Research filters when an authorised staf
 
 `Content breadth over time` shows how many categories were represented in the displayed options, how many different scored targets were practised, repeat exposures, personalised-content trials, and preference selections in each session. It helps staff see whether practice is narrow or varied, but does not show that learning transferred to unpractised content.
 
+`Category matching profile` appears when Match category trials are in scope. It groups results by teacher-defined category and shows trials, distinct cues, targets and cue-target pairs, accuracy, independent success, omissions, median reaction time, and generator integrity. Generator integrity is a software/data-quality check of the stored cue, target and options; it is not a pupil outcome. Category-matching performance remains in-app evidence and must not be presented as proof of conceptual mastery or classroom generalisation.
+
 `Open-ended preference selections` counts the items the learner actually selected and reports category, source, assistance, and recency. It does not assign accuracy and should not be treated as a stable preference profile or formal reinforcer assessment; preferences can change with context and time.
 
 `Task, variant, and research-condition profile` separates the observed task rules and game variants. It reports trial/scored counts, accuracy, independence, omissions, commissions, and median response time. Use it to inspect what was practised and where support may be needed; do not interpret an unadjusted difference between variants or conditions as a treatment effect.

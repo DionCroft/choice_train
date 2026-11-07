@@ -28,6 +28,8 @@ All notable changes to ChoiceTrain are listed here.
 - generator version 1.3.0 and skill graph version 1.1.0 with deterministic `balanced-before-repeat` category and target schedules for Find object, Find category, Match category, Discriminate object, and Choice preference
 - a metadata-defined `Match category` lesson that keeps one non-selectable cue exemplar visible above the choices, requires a different same-category target, excludes category-matching distractors, rotates with Find category in the automatic Level 6 path, and records the cue/target/category relationship for skill and Research views
 - multi-seed browser safeguards for category-match grammar, distinct cue and target IDs, source/category constraints, unique options, exactly one valid answer, reproducible provenance, and Level 6 task rotation
+- an accessible category-matching Research profile for trials, categories, distinct cues, targets and cue-target pairs, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
+- Research workspace summary export version 1.1.0 with category-level matching aggregates and no cue or target item labels
 - fair category rotation and target rotation across stock, personalised, and teacher-created content while preserving source/category filters and exactly one valid answer
 - two-option discrimination that prefers a within-category contrast and exports the actual contrast type without claiming visual or attribute equivalence
 - open-ended preference lessons that accept every configured option, retain the selected content, suppress arbitrary target-distance measures, and mark the response as valid but unscored

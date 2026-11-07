@@ -36,7 +36,7 @@
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.0.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.1.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
@@ -6964,6 +6964,82 @@
     return `${metric.observed}/${metric.expected} (${metric.percent}%)`;
   }
 
+  function storedOptionMatchesCategory(option, categoryId){
+    if(!option || !categoryId) return false;
+    const memberships = Array.isArray(option.category_ids) && option.category_ids.length
+      ? option.category_ids
+      : [option.category];
+    return memberships.filter(Boolean).map(canonicalCategoryId).includes(canonicalCategoryId(categoryId));
+  }
+
+  function categoryMatchIntegrity(trial){
+    if(!trial || trial.task_kind !== 'match-category') return { observed: false, valid: false };
+    const options = Array.isArray(trial.option_metadata) ? trial.option_metadata : [];
+    const observed = !!(trial.cue_id && trial.target_id && trial.target_category && trial.cue_metadata && options.length);
+    if(!observed) return { observed: false, valid: false };
+    const matchingOptions = options.filter(option => storedOptionMatchesCategory(option, trial.target_category));
+    return {
+      observed: true,
+      valid: trial.cue_id !== trial.target_id
+        && storedOptionMatchesCategory(trial.cue_metadata, trial.target_category)
+        && matchingOptions.length === 1
+        && matchingOptions[0].id === trial.target_id
+        && !options.some(option => option.id === trial.cue_id)
+    };
+  }
+
+  function categoryMatchResearchRows(trials){
+    const groups = new Map();
+    (Array.isArray(trials) ? trials : [])
+      .filter(trial => trial.task_kind === 'match-category')
+      .forEach(trial => {
+        const category = trial.target_category_label || trial.target_category || 'Not recorded';
+        if(!groups.has(category)){
+          groups.set(category, {
+            category,
+            trials: 0,
+            correct: 0,
+            independent_correct: 0,
+            omissions: 0,
+            cue_ids: new Set(),
+            target_ids: new Set(),
+            pair_ids: new Set(),
+            response_times: [],
+            integrity_observed: 0,
+            integrity_valid: 0
+          });
+        }
+        const item = groups.get(category);
+        item.trials += 1;
+        if(trial.correct) item.correct += 1;
+        if(trial.correct && trial.independence_status === 'independent') item.independent_correct += 1;
+        if(trial.omission) item.omissions += 1;
+        if(trial.cue_id) item.cue_ids.add(trial.cue_id);
+        if(trial.target_id) item.target_ids.add(trial.target_id);
+        if(trial.cue_id && trial.target_id) item.pair_ids.add(`${trial.cue_id}|${trial.target_id}`);
+        if(Number.isFinite(trial.response_time_ms)) item.response_times.push(trial.response_time_ms);
+        const integrity = categoryMatchIntegrity(trial);
+        if(integrity.observed){
+          item.integrity_observed += 1;
+          if(integrity.valid) item.integrity_valid += 1;
+        }
+      });
+    return Array.from(groups.values()).map(item => ({
+      category: item.category,
+      trials: item.trials,
+      distinct_cues: item.cue_ids.size,
+      distinct_targets: item.target_ids.size,
+      distinct_pairs: item.pair_ids.size,
+      accuracy_pct: percentage(item.correct, item.trials),
+      independent_success_pct: percentage(item.independent_correct, item.trials),
+      omissions: item.omissions,
+      median_reaction_time_ms: item.response_times.length ? Math.round(median(item.response_times)) : null,
+      generator_integrity_observed: item.integrity_observed,
+      generator_integrity_valid: item.integrity_valid,
+      generator_integrity_pct: item.integrity_observed ? percentage(item.integrity_valid, item.integrity_observed) : null
+    })).sort((a, b) => b.trials - a.trials || a.category.localeCompare(b.category));
+  }
+
   function renderResearchWorkspace(){
     if(!ui.researchScopeSelect) return;
     const sessions = researchSessionsInScope();
@@ -7701,6 +7777,41 @@
         `${item.assisted}/${item.trials}`
       ]));
     } else renderResearchEmptyRow(ui.researchTargetBody, 7, 'No scored target exposure in this scope yet.');
+
+    const matchRows = categoryMatchResearchRows(finalTrials);
+    const matchTrialCount = matchRows.reduce((sum, item) => sum + item.trials, 0);
+    const matchPairCount = matchRows.reduce((sum, item) => sum + item.distinct_pairs, 0);
+    const matchIntegrityObserved = matchRows.reduce((sum, item) => sum + item.generator_integrity_observed, 0);
+    const matchIntegrityValid = matchRows.reduce((sum, item) => sum + item.generator_integrity_valid, 0);
+    ui.researchMatchTrials.textContent = String(matchTrialCount);
+    ui.researchMatchCategories.textContent = String(matchRows.length);
+    ui.researchMatchPairs.textContent = String(matchPairCount);
+    ui.researchMatchIntegrity.textContent = matchIntegrityObserved ? `${percentage(matchIntegrityValid, matchIntegrityObserved)}%` : 'Not recorded';
+    drawResearchBars(ui.researchMatchCategoryChart, matchRows.map(item => ({
+      label: item.category,
+      value: item.accuracy_pct,
+      color: themeToken('secondary', themeToken('primary'))
+    })), { maxValue: 100, suffix: '%', labelWidth: 145 });
+    if(matchRows.length){
+      clearNode(ui.researchMatchCategoryBody);
+      matchRows.forEach(item => appendResearchRow(ui.researchMatchCategoryBody, [
+        item.category,
+        item.trials,
+        item.distinct_cues,
+        item.distinct_targets,
+        item.distinct_pairs,
+        `${item.accuracy_pct}%`,
+        `${item.independent_success_pct}%`,
+        item.omissions,
+        item.median_reaction_time_ms == null ? null : `${item.median_reaction_time_ms} ms`,
+        item.generator_integrity_pct == null
+          ? 'Not recorded'
+          : `${item.generator_integrity_valid}/${item.generator_integrity_observed} (${item.generator_integrity_pct}%)`
+      ]));
+    } else renderResearchEmptyRow(ui.researchMatchCategoryBody, 10, 'No Match category trials in this scope yet.');
+    ui.researchMatchCategoryNote.textContent = scope === 'all-learners'
+      ? 'Rows pool learners and are not a single learning trajectory. Category matching describes delivered in-app tasks; generator integrity is an engineering/data-quality check, not a pupil outcome or evidence of generalisation.'
+      : 'Category matching describes delivered in-app cue-and-choice tasks. Generator integrity is an engineering/data-quality check of stored cue, target, category, and option relationships; neither measure proves conceptual mastery or real-world generalisation.';
 
     const contentBreadthRows = sessions.map(session => {
       const sessionTrials = latestTrialsByQuestion(session.trials || []);
@@ -8775,6 +8886,7 @@
       support_summary: Array.from(supportGroups.values()),
       task_exposure: Array.from(taskGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
       category_exposure: Array.from(categoryGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
+      category_matching: categoryMatchResearchRows(finalTrials),
       session_context: context,
       eeg_readiness: eegReadiness,
       teacher_decisions: teacherDecisions,

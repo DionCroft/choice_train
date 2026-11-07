@@ -352,6 +352,23 @@ test('Match category uses a distinct cue and same-category target with reproduci
   expect(autoPayload.trials.map(trial => trial.task_kind)).toEqual([
     'find-category', 'match-category', 'find-category', 'match-category'
   ]);
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-session');
+  await expect(page.locator('#researchMatchTrials')).toHaveText('2');
+  await expect(page.locator('#researchMatchCategories')).toHaveText('2');
+  await expect(page.locator('#researchMatchPairs')).toHaveText('2');
+  await expect(page.locator('#researchMatchIntegrity')).toHaveText('100%');
+  await expect(page.locator('#researchMatchCategoryBody tr')).toHaveCount(2);
+  await expect(page.locator('#researchMatchCategoryNote')).toContainText('engineering/data-quality');
+
+  const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expect(researchPayload.export_schema_version).toBe('1.1.0');
+  expect(researchPayload.category_matching).toHaveLength(2);
+  expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
 
 test('Discriminate object uses configured categories and a reproducible two-option contrast', async ({ page }) => {
@@ -584,7 +601,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('1.0.0');
+  expect(researchPayload.export_schema_version).toBe('1.1.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);

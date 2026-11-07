@@ -1536,6 +1536,23 @@
               <div class="compactNote">Repeated success with one target is shown separately from broader content coverage. Preference tasks are excluded because they have no scored target.</div>
             </div>
             <div class="chartCard span2">
+              <h4>Category matching profile</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Match trials</div><div class="v" id="researchMatchTrials">0</div></div>
+                <div class="dashCard"><div class="k">Categories</div><div class="v" id="researchMatchCategories">0</div></div>
+                <div class="dashCard"><div class="k">Cue-target pairs</div><div class="v" id="researchMatchPairs">0</div></div>
+                <div class="dashCard"><div class="k">Generator integrity observed</div><div class="v" id="researchMatchIntegrity">&mdash;</div></div>
+              </div>
+              <canvas id="researchMatchCategoryChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Category matching accuracy by teacher-defined category"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Category</th><th>Trials</th><th>Cues</th><th>Targets</th><th>Pairs</th><th>Accuracy</th><th>Independent success</th><th>Omissions</th><th>Median RT</th><th>Generator integrity</th></tr></thead>
+                  <tbody id="researchMatchCategoryBody"></tbody>
+                </table>
+              </div>
+              <div id="researchMatchCategoryNote" class="compactNote">Category matching describes performance on delivered in-app cue-and-choice tasks. Generator integrity checks the stored cue, target, category, and option relationship; neither measure proves conceptual mastery or real-world generalisation.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Content breadth over time</h4>
               <div class="researchMetricPair">
                 <div>
