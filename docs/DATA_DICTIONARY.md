@@ -271,6 +271,8 @@ This separate JSON uses `export_schema_version: 1.0.0` and `privacy_status: pseu
 
 It excludes direct names and aliases, free text, images, photo labels, exact wall-clock/performance timestamps, source session/trial/recommendation IDs, prompt wording, selected labels, raw touch coordinates, fixed-condition IDs, and fixed manifest settings. `external_transmission` is `false`; clicking the button downloads a local file only.
 
+Model-development EEG diagnostics are recalculated from the selected raw trials, privacy-safe marker data, and protocol fields at export time. The model-dataset schema permits only aggregate ordering, timing-comparison, protocol-completeness, synchronisation-declaration, and interpretation-boundary fields. Stored diagnostic extensions such as operator notes, exact times, or source identifiers are not copied into this export.
+
 ### V1.8 Data-use governance declaration
 
 Full pupil/session records use governance schema `1.0.0`:

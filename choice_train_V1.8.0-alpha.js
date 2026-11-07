@@ -10817,6 +10817,27 @@
     }));
   }
 
+  function privacySafeMarkerDiagnostics(session){
+    const diagnostics = markerDiagnostics(session);
+    return {
+      version: diagnostics.version,
+      ordered_trials: diagnostics.ordered_trials,
+      expected_order_trials: diagnostics.expected_order_trials,
+      ordering_pct: diagnostics.ordering_pct,
+      response_timing_comparisons: diagnostics.response_timing_comparisons,
+      timing_difference_count: diagnostics.timing_difference_count,
+      response_timing_tolerance_ms: diagnostics.response_timing_tolerance_ms,
+      non_monotonic_marker_count: diagnostics.non_monotonic_marker_count,
+      duplicate_marker_id_count: diagnostics.duplicate_marker_id_count,
+      protocol_fields_complete: diagnostics.protocol_fields_complete,
+      protocol_fields_expected: diagnostics.protocol_fields_expected,
+      protocol_completeness_pct: diagnostics.protocol_completeness_pct,
+      declared_sync_method: diagnostics.declared_sync_method,
+      hardware_synchronization_verified: diagnostics.hardware_synchronization_verified,
+      interpretation_boundary: diagnostics.interpretation_boundary
+    };
+  }
+
   function privacySafeReviews(participantByLearner){
     const rows = [];
     Object.keys(state.learners).forEach(name => {
@@ -10888,7 +10909,7 @@
         const summary = session.summary || analyticsSummaryForTrials(trials);
         const protocol = session.study_protocol || {};
         const fixedCondition = fixedConditionResearchRow(session);
-        const diagnostics = session.eeg_marker_diagnostics || markerDiagnostics(session);
+        const diagnostics = privacySafeMarkerDiagnostics(session);
         const daysSinceFirst = Number.isFinite(firstTime) && Number.isFinite(sessionTime)
           ? Math.max(0, Math.round((sessionTime - firstTime) / 86400000))
           : null;

@@ -84,4 +84,11 @@ test('model-development schema locks privacy and human-oversight invariants', ()
   assert.equal(contract.properties.governance.properties.model_training_performed_by_application.const, false);
   Object.values(contract.properties.privacy_manifest.properties)
     .forEach(definition => assert.equal(definition.const, false));
+  assert.ok(contract.properties.sessions.items.required.includes('eeg_marker_diagnostics'));
+  assert.equal(contract.properties.sessions.items.properties.eeg_marker_diagnostics.$ref, '#/$defs/privacySafeMarkerDiagnostics');
+  const diagnostics = contract.$defs.privacySafeMarkerDiagnostics;
+  assert.equal(diagnostics.additionalProperties, false);
+  assert.equal(diagnostics.properties.hardware_synchronization_verified.const, false);
+  ['operator_notes', 'exact_wall_time_ms', 'source_session_id']
+    .forEach(field => assert.equal(Object.prototype.hasOwnProperty.call(diagnostics.properties, field), false));
 });

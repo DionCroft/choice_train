@@ -2016,6 +2016,35 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   }));
   await page.locator('#teacherExitHold').focus();
   await page.locator('#teacherExitHold').press('Enter');
+  await page.evaluate(async () => {
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('choice_train_runtime_v2', 2);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const tx = db.transaction('sessions', 'readwrite');
+    const store = tx.objectStore('sessions');
+    const sessions = await new Promise((resolve, reject) => {
+      const request = store.getAll();
+      request.onsuccess = () => resolve(request.result || []);
+      request.onerror = () => reject(request.error);
+    });
+    sessions.forEach(session => {
+      session.eeg_marker_diagnostics = {
+        ...(session.eeg_marker_diagnostics || {}),
+        operator_notes: 'SECRET-DIAGNOSTIC free text',
+        exact_wall_time_ms: 1893456000000,
+        source_session_id: session.session_id
+      };
+      store.put(session);
+    });
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+  });
   await page.reload();
   await expect(page.locator('#beginFlow')).toBeVisible();
   await page.locator('#teacherExitHold').focus();
@@ -2074,6 +2103,23 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(payload.sessions[0].trials[0].skill_ids).toContain('recognition.named_object');
   expect(payload.sessions[0].trials[0].coverage_strategy).toBe('balanced-before-repeat');
   expect(payload.sessions[0].trials[0].correct).toBe(true);
+  expect(Object.keys(payload.sessions[0].eeg_marker_diagnostics).sort()).toEqual([
+    'version',
+    'ordered_trials',
+    'expected_order_trials',
+    'ordering_pct',
+    'response_timing_comparisons',
+    'timing_difference_count',
+    'response_timing_tolerance_ms',
+    'non_monotonic_marker_count',
+    'duplicate_marker_id_count',
+    'protocol_fields_complete',
+    'protocol_fields_expected',
+    'protocol_completeness_pct',
+    'declared_sync_method',
+    'hardware_synchronization_verified',
+    'interpretation_boundary'
+  ].sort());
   expect(exportedText).not.toContain('Pupil A');
   expect(exportedText).not.toContain('Secret Learner Alias');
   expect(exportedText).not.toContain('SECRET-CONTEXT');
@@ -2082,6 +2128,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(exportedText).not.toContain('private-visit-label');
   expect(exportedText).not.toContain('Private device serial');
   expect(exportedText).not.toContain('SECRET-GOVERNANCE-REFERENCE');
+  expect(exportedText).not.toContain('SECRET-DIAGNOSTIC');
   expect(exportedText).not.toContain('2027-06-01');
   expect(exportedKeys).not.toContain('prompt_wording');
   expect(exportedKeys).not.toContain('photo_labels_used');
@@ -2089,4 +2136,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(exportedKeys).not.toContain('t_wall_ms');
   expect(exportedKeys).not.toContain('t_perf_ms');
   expect(exportedKeys).not.toContain('context_notes');
+  expect(exportedKeys).not.toContain('operator_notes');
+  expect(exportedKeys).not.toContain('exact_wall_time_ms');
+  expect(exportedKeys).not.toContain('source_session_id');
 });

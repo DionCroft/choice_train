@@ -38,9 +38,43 @@
     },
     "participant_count": { "type": "integer", "minimum": 0 },
     "session_count": { "type": "integer", "minimum": 0 },
-    "sessions": { "type": "array", "items": { "type": "object" } },
+    "sessions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["eeg_marker_diagnostics"],
+        "properties": {
+          "eeg_marker_diagnostics": { "$ref": "#/$defs/privacySafeMarkerDiagnostics" }
+        },
+        "additionalProperties": true
+      }
+    },
     "teacher_decisions": { "type": "array", "items": { "type": "object" } },
     "interpretation_boundary": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "privacySafeMarkerDiagnostics": {
+      "type": "object",
+      "required": ["version", "ordered_trials", "expected_order_trials", "ordering_pct", "response_timing_comparisons", "timing_difference_count", "response_timing_tolerance_ms", "non_monotonic_marker_count", "duplicate_marker_id_count", "protocol_fields_complete", "protocol_fields_expected", "protocol_completeness_pct", "declared_sync_method", "hardware_synchronization_verified", "interpretation_boundary"],
+      "properties": {
+        "version": { "type": "string" },
+        "ordered_trials": { "type": "integer", "minimum": 0 },
+        "expected_order_trials": { "type": "integer", "minimum": 0 },
+        "ordering_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 },
+        "response_timing_comparisons": { "type": "integer", "minimum": 0 },
+        "timing_difference_count": { "type": "integer", "minimum": 0 },
+        "response_timing_tolerance_ms": { "type": "number", "minimum": 0 },
+        "non_monotonic_marker_count": { "type": "integer", "minimum": 0 },
+        "duplicate_marker_id_count": { "type": "integer", "minimum": 0 },
+        "protocol_fields_complete": { "type": "integer", "minimum": 0 },
+        "protocol_fields_expected": { "type": "integer", "minimum": 0 },
+        "protocol_completeness_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+        "declared_sync_method": { "type": "string" },
+        "hardware_synchronization_verified": { "const": false },
+        "interpretation_boundary": { "type": "string", "minLength": 1 }
+      },
+      "additionalProperties": false
+    }
   },
   "additionalProperties": true
 }
