@@ -273,7 +273,7 @@ label {
 
 .adminWorkspaceNav {
   display: none;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(6, minmax(0, 1fr));
   gap: 6px;
   margin-top: 10px;
 }
@@ -1092,6 +1092,7 @@ body.panel-view-admin #adminResearchWorkspace [data-admin-pages] {
 
 body.panel-view-admin.admin-page-system #adminPanelDetails,
 body.panel-view-admin.admin-page-overview #adminResearchWorkspace [data-admin-pages~="overview"],
+body.panel-view-admin.admin-page-research #adminResearchWorkspace [data-admin-pages~="research"],
 body.panel-view-admin.admin-page-sessions #adminResearchWorkspace [data-admin-pages~="sessions"],
 body.panel-view-admin.admin-page-learners #adminResearchWorkspace [data-admin-pages~="learners"],
 body.panel-view-admin.admin-page-eeg #adminResearchWorkspace [data-admin-pages~="eeg"],
@@ -1117,6 +1118,49 @@ body.panel-view-admin .metaItem {
 body.panel-view-admin .tableWrap {
   max-height: 420px;
   border: 1px solid var(--shell-border);
+}
+
+.researchScopeTools {
+  align-items: end;
+  margin: 16px 0 12px;
+}
+
+.researchScopeTools > div {
+  flex: 1 1 260px;
+}
+
+.researchScopeTools .toggle,
+.researchScopeTools button {
+  flex: 0 1 auto;
+}
+
+.researchCompactValue {
+  font-size: 1rem !important;
+  line-height: 1.35;
+}
+
+.researchVisualGrid {
+  margin-top: 18px;
+}
+
+.panel .researchCanvas {
+  display: block;
+  width: 100%;
+  min-height: 220px;
+  margin: 8px 0 12px;
+  border: 1px solid var(--shell-border);
+  border-radius: var(--shell-radius-md);
+  background: var(--shell-surface-subtle);
+}
+
+.researchTableWrap {
+  margin-top: 10px;
+}
+
+.researchCurrentSessionHeading {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 2px solid var(--shell-border);
 }
 
 .adminAnchor {

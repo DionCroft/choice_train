@@ -109,6 +109,14 @@ V1.7.0 gives each role a focused workspace:
 
 Select `Start learner session` to apply learner view and begin in one action. In learner mode, press and hold the small lock control for about 1.2 seconds to return to the teacher workspace. A normal tap does not exit; keyboard activation remains immediate for staff who use keyboard access.
 
+### V1.8 Alpha Research Preview
+
+The development-only V1.8 alpha adds a separate `Research` destination inside `Admin & research`. It is available from `choice_train_V1.8.0-alpha.html` on the feature branch and is not the published GitHub Pages entry.
+
+Research scope can be set to the current session, current learner history, or all locally stored learners. Archived sessions are excluded unless `Include archived sessions` is selected. The workspace pairs each chart with a table or text summary and covers session trends, accuracy and response speed, outcomes, versioned skills, support and independence, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and classroom-transfer observations.
+
+The V1.8 research view is descriptive. It does not diagnose a learner, establish durable transfer, or prove neural plasticity.
+
 ---
 
 ## 3. Opening the Application
@@ -155,6 +163,7 @@ This is the default workspace for normal classroom use. Use `Today`, `Personalis
 Select `Admin & research`, then use:
 
 - `Overview` for export and the current analytics summary
+- `Research` in the V1.8 alpha for longitudinal visualisation and data-quality review
 - `Sessions` for stored history and session exports
 - `Learners` for profile, prompt, and fidelity records
 - `EEG` for research blocks, markers, and EEG exports
@@ -615,7 +624,7 @@ Use `Teacher workspace` and `Admin & research` at the top of the workspace.
 
 If you are currently in learner mode, press and hold the small lock control for about 1.2 seconds to return to the teacher workspace.
 
-Choose Overview, Sessions, Learners, EEG, or System. Advanced settings, debug controls, documentation, and build metadata are under `System`.
+Choose Overview, Sessions, Learners, EEG, or System in stable V1.7. The V1.8 alpha also includes Research. Advanced settings, debug controls, documentation, and build metadata are under `System`.
 
 ### Speech does not work
 

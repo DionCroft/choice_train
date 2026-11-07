@@ -7,6 +7,12 @@
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
+## V1.8 Development Preview
+
+Stable `V1.7.0` remains the live GitHub Pages application. Development continues separately on `feature/v1.8.0-research-personalisation` in `choice_train_V1.8.0-alpha.html`; the alpha is not loaded by `index.html`.
+
+The current alpha adds schema-versioned skill data and a dedicated local-only `Research` destination. It can visualise current-session, current-learner, or all-learner data across accuracy, independent responding, reaction time, outcomes, skills, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and classroom-transfer observations. Every chart has a table or text equivalent. These outputs are descriptive teaching and study-support data, not diagnostic results or evidence that neural change has occurred.
+
 The current stable release is `V1.7.0`. Historical versioned builds and the reviewed V1.7 alpha candidate remain available for traceability.
 
 `V1.7.0` promotes the reviewed product-experience candidate into the GitHub Pages entry point. It introduces focused teacher, learner, and admin/research workspaces; one semantic colour system across staff and learner views; configurable presentation and sensory preferences; an original train-journey reward; and locally generated feedback sounds. See the [design decision record](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md), [colour-system audit](docs/V1.7.0_COLOUR_SYSTEM_AUDIT.md), [data dictionary](docs/DATA_DICTIONARY.md), and [school usability plan](docs/V1.7.0_USABILITY_TEST_PLAN.md). Promotion confirms the engineering release gate, not clinical efficacy or universal suitability for SEND learners.

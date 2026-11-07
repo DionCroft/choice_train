@@ -31,6 +31,15 @@ async function downloadJsonAfter(page, action) {
   return JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
 }
 
+function trackErrors(page) {
+  const errors = [];
+  page.on('pageerror', error => errors.push(`pageerror: ${error.message}`));
+  page.on('console', message => {
+    if(message.type() === 'error') errors.push(`console: ${message.text()}`);
+  });
+  return errors;
+}
+
 test('V1.8 alpha is versioned without changing the stable entry point', async ({ page }) => {
   await gotoAlpha(page);
   await expect(page).toHaveTitle(/V1\.8\.0-alpha/);
@@ -99,4 +108,68 @@ test('a learner trial exports skill, generator, and descriptive research metadat
   }));
   expect(skill.median_reaction_time_ms).not.toBeNull();
   expect(payload.research_summary.interpretation_boundary).toContain('not a diagnostic');
+});
+
+test('Research is a separate admin destination with accessible visual equivalents', async ({ page }) => {
+  await gotoAlpha(page);
+  await page.locator('#adminPanelTab').click();
+  await expect(page.locator('#adminNavOverview')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#adminAnalyticsSection')).toBeHidden();
+
+  await page.locator('#adminNavResearch').click();
+  await expect(page.locator('body')).toHaveClass(/admin-page-research/);
+  await expect(page.locator('#adminNavResearch')).toHaveAttribute('aria-pressed', 'true');
+  await expect(page.locator('#adminAnalyticsSection')).toBeVisible();
+  await expect(page.locator('#researchAccuracyChart')).toHaveAttribute('role', 'img');
+  await expect(page.locator('#researchSessionTrendBody')).toContainText('No data');
+  await expect(page.locator('#researchSourceNote')).toContainText('Missing values stay missing');
+});
+
+test('Research workspace contains wide data tables on a tablet viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 820, height: 1180 });
+  await gotoAlpha(page);
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  const layout = await page.evaluate(() => ({
+    viewportWidth: innerWidth,
+    documentWidth: document.documentElement.scrollWidth,
+    panelWidth: document.querySelector('.panel').getBoundingClientRect().width,
+    tableOverflow: getComputedStyle(document.querySelector('.researchTableWrap')).overflowX
+  }));
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(layout.panelWidth).toBeLessThanOrEqual(layout.viewportWidth);
+  expect(['auto', 'scroll']).toContain(layout.tableOverflow);
+});
+
+test('Research view keeps same-numbered questions from separate sessions distinct', async ({ page }) => {
+  const errors = trackErrors(page);
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'studentFriendlyMode', false);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+
+  await page.locator('#summaryRestart').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await expect(page.locator('#researchSessionCount')).toHaveText('2');
+  await expect(page.locator('#researchTrialCount')).toHaveText('2');
+  await expect(page.locator('#researchSessionTrendBody tr')).toHaveCount(2);
+  await expect(page.locator('#researchSkillBody')).toContainText('Find a named object');
+  await expect(page.locator('#researchQualityBody tr')).toHaveCount(2);
+  expect(errors, errors.join('\n')).toEqual([]);
 });

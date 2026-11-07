@@ -4,6 +4,15 @@ All notable changes to ChoiceTrain are listed here.
 
 ## [1.8.0-alpha] - Unreleased
 
+### Implemented on the feature branch
+
+- isolated `choice_train_V1.8.0-alpha` HTML, JavaScript, and CSS files while leaving the V1.7.0 GitHub Pages entry unchanged
+- schema version 5 with versioned skill IDs, lesson/generator provenance, null-safe descriptive research summaries, and interpretation boundaries in session exports
+- a separate `Research` Admin destination with current-session, current-learner, and all-learner scopes; archived sessions remain excluded unless selected
+- accessible chart-and-table views for session accuracy and independent responding, speed versus accuracy, outcome balance, skill profiles, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and transfer observations
+- corrected longitudinal trial grouping so question numbers from separate sessions are not collapsed together
+- 6 focused V1.8 browser tests; the complete stable-plus-alpha matrix currently passes 83 tests
+
 ### Planned
 
 - versioned skill graph and reproducible procedural lesson plans

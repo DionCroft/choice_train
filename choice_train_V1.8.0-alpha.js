@@ -1339,7 +1339,8 @@
 
   function applyAdminPage(page, options={}){
     const targets = {
-      overview: ui.adminAnalyticsSection,
+      overview: ui.adminOverviewSection,
+      research: ui.adminAnalyticsSection,
       sessions: ui.adminHistorySection,
       learners: ui.adminLearnerProfileSection,
       eeg: ui.adminEegSection,
@@ -1347,6 +1348,7 @@
     };
     const buttons = {
       overview: ui.adminNavOverview,
+      research: ui.adminNavResearch,
       sessions: ui.adminNavSessions,
       learners: ui.adminNavLearners,
       eeg: ui.adminNavEeg,
@@ -1367,6 +1369,7 @@
       ui.adminResearchWorkspace.open = true;
     }
     if(nextPage === 'overview') refreshDashboard(true);
+    if(nextPage === 'research') renderResearchWorkspace();
     if(nextPage === 'sessions') refreshHistoryManager();
     const target = targets[nextPage];
     if(options.scroll && target){
@@ -4491,12 +4494,16 @@
   function latestTrialsByQuestion(trials){
     const byQuestion = new Map();
     trials.forEach(trial => {
-      const existing = byQuestion.get(trial.question_index);
+      const key = `${trial.session_id || 'current'}|${trial.question_index}`;
+      const existing = byQuestion.get(key);
       if(!existing || (trial.attempt_index || 1) >= (existing.attempt_index || 1)){
-        byQuestion.set(trial.question_index, trial);
+        byQuestion.set(key, trial);
       }
     });
-    return Array.from(byQuestion.values()).sort((a, b) => a.question_index - b.question_index);
+    return Array.from(byQuestion.values()).sort((a, b) => {
+      const sessionOrder = String(a.session_id || '').localeCompare(String(b.session_id || ''));
+      return sessionOrder || a.question_index - b.question_index;
+    });
   }
 
   function finiteTrialValues(trials, field){
@@ -5190,6 +5197,381 @@
     ctx.stroke();
   }
 
+  function researchSessionsInScope(){
+    const scope = ui.researchScopeSelect ? ui.researchScopeSelect.value : 'current-learner';
+    if(scope === 'current-session') return state.trials.length ? [buildSessionRecord()] : [];
+    const includeArchived = !!(ui.researchIncludeArchived && ui.researchIncludeArchived.checked);
+    const learner = currentPupilName();
+    return getKnownSessionRecords(true)
+      .filter(session => includeArchived || !session.archived)
+      .filter(session => scope !== 'current-learner' || session.learner === learner || session.learner_alias === currentPupilAlias())
+      .sort((a, b) => Number(a.updated_at_wall_ms || 0) - Number(b.updated_at_wall_ms || 0));
+  }
+
+  function researchDateLabel(timestamp){
+    if(!Number.isFinite(timestamp)) return 'Unknown';
+    const date = new Date(timestamp);
+    if(Number.isNaN(date.getTime())) return 'Unknown';
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function appendResearchRow(body, values){
+    const row = document.createElement('tr');
+    values.forEach(value => {
+      const cell = document.createElement('td');
+      cell.textContent = value == null || value === '' ? '--' : String(value);
+      row.appendChild(cell);
+    });
+    body.appendChild(row);
+  }
+
+  function renderResearchEmptyRow(body, columns, text='No data in this scope yet.'){
+    clearNode(body);
+    const row = document.createElement('tr');
+    const cell = document.createElement('td');
+    cell.colSpan = columns;
+    cell.className = 'tiny';
+    cell.textContent = text;
+    row.appendChild(cell);
+    body.appendChild(row);
+  }
+
+  function sessionTrendRow(session){
+    const finalTrials = latestTrialsByQuestion(session.trials || []);
+    const scored = finalTrials.filter(trial => !skillIdsForTask(trial.task_kind).includes('choice.preference'));
+    const responded = finalTrials.filter(trial => !trial.omission);
+    const independent = responded.filter(trial => !trial.independence_status || trial.independence_status === 'independent');
+    const responseTimes = finiteTrialValues(finalTrials, 'response_time_ms');
+    const touchDistances = finiteTrialValues(finalTrials, 'distance_to_target_px');
+    const accuracy = scored.length ? Math.round((scored.filter(trial => trial.correct).length / scored.length) * 100) : null;
+    return {
+      session,
+      date: researchDateLabel(Number(session.updated_at_wall_ms)),
+      learner: session.learner_alias || session.learner || 'Unknown',
+      level: session.summary && Number.isFinite(session.summary.current_level)
+        ? session.summary.current_level
+        : (finalTrials[0] && finalTrials[0].level) || null,
+      trials: finalTrials.length,
+      accuracy_pct: accuracy,
+      independent_pct: responded.length ? Math.round((independent.length / responded.length) * 100) : null,
+      median_rt_ms: responseTimes.length ? Math.round(median(responseTimes)) : null,
+      omissions: finalTrials.filter(trial => trial.omission).length,
+      commissions: finalTrials.filter(trial => trial.commission).length,
+      mean_touch_distance_px: touchDistances.length ? Number(mean(touchDistances).toFixed(1)) : null
+    };
+  }
+
+  function coreMarkerCompleteness(session){
+    const trials = latestTrialsByQuestion(session.trials || []);
+    const markers = Array.isArray(session.eeg_markers) ? session.eeg_markers : [];
+    let complete = 0;
+    trials.forEach(trial => {
+      const names = new Set(markers.filter(marker => marker.trial_id === trial.trial_id).map(marker => marker.name));
+      const outcomeMarker = trial.omission
+        ? names.has('omission')
+        : trial.commission
+          ? names.has('commission') && names.has('response')
+          : trial.correct_rejection
+            ? names.has('no_go')
+            : names.has('response');
+      if(names.has('stimulus_onset') && names.has('feedback_onset') && outcomeMarker) complete += 1;
+    });
+    return { complete, expected: trials.length };
+  }
+
+  function prepareResearchCanvas(canvas){
+    const ctx = canvas.getContext('2d');
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    ctx.fillStyle = themeToken('surface-raised', '#ffffff');
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.font = '12px Atkinson Hyperlegible Next, sans-serif';
+    ctx.textBaseline = 'middle';
+    return ctx;
+  }
+
+  function drawResearchBars(canvas, items, options={}){
+    const ctx = prepareResearchCanvas(canvas);
+    if(!items.length){
+      ctx.fillStyle = themeToken('text-muted', '#52656d');
+      ctx.fillText('No data in this scope', 20, canvas.height / 2);
+      return;
+    }
+    const max = Math.max(1, options.maxValue || Math.max(...items.map(item => item.value || 0)));
+    const labelWidth = options.labelWidth || 138;
+    const chartWidth = Math.max(40, canvas.width - labelWidth - 52);
+    const rowHeight = Math.min(34, (canvas.height - 20) / items.length);
+    items.forEach((item, index) => {
+      const y = 10 + (index * rowHeight);
+      const value = Number.isFinite(item.value) ? item.value : 0;
+      const barWidth = chartWidth * clamp(value / max, 0, 1);
+      ctx.fillStyle = themeToken('text', '#172b35');
+      ctx.textAlign = 'left';
+      const label = String(item.label || '').length > 22 ? `${String(item.label).slice(0, 21)}…` : item.label;
+      ctx.fillText(label, 10, y + (rowHeight / 2));
+      ctx.fillStyle = themeToken('surface-subtle', '#e7f1f0');
+      ctx.fillRect(labelWidth, y + 5, chartWidth, Math.max(8, rowHeight - 10));
+      ctx.fillStyle = item.color || themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue);
+      ctx.fillRect(labelWidth, y + 5, barWidth, Math.max(8, rowHeight - 10));
+      ctx.fillStyle = themeToken('text', '#172b35');
+      ctx.textAlign = 'right';
+      ctx.fillText(options.suffix ? `${value}${options.suffix}` : String(value), canvas.width - 8, y + (rowHeight / 2));
+    });
+  }
+
+  function drawResearchTrend(canvas, rows){
+    const ctx = prepareResearchCanvas(canvas);
+    const plot = { left: 42, top: 22, right: canvas.width - 20, bottom: canvas.height - 34 };
+    ctx.strokeStyle = themeToken('border', '#738c91');
+    ctx.fillStyle = themeToken('text-muted', '#52656d');
+    ctx.textAlign = 'right';
+    [0, 50, 100].forEach(value => {
+      const y = plot.bottom - ((plot.bottom - plot.top) * value / 100);
+      ctx.beginPath();
+      ctx.moveTo(plot.left, y);
+      ctx.lineTo(plot.right, y);
+      ctx.stroke();
+      ctx.fillText(`${value}%`, plot.left - 7, y);
+    });
+    if(!rows.length){
+      ctx.textAlign = 'left';
+      ctx.fillText('No sessions in this scope', plot.left + 12, (plot.top + plot.bottom) / 2);
+      return;
+    }
+    const series = [
+      { key: 'accuracy_pct', label: 'Accuracy', color: themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue), square: false },
+      { key: 'independent_pct', label: 'Independent', color: themeToken('success', STIMULUS_COLOR_FALLBACKS.green), square: true }
+    ];
+    series.forEach((entry, seriesIndex) => {
+      const points = rows.map((row, index) => ({ value: row[entry.key], index })).filter(point => Number.isFinite(point.value));
+      ctx.strokeStyle = entry.color;
+      ctx.fillStyle = entry.color;
+      ctx.lineWidth = 3;
+      ctx.beginPath();
+      points.forEach((point, index) => {
+        const x = plot.left + ((plot.right - plot.left) * (rows.length === 1 ? 0.5 : point.index / (rows.length - 1)));
+        const y = plot.bottom - ((plot.bottom - plot.top) * point.value / 100);
+        if(index === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+      points.forEach(point => {
+        const x = plot.left + ((plot.right - plot.left) * (rows.length === 1 ? 0.5 : point.index / (rows.length - 1)));
+        const y = plot.bottom - ((plot.bottom - plot.top) * point.value / 100);
+        if(entry.square) ctx.fillRect(x - 4, y - 4, 8, 8);
+        else { ctx.beginPath(); ctx.arc(x, y, 4, 0, Math.PI * 2); ctx.fill(); }
+      });
+      ctx.textAlign = 'left';
+      ctx.fillRect(plot.left + (seriesIndex * 150), canvas.height - 20, 12, 4);
+      ctx.fillStyle = themeToken('text', '#172b35');
+      ctx.fillText(entry.label, plot.left + 18 + (seriesIndex * 150), canvas.height - 18);
+    });
+  }
+
+  function drawResearchScatter(canvas, rows){
+    const ctx = prepareResearchCanvas(canvas);
+    const points = rows.filter(row => Number.isFinite(row.median_rt_ms) && Number.isFinite(row.accuracy_pct));
+    const plot = { left: 54, top: 18, right: canvas.width - 18, bottom: canvas.height - 40 };
+    ctx.strokeStyle = themeToken('border', '#738c91');
+    ctx.beginPath();
+    ctx.moveTo(plot.left, plot.top);
+    ctx.lineTo(plot.left, plot.bottom);
+    ctx.lineTo(plot.right, plot.bottom);
+    ctx.stroke();
+    if(!points.length){
+      ctx.fillStyle = themeToken('text-muted', '#52656d');
+      ctx.fillText('No timed sessions', plot.left + 20, (plot.top + plot.bottom) / 2);
+      return;
+    }
+    const minRt = Math.min(...points.map(point => point.median_rt_ms));
+    const maxRt = Math.max(...points.map(point => point.median_rt_ms));
+    const rtRange = Math.max(1, maxRt - minRt);
+    points.forEach((point, index) => {
+      const x = plot.left + ((plot.right - plot.left) * ((point.median_rt_ms - minRt) / rtRange));
+      const y = plot.bottom - ((plot.bottom - plot.top) * point.accuracy_pct / 100);
+      ctx.fillStyle = themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue);
+      ctx.beginPath();
+      ctx.arc(x, y, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.fillStyle = themeToken('text', '#172b35');
+      ctx.textAlign = 'center';
+      ctx.fillText(String(index + 1), x, y - 12);
+    });
+    ctx.fillStyle = themeToken('text-muted', '#52656d');
+    ctx.textAlign = 'left';
+    ctx.fillText(`${minRt} ms`, plot.left, canvas.height - 20);
+    ctx.textAlign = 'right';
+    ctx.fillText(`${maxRt} ms`, plot.right, canvas.height - 20);
+    ctx.save();
+    ctx.translate(15, plot.bottom);
+    ctx.rotate(-Math.PI / 2);
+    ctx.textAlign = 'left';
+    ctx.fillText('Accuracy 0–100%', 0, 0);
+    ctx.restore();
+  }
+
+  function renderResearchWorkspace(){
+    if(!ui.researchScopeSelect) return;
+    const sessions = researchSessionsInScope();
+    const sessionRows = sessions.map(sessionTrendRow);
+    const trials = sessions.flatMap(session => Array.isArray(session.trials) ? session.trials : []);
+    const finalTrials = latestTrialsByQuestion(trials);
+    const researchSummary = researchSummaryForTrials(trials);
+    const scopeLabels = {
+      'current-session': 'current session',
+      'current-learner': `current learner history (${currentPupilAlias()})`,
+      'all-learners': 'all locally stored learners'
+    };
+    const scope = ui.researchScopeSelect.value;
+    const timestamps = sessions.map(session => Number(session.updated_at_wall_ms)).filter(Number.isFinite);
+    const coreChecks = finalTrials.flatMap(trial => [
+      !!trial.task_kind,
+      (Array.isArray(trial.skill_ids) && trial.skill_ids.length > 0) || skillIdsForTask(trial.task_kind).length > 0,
+      typeof trial.correct === 'boolean',
+      Number.isFinite(trial.cue_onset_wall_ms) || Number.isFinite(trial.stimulus_onset_wall_ms)
+    ]);
+    const completeness = coreChecks.length ? Math.round((coreChecks.filter(Boolean).length / coreChecks.length) * 100) : null;
+
+    ui.researchSessionCount.textContent = String(sessions.length);
+    ui.researchTrialCount.textContent = String(finalTrials.length);
+    ui.researchDateRange.textContent = timestamps.length
+      ? `${researchDateLabel(Math.min(...timestamps))} to ${researchDateLabel(Math.max(...timestamps))}`
+      : 'No data';
+    ui.researchCompleteness.textContent = completeness == null ? '--' : `${completeness}%`;
+    ui.researchSourceNote.textContent = `Showing ${scopeLabels[scope] || scope}. ${ui.researchIncludeArchived.checked ? 'Archived sessions included.' : 'Archived sessions excluded.'} Missing values stay missing rather than being treated as zero.`;
+
+    drawResearchTrend(ui.researchAccuracyChart, sessionRows);
+    drawResearchScatter(ui.researchSpeedAccuracyChart, sessionRows);
+    const timedRows = sessionRows.filter(row => Number.isFinite(row.median_rt_ms) && Number.isFinite(row.accuracy_pct));
+    ui.researchSpeedAccuracyNote.textContent = timedRows.length
+      ? `${timedRows.length} timed session(s). Point numbers follow the session table order; faster responses are not automatically better.`
+      : 'No timed sessions in scope.';
+
+    if(sessionRows.length){
+      clearNode(ui.researchSessionTrendBody);
+      sessionRows.forEach(row => appendResearchRow(ui.researchSessionTrendBody, [
+        row.date, row.learner, row.level, row.trials,
+        row.accuracy_pct == null ? null : `${row.accuracy_pct}%`,
+        row.independent_pct == null ? null : `${row.independent_pct}%`,
+        row.median_rt_ms == null ? null : `${row.median_rt_ms} ms`,
+        row.omissions, row.commissions,
+        row.mean_touch_distance_px == null ? null : `${row.mean_touch_distance_px} px`
+      ]));
+    } else renderResearchEmptyRow(ui.researchSessionTrendBody, 10);
+
+    const preferenceTrials = finalTrials.filter(trial => skillIdsForTask(trial.task_kind).includes('choice.preference'));
+    const outcomes = [
+      { label: 'Correct', value: finalTrials.filter(trial => trial.correct && !skillIdsForTask(trial.task_kind).includes('choice.preference')).length, color: themeToken('success') },
+      { label: 'Incorrect', value: finalTrials.filter(trial => !trial.correct && !trial.omission && !trial.correct_rejection && !skillIdsForTask(trial.task_kind).includes('choice.preference')).length, color: themeToken('danger') },
+      { label: 'Omissions', value: finalTrials.filter(trial => trial.omission).length, color: themeToken('warning') },
+      { label: 'Commissions', value: finalTrials.filter(trial => trial.commission).length, color: themeToken('danger') },
+      { label: 'Correct rejections', value: finalTrials.filter(trial => trial.correct_rejection).length, color: themeToken('primary') },
+      { label: 'Preference choices', value: preferenceTrials.length, color: themeToken('reward') }
+    ];
+    drawResearchBars(ui.researchOutcomeChart, outcomes, { labelWidth: 135 });
+    ui.researchOutcomeSummary.textContent = outcomes.map(item => `${item.label}: ${item.value}`).join(' | ');
+
+    const skillRows = researchSummary.skill_summaries;
+    drawResearchBars(ui.researchSkillChart, skillRows.filter(item => item.accuracy_pct != null).map(item => ({
+      label: item.label,
+      value: item.accuracy_pct,
+      color: themeToken('primary')
+    })), { maxValue: 100, suffix: '%', labelWidth: 190 });
+    if(skillRows.length){
+      clearNode(ui.researchSkillBody);
+      skillRows.forEach(item => appendResearchRow(ui.researchSkillBody, [
+        item.label, item.opportunities, item.scored_opportunities,
+        item.accuracy_pct == null ? 'Not scored' : `${item.accuracy_pct}%`,
+        item.independent_correct, item.assisted_correct, item.omissions, item.commissions,
+        item.median_reaction_time_ms == null ? null : `${item.median_reaction_time_ms} ms`,
+        item.mean_touch_distance_px == null ? null : `${item.mean_touch_distance_px} px`
+      ]));
+    } else renderResearchEmptyRow(ui.researchSkillBody, 10);
+
+    const supportOrder = ['independent', 'prompted', 'assisted', 'unknown'];
+    const supportRows = supportOrder.map(status => {
+      const matching = finalTrials.filter(trial => (trial.independence_status || 'unknown') === status);
+      return { status, responses: matching.length, correct: matching.filter(trial => trial.correct).length };
+    }).filter(item => item.responses);
+    drawResearchBars(ui.researchSupportChart, supportRows.map(item => ({
+      label: item.status,
+      value: item.responses,
+      color: item.status === 'independent' ? themeToken('success') : themeToken('warning')
+    })), { labelWidth: 120 });
+    if(supportRows.length){
+      clearNode(ui.researchSupportBody);
+      supportRows.forEach(item => appendResearchRow(ui.researchSupportBody, [item.status, item.responses, item.correct]));
+    } else renderResearchEmptyRow(ui.researchSupportBody, 3);
+
+    const categoryMap = new Map();
+    finalTrials.forEach(trial => {
+      const key = trial.target_category_label || trial.target_category || 'Uncategorised';
+      if(!categoryMap.has(key)) categoryMap.set(key, { label: key, trials: 0, scored: 0, correct: 0, photoTrials: 0 });
+      const item = categoryMap.get(key);
+      item.trials += 1;
+      if(!skillIdsForTask(trial.task_kind).includes('choice.preference')){
+        item.scored += 1;
+        if(trial.correct) item.correct += 1;
+      }
+      if(Array.isArray(trial.photo_labels_used) && trial.photo_labels_used.length) item.photoTrials += 1;
+    });
+    const categoryRows = Array.from(categoryMap.values()).sort((a, b) => b.trials - a.trials || a.label.localeCompare(b.label));
+    drawResearchBars(ui.researchCategoryChart, categoryRows.slice(0, 8).map(item => ({ label: item.label, value: item.trials, color: themeToken('secondary', themeToken('primary')) })), { labelWidth: 130 });
+    if(categoryRows.length){
+      clearNode(ui.researchCategoryBody);
+      categoryRows.forEach(item => appendResearchRow(ui.researchCategoryBody, [
+        item.label, item.trials, item.scored ? `${Math.round((item.correct / item.scored) * 100)}%` : 'Not scored', item.photoTrials
+      ]));
+    } else renderResearchEmptyRow(ui.researchCategoryBody, 4);
+
+    const qualityRows = sessions.map(session => {
+      const markerSet = coreMarkerCompleteness(session);
+      const events = Array.isArray(session.events) ? session.events : [];
+      const markers = Array.isArray(session.eeg_markers) ? session.eeg_markers : [];
+      const blocks = Array.isArray(session.block_summaries) ? session.block_summaries : buildBlockSummaries(session.trials || [], events);
+      return {
+        date: researchDateLabel(Number(session.updated_at_wall_ms)),
+        condition: session.research_condition || 'not recorded',
+        fidelity: session.fidelity && Number.isFinite(session.fidelity.score_pct) ? session.fidelity.score_pct : null,
+        blocks: blocks.length,
+        artifacts: events.filter(event => event.type === 'artifact_noted').length,
+        markers: markers.length,
+        markerSet
+      };
+    });
+    const fidelityValues = qualityRows.map(item => item.fidelity).filter(Number.isFinite);
+    const markerComplete = qualityRows.reduce((sum, item) => sum + item.markerSet.complete, 0);
+    const markerExpected = qualityRows.reduce((sum, item) => sum + item.markerSet.expected, 0);
+    ui.researchFidelity.textContent = fidelityValues.length ? `${Math.round(mean(fidelityValues))}%` : '--';
+    ui.researchArtifacts.textContent = String(qualityRows.reduce((sum, item) => sum + item.artifacts, 0));
+    ui.researchMarkers.textContent = String(qualityRows.reduce((sum, item) => sum + item.markers, 0));
+    ui.researchMarkerCompleteness.textContent = markerExpected ? `${Math.round((markerComplete / markerExpected) * 100)}%` : '--';
+    if(qualityRows.length){
+      clearNode(ui.researchQualityBody);
+      qualityRows.forEach(item => appendResearchRow(ui.researchQualityBody, [
+        item.date, item.condition, item.fidelity == null ? null : `${item.fidelity}%`, item.blocks, item.artifacts, item.markers,
+        item.markerSet.expected ? `${item.markerSet.complete}/${item.markerSet.expected}` : null
+      ]));
+    } else renderResearchEmptyRow(ui.researchQualityBody, 7);
+
+    const transferRows = sessions.map(session => {
+      const baseline = session.learner_snapshot && session.learner_snapshot.baseline ? session.learner_snapshot.baseline : {};
+      return {
+        date: researchDateLabel(Number(session.updated_at_wall_ms)),
+        learner: session.learner_alias || session.learner || 'Unknown',
+        maintenance: baseline.maintenanceStatus || 'not recorded',
+        generalisation: baseline.generalisationStatus || 'not recorded',
+        transfer: session.classroom_transfer_notes || baseline.classroomTransferNotes || '',
+        context: !!String(session.context_notes || baseline.contextNotes || '').trim()
+      };
+    });
+    if(transferRows.length){
+      clearNode(ui.researchTransferBody);
+      transferRows.forEach(item => appendResearchRow(ui.researchTransferBody, [
+        item.date, item.learner, item.maintenance, item.generalisation, item.transfer || 'Not recorded', item.context ? 'Yes' : 'No'
+      ]));
+    } else renderResearchEmptyRow(ui.researchTransferBody, 6);
+  }
+
   function redrawThemeVisuals(){
     if(ui.trailCanvas) drawTrail();
     if(ui.heatmapCanvas && ui.heatmapQuestionSelect) renderHeatmap();
@@ -5200,6 +5582,7 @@
       drawMiniChart(ui.rtChart, rtValues, themeToken('primary', STIMULUS_COLOR_FALLBACKS.blue));
       drawMiniChart(ui.distChart, distValues, themeToken('warning', STIMULUS_COLOR_FALLBACKS.amber));
     }
+    if(state.panelView === 'admin' && state.adminPage === 'research') renderResearchWorkspace();
   }
 
   function renderDashboard(){
@@ -5678,6 +6061,7 @@
     bindAction(ui.teacherPanelTab, openTeacherPanel);
     bindAction(ui.adminPanelTab, openAdminPanel);
     bindAction(ui.adminNavOverview, () => applyAdminPage('overview', { scroll: true }));
+    bindAction(ui.adminNavResearch, () => applyAdminPage('research', { scroll: true }));
     bindAction(ui.adminNavSessions, () => applyAdminPage('sessions', { scroll: true }));
     bindAction(ui.adminNavLearners, () => applyAdminPage('learners', { scroll: true }));
     bindAction(ui.adminNavEeg, () => applyAdminPage('eeg', { scroll: true }));
@@ -5709,6 +6093,10 @@
     });
     bindAction(ui.refreshDashboardBtn, () => refreshDashboard(true));
     bindAction(ui.loadCurrentDashboardBtn, () => refreshDashboard(true));
+    bindAction(ui.refreshResearchBtn, async () => {
+      await refreshStoredHistory();
+      renderResearchWorkspace();
+    });
     bindAction(ui.copyBuildInfoBtn, async () => {
       if(await copyText(buildInfoClipboardText())){
         flash('good', 'Build copied');
@@ -5827,6 +6215,12 @@
     }
     if(ui.heatmapQuestionSelect){
       ui.heatmapQuestionSelect.addEventListener('change', renderHeatmap);
+    }
+    if(ui.researchScopeSelect){
+      ui.researchScopeSelect.addEventListener('change', renderResearchWorkspace);
+    }
+    if(ui.researchIncludeArchived){
+      ui.researchIncludeArchived.addEventListener('change', renderResearchWorkspace);
     }
     if(ui.historyLearnerFilter){
       ui.historyLearnerFilter.addEventListener('change', refreshHistoryManager);
