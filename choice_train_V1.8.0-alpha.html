@@ -1548,6 +1548,26 @@
               </div>
               <div class="compactNote">Context is practitioner-entered and may help interpret a session. It does not prove that fatigue, sensory state, sleep, or breaks caused a performance difference.</div>
             </div>
+            <div class="chartCard span2">
+              <h4>Access and presentation context</h4>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Recorded communication, motor-access, and AAC settings</div>
+                  <canvas id="researchAccessContextChart" class="researchCanvas" width="360" height="300" role="img" aria-label="Session counts by communication, motor-access, and AAC setting"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Recorded prompt and sensory presentation settings</div>
+                  <canvas id="researchPresentationContextChart" class="researchCanvas" width="360" height="300" role="img" aria-label="Session counts by prompt, theme, font, motion, sound, and speech setting"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Communication</th><th>Motor access</th><th>AAC</th><th>Prompt presentation</th><th>Theme</th><th>Font</th><th>Text scale</th><th>Motion</th><th>Sound</th><th>Speech</th><th>Learner view</th><th>Max options</th><th>Response window</th></tr></thead>
+                  <tbody id="researchAccessContextBody"></tbody>
+                </table>
+              </div>
+              <div id="researchAccessContextNote" class="compactNote">These are access and delivery settings, not measures of ability. Review outcome changes alongside any setting, device, or support change.</div>
+            </div>
           </div>
 
           <div id="researchCurrentSessionSection" class="sub researchCurrentSessionHeading researchAnchorTarget">Current-session detailed analytics</div>

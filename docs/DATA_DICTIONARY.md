@@ -64,6 +64,8 @@ The task/variant profile groups final trials by `research_condition`, `task_kind
 
 The session-context view uses the frozen trial/session snapshot for `fatigue_level`, `sensory_state`, `sleep_quality`, `breaks_used`, and `pre_session_preference`, with profile fallbacks for older records. It places the recorded context beside session accuracy and observed independence. The view does not infer context from behaviour and must not be used to claim that a context factor caused performance.
 
+The access/presentation view combines frozen learner baseline, session settings, sensory preferences, and trial context. It displays communication mode, motor access, AAC preference, prompt presentation, theme, font, text scale, motion, feedback sound, speech, student-friendly state, maximum options, and response window. These fields are potential access conditions and analysis covariates, not outcomes or ability labels. Older records retain `Not recorded` rather than inheriting the current device settings.
+
 ### Research domain-coverage view
 
 The on-screen coverage audit groups planned fields into behaviour, support, context, content, EEG/protocol, and transfer domains. Each session cell reports `observed/expected (percentage)`. The aggregate chart combines only applicable denominators. EEG/protocol is `Not expected` when EEG mode was off and no markers were recorded; it is not converted to zero. Context and transfer include optional practitioner-entered fields, so incomplete coverage is a prompt to review collection procedures rather than a pupil score, validity judgement, or missing-value imputation. Coverage is derived locally for display and does not modify the stored session record.

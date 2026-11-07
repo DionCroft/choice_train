@@ -7520,6 +7520,101 @@
         item.independent_pct == null ? null : `${item.independent_pct}%`
       ]));
     } else renderResearchEmptyRow(ui.researchContextBody, 9);
+
+    const accessContextRows = sessions.map(session => {
+      const sessionTrials = latestTrialsByQuestion(session.trials || []);
+      const baselineTrial = sessionTrials.find(trial => trial.learner_baseline && typeof trial.learner_baseline === 'object');
+      const contextTrial = sessionTrials.find(trial => trial.session_context && typeof trial.session_context === 'object');
+      const trialBaseline = baselineTrial ? baselineTrial.learner_baseline : {};
+      const context = contextTrial ? contextTrial.session_context : {};
+      const profileBaseline = session.learner_snapshot && session.learner_snapshot.baseline
+        ? session.learner_snapshot.baseline
+        : {};
+      const settings = session.settings || {};
+      const sensory = session.sensory_preferences || context.sensory_preferences || {};
+      const themeId = session.theme_used || context.theme_choice || settings.themeChoice || '';
+      return {
+        date: researchDateLabel(Number(session.updated_at_wall_ms)),
+        learner: session.learner_alias || session.learner || 'Unknown',
+        communication: trialBaseline.communication_mode || profileBaseline.communicationMode || profileBaseline.communication_mode || 'not recorded',
+        motor_access: trialBaseline.motor_access_mode || profileBaseline.motorAccessMode || profileBaseline.motor_access_mode || 'not recorded',
+        aac: trialBaseline.aac_preference || profileBaseline.aacPreference || profileBaseline.aac_preference || settings.aacPreference || 'not recorded',
+        prompt_presentation: context.communication_support_choice || settings.communicationSupportChoice || 'not recorded',
+        theme: THEME_META[themeId] ? THEME_META[themeId].label : (themeId || 'not recorded'),
+        font: sensory.font || settings.fontChoice || 'not recorded',
+        text_scale: Number.isFinite(Number(sensory.text_scale != null ? sensory.text_scale : settings.textScale))
+          ? Number(sensory.text_scale != null ? sensory.text_scale : settings.textScale)
+          : null,
+        motion: sensory.motion || settings.motionPreference || 'not recorded',
+        sound: sensory.feedback_sound || settings.feedbackSoundMode || 'not recorded',
+        speech: typeof settings.ttsToggle === 'boolean' ? settings.ttsToggle : null,
+        learner_view: typeof session.student_friendly_mode === 'boolean'
+          ? session.student_friendly_mode
+          : (typeof settings.studentFriendlyMode === 'boolean' ? settings.studentFriendlyMode : null),
+        max_options: Number.isFinite(Number(settings.maxObjects)) ? Number(settings.maxObjects) : null,
+        response_window_sec: Number.isFinite(Number(settings.responseWindowSec)) ? Number(settings.responseWindowSec) : null
+      };
+    });
+    const settingLabel = value => {
+      if(value == null) return 'Not recorded';
+      if(typeof value === 'boolean') return value ? 'On' : 'Off';
+      return String(value).replace(/-/g, ' ');
+    };
+    const countAccessSettings = definitions => {
+      const counts = new Map();
+      accessContextRows.forEach(row => definitions.forEach(definition => {
+        const value = settingLabel(row[definition.key]);
+        const label = `${definition.label}: ${value}`;
+        counts.set(label, (counts.get(label) || 0) + 1);
+      }));
+      return Array.from(counts.entries())
+        .map(([label, value]) => ({ label, value }))
+        .sort((a, b) => b.value - a.value || a.label.localeCompare(b.label));
+    };
+    const accessSettingCounts = countAccessSettings([
+      { key: 'communication', label: 'Communication' },
+      { key: 'motor_access', label: 'Motor' },
+      { key: 'aac', label: 'AAC' }
+    ]);
+    const presentationSettingCounts = countAccessSettings([
+      { key: 'prompt_presentation', label: 'Prompt' },
+      { key: 'theme', label: 'Theme' },
+      { key: 'font', label: 'Font' },
+      { key: 'motion', label: 'Motion' },
+      { key: 'sound', label: 'Sound' },
+      { key: 'speech', label: 'Speech' }
+    ]);
+    drawResearchBars(ui.researchAccessContextChart, accessSettingCounts.slice(0, 12).map(item => ({
+      ...item,
+      color: themeToken('secondary', themeToken('primary'))
+    })), { labelWidth: 205 });
+    drawResearchBars(ui.researchPresentationContextChart, presentationSettingCounts.slice(0, 12).map(item => ({
+      ...item,
+      color: themeToken('primary')
+    })), { labelWidth: 205 });
+    if(accessContextRows.length){
+      clearNode(ui.researchAccessContextBody);
+      accessContextRows.forEach(item => appendResearchRow(ui.researchAccessContextBody, [
+        item.date,
+        item.learner,
+        settingLabel(item.communication),
+        settingLabel(item.motor_access),
+        settingLabel(item.aac),
+        settingLabel(item.prompt_presentation),
+        item.theme,
+        settingLabel(item.font),
+        item.text_scale == null ? null : `${Math.round(item.text_scale * 100)}%`,
+        settingLabel(item.motion),
+        settingLabel(item.sound),
+        settingLabel(item.speech),
+        item.learner_view == null ? null : (item.learner_view ? 'Student friendly' : 'Technical labels visible'),
+        item.max_options,
+        item.response_window_sec == null ? null : `${item.response_window_sec}s`
+      ]));
+    } else renderResearchEmptyRow(ui.researchAccessContextBody, 15, 'No sessions in this scope yet.');
+    ui.researchAccessContextNote.textContent = scope === 'all-learners'
+      ? 'Counts pool settings across learners and are not learner traits. Access and presentation choices are delivery context, not measures of ability or treatment effects.'
+      : 'Settings are shown by session so changes in access or presentation can be reviewed alongside outcomes. They do not explain a performance change by themselves.';
   }
 
   function redrawThemeVisuals(){

@@ -479,6 +479,17 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
   await setValue(page, 'fatigueLevel', 'fatigued');
   await setValue(page, 'sensoryState', 'seeking');
   await setValue(page, 'sleepQuality', 'poor');
+  await setValue(page, 'communicationMode', 'aac');
+  await setValue(page, 'motorAccessMode', 'supported-touch');
+  await setValue(page, 'aacPreference', 'low-tech');
+  await setValue(page, 'communicationSupportChoice', 'image-first');
+  await setValue(page, 'themeChoice', 'soft-green');
+  await setValue(page, 'fontChoice', 'familiar');
+  await setValue(page, 'textScale', 1.15);
+  await setValue(page, 'motionPreference', 'reduced');
+  await setValue(page, 'feedbackSoundMode', 'off');
+  await setValue(page, 'maxObjects', 3);
+  await setValue(page, 'responseWindowSec', 14);
   await setValue(page, 'breakCount', 2);
   await setValue(page, 'dosageMinutesTarget', 12);
   await setCheckbox(page, 'fidelityEnvironmentReady', true);
@@ -512,6 +523,17 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
   await expect(page.locator('#researchContextBody')).toContainText('seeking');
   await expect(page.locator('#researchContextBody')).toContainText('poor');
   await expect(page.locator('#researchContextBody')).toContainText('2');
+  await expect(page.locator('#researchAccessContextChart')).toBeVisible();
+  await expect(page.locator('#researchPresentationContextChart')).toBeVisible();
+  await expect(page.locator('#researchAccessContextBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchAccessContextBody')).toContainText('aac');
+  await expect(page.locator('#researchAccessContextBody')).toContainText('supported touch');
+  await expect(page.locator('#researchAccessContextBody')).toContainText('low tech');
+  await expect(page.locator('#researchAccessContextBody')).toContainText('image first');
+  await expect(page.locator('#researchAccessContextBody')).toContainText('Soft Green');
+  await expect(page.locator('#researchAccessContextBody')).toContainText('115%');
+  await expect(page.locator('#researchAccessContextBody')).toContainText('14s');
+  await expect(page.locator('#researchAccessContextNote')).toContainText('do not explain');
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchSupportTrendNote')).toContainText('unconnected points');
@@ -521,6 +543,9 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
   await expect(page.locator('#beginFlow')).toBeVisible();
   await expect(page.locator('#teacherAttentionRating')).toHaveValue('4');
   await expect(page.locator('#teacherIndependenceRating')).toHaveValue('2');
+  await expect(page.locator('#communicationMode')).toHaveValue('aac');
+  await expect(page.locator('#motorAccessMode')).toHaveValue('supported-touch');
+  await expect(page.locator('#aacPreference')).toHaveValue('low-tech');
 });
 
 test('Research visualises prompt-ladder use and learner-agency events without deficit labels', async ({ page }) => {
