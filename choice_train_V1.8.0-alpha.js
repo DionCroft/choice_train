@@ -7,7 +7,7 @@
     source_file: "choice_train_V1.8.0-alpha.html",
     source_script: "choice_train_V1.8.0-alpha.js",
     based_on_branch: "feature/v1.8.0-research-personalisation",
-    based_on_commit: "31d8fcdcbbe9c4b4144955ab952f76af6b3c5b14",
+    based_on_commit: "ce7fb3d92d4753a0b8d3c594b48a14a96b44dc1e",
     build_date: "2026-11-07",
     published_entry: "not published; stable release remains live",
     live_url: "https://dioncroft.github.io/choice_train/",
