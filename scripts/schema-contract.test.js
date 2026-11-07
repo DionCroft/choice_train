@@ -33,9 +33,9 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
 });
 
 test('Research summary schema matches its runtime export version and category sections', () => {
-  const contract = schema('choice-train-research-summary-v1.5.schema.json');
+  const contract = schema('choice-train-research-summary-v1.6.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('RESEARCH_WORKSPACE_EXPORT_VERSION'));
-  ['category_matching', 'category_group_completion', 'category_exclusion', 'category_lesson_coverage']
+  ['category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage']
     .forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
 });
 

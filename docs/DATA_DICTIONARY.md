@@ -67,7 +67,7 @@ The Research demand view derives per-session mean displayed option count, mean d
 
 ### Research workspace summary export
 
-`Download scope summary` creates local JSON with `export_schema_version: 1.5.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `category_lesson_coverage`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
+`Download scope summary` creates local JSON with `export_schema_version: 1.6.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
 
 The summary includes configured learner aliases and day-level session dates. Its privacy manifest confirms that raw trials, raw events, raw coordinates, images, photo labels, and free-text notes are excluded. It is a local staff/research report, not an anonymous dataset and not the separately governed pseudonymised model-development export. ChoiceTrain does not transmit it externally.
 
@@ -77,7 +77,9 @@ The summary includes configured learner aliases and day-level session dates. Its
 
 `category_exclusion` contains one derived row per teacher-defined reference category represented in Find the different one trials: trial count, distinct in-group exemplars, distinct outside targets, accuracy, independent-success percentage, omissions, median reaction time, and generator-integrity observed/valid counts. Integrity requires at least two unique options in the reference category and exactly one outside option, which must be the target. This is an engineering/data-quality check, not evidence of conceptual mastery, transfer, or neural change. Item labels are not included in this derived section.
 
-`category_lesson_coverage` combines the four category task families by teacher-defined category. Each row contains delivered trial counts by task, distinct target/cue/displayed-item counts, personalised-content trial count, accuracy, independent success, and omissions. It is intended to reveal narrow or uneven delivered practice. The rows do not adjust for task difficulty, learner differences, support, or repeated content and must not be interpreted as causal task comparisons or proof of generalisation.
+`attribute_selection` contains one derived row per controlled teacher-declared attribute value and primary category represented in Find by colour trials. It reports trial count, distinct targets and displayed items, personalised exposure, accuracy, independent success, omissions, median reaction time, and generator-integrity observed/valid counts. Integrity requires every option to use the same primary category, every option to have a teacher-declared value, and exactly one option to match the requested value. The declaration is not image analysis and the row is not evidence of colour perception, mastery, transfer, or neural change.
+
+`category_lesson_coverage` combines the five category and attribute task families by teacher-defined category. Each row contains delivered trial counts by task, distinct target/cue/displayed-item counts, personalised-content trial count, accuracy, independent success, and omissions. It is intended to reveal narrow or uneven delivered practice. The rows do not adjust for task difficulty, learner differences, support, or repeated content and must not be interpreted as causal task comparisons or proof of generalisation.
 
 The prompt/agency view groups final trials by `highest_prompt_level` and counts `help_requested`, `prompt_applied`, `question_repeat`, learner and automatic `break_onset`, `learner_stop_requested`, and `reward_onset` records by session. Reward onsets come from the browser marker stream; other flow events come from the session event log. Counts depend on enabled controls, session opportunities, and practitioner practice. They are not deficit, motivation, or regulation scores.
 
@@ -103,12 +105,12 @@ The on-screen coverage audit groups planned fields into behaviour, support, cont
 
 ## V1.8 Procedural Lesson Provenance
 
-Generator version `1.5.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Match category`, `Complete the group`, `Find the different one`, `Discriminate object`, and `Choice preference`. Data schema 8 adds structured multi-cue fields and skill graph 1.3.0 adds `categorisation.complete_group`.
+Generator version `1.6.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Match category`, `Complete the group`, `Find the different one`, `Find by colour`, `Discriminate object`, and `Choice preference`. Data schema 8 retains structured multi-cue and declared-attribute fields; skill graph 1.4.0 adds `categorisation.declared_colour`.
 
 | Field | Meaning |
 | --- | --- |
 | `lesson_plan.lesson_seed` | Session-level seed used to reproduce the lesson schedule |
-| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.5.0 |
+| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.6.0 |
 | `trial.question_seed` | Per-question seed used for reproducible option ordering and other question variation |
 | `trial.generator_version` | Algorithm version required to interpret/replay the generated question |
 | `trial.generator_constraints.coverage_strategy` | Coverage rule active for the question |
@@ -120,14 +122,17 @@ Generator version `1.5.0` applies a `balanced-before-repeat` coverage strategy t
 | `trial.cue_metadata_list` | Structured metadata for every non-selectable cue, without image bytes |
 | `trial.reference_category` / `trial.reference_category_label` | Teacher-defined in-group category for Find the different one |
 | `trial.category_relation` | Explicit target relationship; `outside-reference-category` for Find the different one |
+| `trial.target_attribute_key` / `trial.target_attribute_value` | Controlled teacher-declared rule used by Find by colour |
+| `trial.attribute_source` | Provenance of the attribute; currently `teacher` for generated colour lessons |
+| `trial.attribute_relation` | Required target relationship; `matches-teacher-declared-value` for Find by colour |
 | `trial.procedural_variant` | Named generator path, including category-balanced discrimination or preference |
 | `trial.discrimination_contrast` | `within-category` or `cross-category` for generated discrimination trials |
 | `trial.open_ended_choice` | `true` when every presented option is an acceptable preference selection |
 | `trial.scored_response` | `false` when the response must not contribute to accuracy or target scoring |
 
-For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. `Match category` shows one cue and requires a different member as the only selectable same-category answer. `Complete the group` shows two distinct non-selectable category members and requires a third member as the only same-category answer; cues never appear among the choices. `Find the different one` presents exactly one outside target alongside two or more reference-category items. Options have unique IDs and labels, and the correct target appears exactly once. With at least three configured answer options, automatic Level 6 rotates all four category tasks; two-option sessions omit only Find the different one. `Discriminate object` prefers a same-category distractor but records a cross-category fallback when needed. `Choice preference` rotates category/content anchors only to balance exposure; the anchor is not a correct answer. Every preference option is accepted, target-distance fields remain missing, and `scored_response` is `false`.
+For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. `Match category` shows one cue and requires a different member as the only selectable same-category answer. `Complete the group` shows two distinct non-selectable category members and requires a third member as the only same-category answer; cues never appear among the choices. `Find the different one` presents exactly one outside target alongside two or more reference-category items. `Find by colour` rotates fair primary-category/declared-colour rules, includes exactly one matching item, and uses same-primary-category alternatives with other declared colours. Options have unique IDs and labels, and the correct target appears exactly once. Automatic Level 6 adds Find by colour only when two or more fair declared-colour rules exist; otherwise its established category rotation is unchanged. `Discriminate object` prefers a same-category distractor but records a cross-category fallback when needed. `Choice preference` rotates category/content anchors only to balance exposure; the anchor is not a correct answer. Every preference option is accepted, target-distance fields remain missing, and `scored_response` is `false`.
 
-Category-match, group-completion, and category-difference accuracy describe performance on delivered in-app tasks. They are not, by themselves, evidence of classroom generalisation, durable transfer, conceptual mastery, or neural change.
+Category-match, group-completion, category-difference, and teacher-declared colour accuracy describe performance on delivered in-app tasks. They are not, by themselves, evidence of colour perception, classroom generalisation, durable transfer, conceptual mastery, or neural change.
 
 ## Core Export Fields
 

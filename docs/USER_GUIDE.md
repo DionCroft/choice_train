@@ -145,7 +145,9 @@ Use `Download scope summary` beside the Research filters when an authorised staf
 
 `Category difference profile` appears when Find the different one trials are in scope. It groups results by the teacher-defined reference category and shows trials, distinct in-group examples, outside targets, accuracy, independent success, omissions, median reaction time, and generator integrity. Integrity checks that the stored task contained at least two unique in-group options and exactly one outside option as the target. It is a software/data-quality check, not a pupil outcome or evidence of conceptual mastery, transfer, or neural change.
 
-`Category lesson coverage` combines Find category, Match category, Complete the group, and Find the different one by teacher-defined category. Use it to spot categories or task types that have received little practice, see distinct cue/target/displayed-item breadth, and review personalised-content use alongside accuracy, independence, and omissions. It describes delivered exposure and unadjusted in-app outcomes; it does not prove equal task difficulty, conceptual mastery, transfer, or treatment effects.
+`Teacher-declared colour profile` appears when Find by colour trials are in scope. It shows declared colour/category combinations, trials, target and displayed-item breadth, personalised exposure, accuracy, independent success, omissions, median reaction time, and generator integrity. Integrity checks that exactly one displayed item has the requested teacher-declared colour and that every option uses the same primary category. The profile does not establish colour perception, conceptual mastery, generalisation, or neural change.
+
+`Category lesson coverage` combines Find category, Match category, Complete the group, Find the different one, and Find by colour by teacher-defined category. Use it to spot categories or task types that have received little practice, see distinct cue/target/displayed-item breadth, and review personalised-content use alongside accuracy, independence, and omissions. It describes delivered exposure and unadjusted in-app outcomes; it does not prove equal task difficulty, conceptual mastery, transfer, or treatment effects.
 
 `Open-ended preference selections` counts the items the learner actually selected and reports category, source, assistance, and recency. It does not assign accuracy and should not be treated as a stable preference profile or formal reinforcer assessment; preferences can change with context and time.
 
@@ -161,7 +163,7 @@ For a pre-specified research run, open `Admin & research` > `EEG`, enter a non-i
 
 The fixed manifest includes the explicitly protocol-relevant speech, target-scale, touch-scaling, and learner-view controls. It does not control pupil identity, context notes, theme, font, communication mode, or motor-access profile. The Research EEG-readiness area shows condition use, adherence, exceptions, replay seed, and settings fingerprint. These checks support reproducible software delivery; they do not verify study allocation, blinding, preregistration, ethics approval, treatment equivalence, EEG clocks, or amplifier triggers.
 
-Generator 1.5.0 uses `balanced-before-repeat` coverage for `Find object`, `Find category`, `Match category`, `Complete the group`, `Find the different one`, `Discriminate object`, and `Choice preference`. It rotates through configured usable categories before repeating a category, then rotates eligible content within each category. `Match category` shows one cue and asks for a different item from the same teacher-defined category. `Complete the group` shows two distinct non-clickable examples and asks for one more from that category. `Find the different one` shows at least two items from one reference category and asks for the sole outside item. All are available manually. With three or more answer options, automatic Level 6 rotates all four category tasks; two-option sessions omit only Find the different one. Group completion requires three differently labelled category members plus an outside distractor. A difference task requires at least three answer options, two usable reference-category members, and one differently labelled outside item. Discrimination uses two options and prefers a same-category contrast where possible. Preference uses two to four options, accepts every selection, and is recorded as an unscored preference rather than a right-or-wrong answer. This reduces accidental over-practice of one familiar picture while keeping the lesson reproducible from its seed. The Research skill, task/variant, category-profile, target-exposure, and content-breadth views automatically include these observations. These views show in-app practice and do not prove that the pupil has generalised a category outside ChoiceTrain.
+Generator 1.6.0 uses `balanced-before-repeat` coverage for `Find object`, `Find category`, `Match category`, `Complete the group`, `Find the different one`, `Find by colour`, `Discriminate object`, and `Choice preference`. It rotates through configured usable categories or declared colour rules before repeating, then rotates eligible content within each rule. `Match category` shows one cue and asks for a different item from the same teacher-defined category. `Complete the group` shows two distinct non-clickable examples and asks for one more from that category. `Find the different one` shows at least two items from one reference category and asks for the sole outside item. `Find by colour` uses only practitioner-labelled personalised items, keeps every option in the same primary category, and includes exactly one item matching the requested colour. All are available manually. Automatic Level 6 adds Find by colour only when at least two fair declared-colour rules are available; otherwise its established category rotation remains unchanged. Group completion requires three differently labelled category members plus an outside distractor. A difference task requires at least three answer options, two usable reference-category members, and one differently labelled outside item. Discrimination uses two options and prefers a same-category contrast where possible. Preference uses two to four options, accepts every selection, and is recorded as an unscored preference rather than a right-or-wrong answer. This reduces accidental over-practice of one familiar picture while keeping the lesson reproducible from its seed. The Research skill, task/variant, category-profile, attribute-profile, target-exposure, and content-breadth views automatically include these observations. These views show in-app practice and do not prove that the pupil has generalised a category or colour concept outside ChoiceTrain.
 
 `Practice status and spaced retention observations` groups raw skill opportunities into transparent planning descriptions. The table shows its sample size, recent accuracy, independent success, last practice, trend, retention observation, and support direction. `Consistent in current sample` does not mean mastered. A retention comparison only appears after an observed follow-up at least seven days later, and small follow-up samples are labelled as such.
 
@@ -279,10 +281,13 @@ Each uploaded item can include:
 - a category
 - a source label: `Personalised` or `Stock`
 - an optional relationship or type
+- an optional teacher-declared colour for controlled colour lessons
 - use in question generation
 - non-destructive crop and rotation settings
 
 This helps make tasks more familiar, motivating, and meaningful.
+
+The colour field is optional and uses a controlled list. ChoiceTrain stores the teacher's declaration; it does not inspect the image or verify its colour. `Find by colour` becomes available only when one selected category contains enough question-enabled personalised items with at least two different declared colours. Review labels when an image is edited or classroom interpretation changes.
 
 ### Category Catalogue
 
@@ -444,6 +449,16 @@ Example:
 
 `Which one is an animal?`
 
+### Teacher-Declared Colour
+
+The learner chooses the one item in a primary category carrying the requested controlled colour label.
+
+Example:
+
+`Can you find the blue one?`
+
+This task uses the teacher's saved metadata rather than analysing the image. It appears only when at least two fair colour rules can be generated.
+
 ### Preference Tasks
 
 The learner makes a simple personal choice.
@@ -462,7 +477,7 @@ The AT structure is informed by peer-reviewed CPAT literature. The application d
 
 When `Find object`, `Discriminate object`, or `Choice preference` is selected, choose one or more session categories and one source mode: Personalised only, Stock only, or Both. ChoiceTrain requires at least two differently labelled eligible items and shows a usable-item summary before the session starts.
 
-When `Find category` is selected, use the equivalent controls. At least two selected categories must still contain eligible items after the source and pupil filters are applied, and they must support fair single-answer questions.
+When `Find category` is selected, use the equivalent controls. At least two selected categories must still contain eligible items after the source and pupil filters are applied, and they must support fair single-answer questions. `Find by colour` uses the same category/source controls but requires differently labelled personalised items in one primary category with at least two different teacher-declared colours.
 
 Personalised content always belongs to the selected pupil and must be enabled for question generation. Excluded stock, another pupil's photos, duplicate fillers, and unrelated fallback items are not added to make up the grid.
 

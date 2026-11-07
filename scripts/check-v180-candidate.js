@@ -8,9 +8,9 @@ const ROOT = path.resolve(__dirname, '..');
 const PROTECTED_STABLE_SHA256 = '77b4033411d9b20caafaaa6739f7c5317eef1efb010cf88c92a1571ed58e16aa';
 const EXPECTED_CONTRACTS = Object.freeze({
   dataSchema: '8',
-  skillGraph: '1.3.0',
-  generator: '1.5.0',
-  researchWorkspaceExport: '1.5.0'
+  skillGraph: '1.4.0',
+  generator: '1.6.0',
+  researchWorkspaceExport: '1.6.0'
 });
 
 const failures = [];
@@ -92,7 +92,7 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
 check('machine-readable research contracts are present and parseable', () => {
   [
     'schemas/choice-train-trial-v8.schema.json',
-    'schemas/choice-train-research-summary-v1.5.schema.json',
+    'schemas/choice-train-research-summary-v1.6.schema.json',
     'schemas/choice-train-model-dataset-v1.schema.json'
   ].forEach((file) => {
     const schema = JSON.parse(read(file));

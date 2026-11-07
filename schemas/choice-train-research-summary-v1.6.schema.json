@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-research-summary-v1.6.schema.json",
+  "title": "ChoiceTrain Research workspace summary core contract v1.6",
+  "type": "object",
+  "required": ["export_schema_version", "scope", "session_count", "final_trial_count", "privacy_manifest", "skill_summaries", "attention_families", "category_matching", "category_group_completion", "category_exclusion", "attribute_selection", "category_lesson_coverage", "interpretation_boundary"],
+  "properties": {
+    "export_schema_version": { "const": "1.6.0" },
+    "scope": { "enum": ["current-session", "current-learner", "all-learners"] },
+    "session_count": { "type": "integer", "minimum": 0 },
+    "final_trial_count": { "type": "integer", "minimum": 0 },
+    "privacy_manifest": { "type": "object" },
+    "skill_summaries": { "type": "array", "items": { "type": "object" } },
+    "attention_families": { "type": "array", "items": { "type": "object" } },
+    "category_matching": { "type": "array", "items": { "type": "object" } },
+    "category_group_completion": { "type": "array", "items": { "type": "object" } },
+    "category_exclusion": { "type": "array", "items": { "type": "object" } },
+    "attribute_selection": { "type": "array", "items": { "type": "object" } },
+    "category_lesson_coverage": { "type": "array", "items": { "type": "object" } },
+    "interpretation_boundary": { "type": "string", "minLength": 1 }
+  },
+  "additionalProperties": true
+}

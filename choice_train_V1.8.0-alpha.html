@@ -498,6 +498,7 @@
                 <option value="match-category">Match category</option>
                 <option value="complete-category-group">Complete the group</option>
                 <option value="category-exclusion">Find the different one</option>
+                <option value="find-attribute">Find by colour</option>
                 <option value="discriminate-object">Discriminate object</option>
                 <option value="choice-preference">Choice preference</option>
                 <option value="cpat-suite">AT suite</option>
@@ -610,6 +611,24 @@
             <div class="helperText">Optional extra detail for staff and exports.</div>
           </div>
           <div>
+            <label for="photoColour">Teacher-declared colour</label>
+            <select id="photoColour">
+              <option value="">Not labelled</option>
+              <option value="red">Red</option>
+              <option value="orange">Orange</option>
+              <option value="yellow">Yellow</option>
+              <option value="green">Green</option>
+              <option value="blue">Blue</option>
+              <option value="purple">Purple</option>
+              <option value="pink">Pink</option>
+              <option value="brown">Brown</option>
+              <option value="black">Black</option>
+              <option value="white">White</option>
+              <option value="grey">Grey</option>
+            </select>
+            <div class="helperText">Optional. Used only for colour lessons. ChoiceTrain stores the teacher's label and does not analyse the image.</div>
+          </div>
+          <div>
             <label for="photoUpload">Upload photo</label>
             <input id="photoUpload" type="file" accept="image/*" />
             <div class="helperText">Photos stay local on this device unless you choose to export image data later.</div>
@@ -695,7 +714,7 @@
         </section>
         <section id="findCategoryConfig" class="taskConfig" hidden>
           <div class="controlGroupTitle">Category activity content</div>
-          <div class="helperText"><b>Find category</b> asks for an item from a named group. <b>Match category</b> shows one example and asks for a different item from the same group. Matching requires at least two differently labelled items in each usable category.</div>
+          <div class="helperText"><b>Find category</b> asks for an item from a named group. <b>Match category</b> shows one example and asks for a different item from the same group. <b>Find by colour</b> is available only when teachers have labelled enough personalised items in one category with different colours.</div>
           <label>Select session categories</label>
           <div id="findCategoryCategoryList" class="categoryChecklist"></div>
           <label for="findCategorySourceMode">Select session images</label>
@@ -1605,6 +1624,23 @@
               <div id="researchExclusionCategoryNote" class="compactNote">This profile describes delivered in-app category-difference trials. Generator integrity checks that exactly one stored option is outside the reference category; it is not a pupil outcome or evidence of conceptual mastery, transfer, or neural change.</div>
             </div>
             <div class="chartCard span2">
+              <h4>Teacher-declared colour profile</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Colour trials</div><div class="v" id="researchAttributeTrials">0</div></div>
+                <div class="dashCard"><div class="k">Declared colours</div><div class="v" id="researchAttributeValues">0</div></div>
+                <div class="dashCard"><div class="k">Categories</div><div class="v" id="researchAttributeCategories">0</div></div>
+                <div class="dashCard"><div class="k">Generator integrity observed</div><div class="v" id="researchAttributeIntegrity">&mdash;</div></div>
+              </div>
+              <canvas id="researchAttributeChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Find by colour accuracy by teacher-declared colour and category"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Declared colour</th><th>Category</th><th>Trials</th><th>Targets</th><th>Displayed items</th><th>Personalised</th><th>Accuracy</th><th>Independent success</th><th>Omissions</th><th>Median RT</th><th>Generator integrity</th></tr></thead>
+                  <tbody id="researchAttributeBody"></tbody>
+                </table>
+              </div>
+              <div id="researchAttributeNote" class="compactNote">Colour values are practitioner-entered metadata, not measurements made by ChoiceTrain. Results describe delivered in-app practice and should not be treated as proof of colour perception, conceptual mastery, transfer, or neural change.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Category lesson coverage</h4>
               <div class="dashboard compactDashboard">
                 <div class="dashCard"><div class="k">Category trials</div><div class="v" id="researchCategoryLessonTrials">0</div></div>
@@ -1615,7 +1651,7 @@
               <canvas id="researchCategoryLessonChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Delivered category lesson trials by teacher-defined category"></canvas>
               <div class="tableWrap researchTableWrap">
                 <table>
-                  <thead><tr><th>Category</th><th>Total</th><th>Find member</th><th>Match</th><th>Complete group</th><th>Different one</th><th>Targets</th><th>Cues</th><th>Displayed items</th><th>Personalised</th><th>Accuracy</th><th>Independent success</th><th>Omissions</th></tr></thead>
+                  <thead><tr><th>Category</th><th>Total</th><th>Find member</th><th>Match</th><th>Complete group</th><th>Different one</th><th>Find colour</th><th>Targets</th><th>Cues</th><th>Displayed items</th><th>Personalised</th><th>Accuracy</th><th>Independent success</th><th>Omissions</th></tr></thead>
                   <tbody id="researchCategoryLessonBody"></tbody>
                 </table>
               </div>

@@ -29,19 +29,19 @@
   const FAMILIAR_FACE_ASSET_KEY = 'profile:familiarFace';
   const CUSTOM_IMAGES_ASSET_KEY = 'profile:customImages';
   const SESSION_ARCHIVE_LIMIT = 60;
-  const LOCAL_DATA_MIGRATION_VERSION = 5;
+  const LOCAL_DATA_MIGRATION_VERSION = 6;
   const DATA_SCHEMA_VERSION = 8;
-  const SKILL_GRAPH_VERSION = '1.3.0';
-  const GENERATOR_VERSION = '1.5.0';
+  const SKILL_GRAPH_VERSION = '1.4.0';
+  const GENERATOR_VERSION = '1.6.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.5.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.6.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
-  const PHOTO_SCHEMA_VERSION = 2;
+  const PHOTO_SCHEMA_VERSION = 3;
   const MAX_IMPORT_FILES = 100;
   const MAX_IMAGE_FILE_BYTES = 12 * 1024 * 1024;
   const MAX_DECODED_IMAGE_PIXELS = 40_000_000;
@@ -276,6 +276,7 @@
     'match-category': { label: 'Match category', family: 'foundation', domain: 'reasoning' },
     'complete-category-group': { label: 'Complete the group', family: 'foundation', domain: 'reasoning' },
     'category-exclusion': { label: 'Find the different one', family: 'foundation', domain: 'reasoning' },
+    'find-attribute': { label: 'Find by colour', family: 'foundation', domain: 'reasoning' },
     'choice-preference': { label: 'Choice preference', family: 'foundation', domain: 'choice' },
     'cpat-suite': { label: 'AT suite', family: 'cpat', domain: 'mixed' },
     'cpat-sustained': { label: 'AT sustained attention', family: 'cpat', domain: 'sustained' },
@@ -294,6 +295,7 @@
     'categorisation.match_category': Object.freeze({ label: 'Match different members of a category', prerequisites: ['categorisation.category_member'] }),
     'categorisation.complete_group': Object.freeze({ label: 'Complete a category group from multiple examples', prerequisites: ['categorisation.match_category'] }),
     'categorisation.category_exclusion': Object.freeze({ label: 'Select an item outside a reference category', prerequisites: ['categorisation.category_member'] }),
+    'categorisation.declared_colour': Object.freeze({ label: 'Select a teacher-labelled colour within a category', prerequisites: ['categorisation.category_member'] }),
     'choice.preference': Object.freeze({ label: 'Express a preference', prerequisites: ['access.touch_target'] }),
     'attention.sustained': Object.freeze({ label: 'Sustained attention practice', prerequisites: ['access.touch_target'] }),
     'attention.selective_spatial': Object.freeze({ label: 'Selective-spatial attention practice', prerequisites: ['attention.sustained'] }),
@@ -311,6 +313,7 @@
     'match-category': Object.freeze(['categorisation.match_category']),
     'complete-category-group': Object.freeze(['categorisation.complete_group']),
     'category-exclusion': Object.freeze(['categorisation.category_exclusion']),
+    'find-attribute': Object.freeze(['categorisation.declared_colour']),
     'choice-preference': Object.freeze(['choice.preference']),
     'cpat-suite': Object.freeze(['attention.sustained', 'attention.selective_spatial', 'attention.orienting', 'attention.executive']),
     'cpat-sustained': Object.freeze(['attention.sustained']),
@@ -403,6 +406,25 @@
     category: ['Find {label}', 'Which one is {label}?', 'Can you find {label}?', 'Where is {label}?'],
     preference: ['Which one do you like?', 'Choose one', 'Pick your favourite', 'What would you like?'],
     moving: ['Can you find {label}?', 'Where is {label}?', 'Show me {label}', 'Let\'s find {label}']
+  });
+
+  const CONTENT_ATTRIBUTE_META = Object.freeze({
+    colour: Object.freeze({
+      label: 'Colour',
+      values: Object.freeze({
+        red: 'Red',
+        orange: 'Orange',
+        yellow: 'Yellow',
+        green: 'Green',
+        blue: 'Blue',
+        purple: 'Purple',
+        pink: 'Pink',
+        brown: 'Brown',
+        black: 'Black',
+        white: 'White',
+        grey: 'Grey'
+      })
+    })
   });
 
   const PHOTO_CATEGORY_META = Object.freeze({
@@ -1145,6 +1167,17 @@
     return prompts[Math.max(0, index - 1) % prompts.length];
   }
 
+  function buildAttributePrompt(attributeKey, attributeValue, index){
+    const valueLabel = contentAttributeValueLabel(attributeKey, attributeValue).toLowerCase();
+    const prompts = [
+      `Find the ${valueLabel} item`,
+      `Which one is ${valueLabel}?`,
+      `Can you find the ${valueLabel} one?`,
+      `Show me the ${valueLabel} item`
+    ];
+    return prompts[Math.max(0, index - 1) % prompts.length];
+  }
+
   function setFooter(text, pillText){
     if(ui.footerHint) ui.footerHint.textContent = text;
     if(ui.touchInfo) ui.touchInfo.textContent = pillText;
@@ -1298,6 +1331,10 @@
       target_category: question.targetCategory || null,
       reference_category: question.referenceCategory || null,
       category_relation: question.categoryRelation || null,
+      target_attribute_key: question.targetAttributeKey || null,
+      target_attribute_value: question.targetAttributeValue || null,
+      attribute_source: question.attributeSource || null,
+      attribute_relation: question.attributeRelation || null,
       cue_id: question.cueOption ? question.cueOption.id : null,
       cue_ids: Array.isArray(question.cueOptions) ? question.cueOptions.map(option => option.id) : (question.cueOption ? [question.cueOption.id] : []),
       cue_category: question.cueCategory || null,
@@ -1322,6 +1359,30 @@
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-+|-+$/g, '')
       .slice(0, 48);
+  }
+
+  function normalizeContentAttributes(value={}){
+    const source = value && typeof value === 'object' ? value : {};
+    const attributes = {};
+    Object.keys(CONTENT_ATTRIBUTE_META).forEach(key => {
+      const candidate = String(source[key] || '').trim().toLowerCase();
+      if(candidate && CONTENT_ATTRIBUTE_META[key].values[candidate]) attributes[key] = candidate;
+    });
+    return attributes;
+  }
+
+  function contentAttributeValueLabel(attributeKey, attributeValue){
+    const meta = CONTENT_ATTRIBUTE_META[attributeKey];
+    return meta && meta.values[attributeValue] ? meta.values[attributeValue] : normalizeCategoryLabel(attributeValue || 'Not recorded');
+  }
+
+  function optionDeclaredAttributes(option){
+    return normalizeContentAttributes(option && option.attributes);
+  }
+
+  function optionMatchesDeclaredAttribute(option, attributeKey, attributeValue){
+    if(!option || (option.attributeSource || option.attribute_source) !== 'teacher') return false;
+    return optionDeclaredAttributes(option)[attributeKey] === attributeValue;
   }
 
   function canonicalCategoryId(value){
@@ -1502,6 +1563,8 @@
       category_memberships: optionCategoryMemberships(item),
       source: normalizeImageSource(item.source),
       relationship_type: item.relationshipType || '',
+      declared_attributes: optionDeclaredAttributes(item),
+      attribute_source: item.attributeSource || '',
       use_in_questions: item.useInQuestions !== false,
       edit: normalizePhotoEdit(item.edit),
       has_prepared_original: !!item.originalSrc,
@@ -2615,6 +2678,7 @@
     const meta = categoryMeta(category);
     const learner = item.learner || item.pupilOwner || currentPupilName();
     const originalSrc = item.originalSrc || item.src || '';
+    const attributes = normalizeContentAttributes(item.attributes || { colour: item.colour || item.colorLabel });
     return {
       id: item.id || `photo-${uuid4()}`,
       learner,
@@ -2627,6 +2691,8 @@
       categoryIds: categoryMemberships(category),
       source: normalizeImageSource(item.source || 'personalised'),
       relationshipType: item.relationshipType || '',
+      attributes,
+      attributeSource: Object.keys(attributes).length ? (item.attributeSource || item.attribute_source || 'teacher') : '',
       useInQuestions: item.useInQuestions !== false,
       objectCategory: meta.objectCategory,
       edit: normalizePhotoEdit(item.edit),
@@ -2804,6 +2870,18 @@
         sourceSelect.appendChild(option);
       });
       sourceSelect.value = normalizeImageSource(item.source);
+      const colourSelect = document.createElement('select');
+      const noColourOption = document.createElement('option');
+      noColourOption.value = '';
+      noColourOption.textContent = 'Not labelled';
+      colourSelect.appendChild(noColourOption);
+      Object.entries(CONTENT_ATTRIBUTE_META.colour.values).forEach(([value, label]) => {
+        const option = document.createElement('option');
+        option.value = value;
+        option.textContent = label;
+        colourSelect.appendChild(option);
+      });
+      colourSelect.value = optionDeclaredAttributes(item).colour || '';
       const useLabel = document.createElement('label');
       useLabel.className = 'toggle';
       const useInput = document.createElement('input');
@@ -2814,11 +2892,13 @@
         createPhotoField('Label', labelInput),
         createPhotoField('Category', categorySelect),
         createPhotoField('Source', sourceSelect),
+        createPhotoField('Declared colour', colourSelect),
         useLabel
       );
       const meta = document.createElement('div');
       meta.className = 'photoMetaTiny';
-      meta.textContent = `${categoryMeta(item.category).label}${item.relationshipType ? ` | ${item.relationshipType}` : ''} | ${item.originalWidth || '?'} x ${item.originalHeight || '?'} prepared pixels`;
+      const declaredColour = optionDeclaredAttributes(item).colour;
+      meta.textContent = `${categoryMeta(item.category).label}${item.relationshipType ? ` | ${item.relationshipType}` : ''}${declaredColour ? ` | Teacher-labelled ${contentAttributeValueLabel('colour', declaredColour).toLowerCase()}` : ''} | ${item.originalWidth || '?'} x ${item.originalHeight || '?'} prepared pixels`;
       const actions = document.createElement('div');
       actions.className = 'photoActions';
       const saveBtn = document.createElement('button');
@@ -2835,6 +2915,8 @@
         item.objectCategory = item.category;
         item.categoryIds = categoryMemberships(item.category);
         item.source = normalizeImageSource(sourceSelect.value);
+        item.attributes = normalizeContentAttributes({ colour: colourSelect.value });
+        item.attributeSource = Object.keys(item.attributes).length ? 'teacher' : '';
         item.useInQuestions = useInput.checked;
         item.updatedAt = wallMs();
         const saved = await persistAssets();
@@ -2869,6 +2951,7 @@
     if(ui.photoType) ui.photoType.value = '';
     if(ui.photoUpload) ui.photoUpload.value = '';
     if(ui.photoCategory) ui.photoCategory.value = 'people';
+    if(ui.photoColour) ui.photoColour.value = '';
     if(ui.photoUseInQuestions) ui.photoUseInQuestions.checked = true;
   }
 
@@ -2971,6 +3054,8 @@
         category,
         source: 'personalised',
         relationshipType: ui.photoType ? ui.photoType.value.trim() : '',
+        attributes: { colour: ui.photoColour ? ui.photoColour.value : '' },
+        attributeSource: ui.photoColour && ui.photoColour.value ? 'teacher' : '',
         useInQuestions: !!(ui.photoUseInQuestions && ui.photoUseInQuestions.checked)
       });
       state.customImages = state.customImages.concat(item);
@@ -3113,6 +3198,8 @@
       categoryIds: optionCategoryMemberships(item),
       source: normalizeImageSource(item.source),
       relationshipType: item.relationshipType || '',
+      attributes: optionDeclaredAttributes(item),
+      attributeSource: item.attributeSource || '',
       personalised_photo: true
     })));
   }
@@ -3188,6 +3275,45 @@
     });
   }
 
+  function fairAttributePredicates(categories, pool){
+    const predicates = [];
+    normalizeCategorySelection(categories, []).forEach(category => {
+      const members = uniqueOptions(pool.filter(item => (
+        canonicalCategoryId(item.category) === category
+        && normalizeImageSource(item.source) === 'personalised'
+      )), true);
+      Object.keys(CONTENT_ATTRIBUTE_META).forEach(attributeKey => {
+        const values = Array.from(new Set(members
+          .filter(item => (item.attributeSource || item.attribute_source) === 'teacher')
+          .map(item => optionDeclaredAttributes(item)[attributeKey])
+          .filter(Boolean)));
+        values.forEach(attributeValue => {
+          const targets = members.filter(item => optionMatchesDeclaredAttribute(item, attributeKey, attributeValue));
+          const distractors = members.filter(item => {
+            const declaredValue = optionDeclaredAttributes(item)[attributeKey];
+            return (item.attributeSource || item.attribute_source) === 'teacher'
+              && declaredValue
+              && declaredValue !== attributeValue;
+          });
+          if(targets.length && distractors.length){
+            predicates.push({
+              id: `${category}|${attributeKey}|${attributeValue}`,
+              category,
+              categoryLabel: categoryMeta(category).label,
+              attributeKey,
+              attributeLabel: CONTENT_ATTRIBUTE_META[attributeKey].label,
+              attributeValue,
+              attributeValueLabel: contentAttributeValueLabel(attributeKey, attributeValue),
+              targetCount: targets.length,
+              distractorCount: distractors.length
+            });
+          }
+        });
+      });
+    });
+    return predicates.sort((a, b) => a.id.localeCompare(b.id));
+  }
+
   function contentOptionMetadata(item){
     return {
       id: item.id,
@@ -3195,7 +3321,9 @@
       category: canonicalCategoryId(item.category),
       category_ids: optionCategoryMemberships(item),
       source: normalizeImageSource(item.source),
-      personalised_photo: !!item.personalised_photo
+      personalised_photo: !!item.personalised_photo,
+      attributes: optionDeclaredAttributes(item),
+      attribute_source: item.attributeSource || ''
     };
   }
 
@@ -3208,6 +3336,7 @@
     const matchCategoryFair = fairMatchCategories(filters.findCategoryCategories, findCategoryItems);
     const exclusionCategoryFair = fairExclusionCategories(filters.findCategoryCategories, findCategoryItems);
     const groupCompletionFair = fairGroupCompletionCategories(filters.findCategoryCategories, findCategoryItems);
+    const attributePredicatesFair = fairAttributePredicates(filters.findCategoryCategories, findCategoryItems);
     const categoryLabels = ids => ids.map(id => ({ id, label: categoryMeta(id).label }));
     return {
       schemaVersion: DATA_SCHEMA_VERSION,
@@ -3225,6 +3354,7 @@
         fairMatchCategories: categoryLabels(matchCategoryFair),
         fairExclusionCategories: categoryLabels(exclusionCategoryFair),
         fairGroupCompletionCategories: categoryLabels(groupCompletionFair),
+        fairAttributePredicates: attributePredicatesFair.map(predicate => ({ ...predicate })),
         sourceMode: filters.findCategorySource,
         items: findCategoryItems.map(item => ({ ...item })),
         itemMetadata: findCategoryItems.map(contentOptionMetadata)
@@ -3250,6 +3380,7 @@
         fair_match_categories: snapshot.findCategory.fairMatchCategories,
         fair_exclusion_categories: snapshot.findCategory.fairExclusionCategories,
         fair_group_completion_categories: snapshot.findCategory.fairGroupCompletionCategories,
+        fair_attribute_predicates: snapshot.findCategory.fairAttributePredicates,
         source_mode: snapshot.findCategory.sourceMode,
         usable_item_count: snapshot.findCategory.itemMetadata.length,
         items: snapshot.findCategory.itemMetadata
@@ -3316,42 +3447,56 @@
     return { valid, message, config, fair };
   }
 
-  function categoryLessonTaskKinds(){
+  function findAttributeConfiguration(snapshot=buildContentConfigurationSnapshot()){
+    const config = snapshot.findCategory;
+    const fair = config.fairAttributePredicates || [];
+    const valid = fair.length >= 2;
+    const categories = new Set(fair.map(predicate => predicate.category));
+    const values = new Set(fair.map(predicate => `${predicate.attributeKey}|${predicate.attributeValue}`));
+    let message = `${fair.length} fair teacher-declared colour rule(s) across ${categories.size} category or categories and ${values.size} colour value(s).`;
+    if(!valid) message = 'Find by colour needs at least two usable colour rules. Label personalised items in the same selected category with at least two different colours.';
+    return { valid, message, config, fair };
+  }
+
+  function categoryLessonTaskKinds(snapshot=state.sessionContentConfig){
     const maxAnswerOptions = clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6);
     const kinds = ['find-category', 'match-category', 'complete-category-group'];
     if(maxAnswerOptions >= 3) kinds.push('category-exclusion');
+    if(snapshot && snapshot.findCategory && (snapshot.findCategory.fairAttributePredicates || []).length >= 2) kinds.push('find-attribute');
     return kinds;
   }
 
-  function effectiveConfiguredTaskKinds(){
+  function effectiveConfiguredTaskKinds(snapshot=state.sessionContentConfig){
     const selected = ui.sessionTaskType ? ui.sessionTaskType.value : 'auto';
     if(selected !== 'auto') return selected === 'cpat-suite' ? CPAT_TASK_ORDER.slice() : [selected];
     if(ui.autoLevelPath && ui.autoLevelPath.checked){
       const level = clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10);
-      return level === 6 ? categoryLessonTaskKinds() : [levelSpec(level).kind];
+      return level === 6 ? categoryLessonTaskKinds(snapshot) : [levelSpec(level).kind];
     }
-    return ['moving-target', 'find-object', 'discriminate-object'].concat(categoryLessonTaskKinds(), ['choice-preference']);
+    return ['moving-target', 'find-object', 'discriminate-object'].concat(categoryLessonTaskKinds(snapshot), ['choice-preference']);
   }
 
   function refreshContentConfiguration(){
     if(!ui.findObjectConfig || !ui.findCategoryConfig) return;
-    const kinds = effectiveConfiguredTaskKinds();
     const snapshot = buildContentConfigurationSnapshot();
+    const kinds = effectiveConfiguredTaskKinds(snapshot);
     const objectCheck = findObjectConfiguration(snapshot);
     const categoryCheck = findCategoryConfiguration(snapshot);
     const matchCheck = matchCategoryConfiguration(snapshot);
     const exclusionCheck = categoryExclusionConfiguration(snapshot);
     const groupCompletionCheck = categoryGroupCompletionConfiguration(snapshot);
+    const attributeCheck = findAttributeConfiguration(snapshot);
     const usesObjectContent = kinds.some(kind => ['find-object', 'discriminate-object', 'choice-preference'].includes(kind));
     ui.findObjectConfig.hidden = !usesObjectContent;
-    ui.findCategoryConfig.hidden = !kinds.some(kind => ['find-category', 'match-category', 'complete-category-group', 'category-exclusion'].includes(kind));
+    ui.findCategoryConfig.hidden = !kinds.some(kind => ['find-category', 'match-category', 'complete-category-group', 'category-exclusion', 'find-attribute'].includes(kind));
     ui.findObjectConfigSummary.textContent = objectCheck.message;
     ui.findObjectConfigSummary.classList.toggle('invalid', !objectCheck.valid);
     const activeCategoryChecks = [
       kinds.includes('find-category') ? categoryCheck : null,
       kinds.includes('match-category') ? matchCheck : null,
       kinds.includes('complete-category-group') ? groupCompletionCheck : null,
-      kinds.includes('category-exclusion') ? exclusionCheck : null
+      kinds.includes('category-exclusion') ? exclusionCheck : null,
+      kinds.includes('find-attribute') ? attributeCheck : null
     ].filter(Boolean);
     const activeCategoryCheck = activeCategoryChecks.find(check => !check.valid) || activeCategoryChecks[activeCategoryChecks.length - 1] || categoryCheck;
     ui.findCategoryConfigSummary.textContent = activeCategoryCheck.message;
@@ -3359,8 +3504,8 @@
   }
 
   function validateSessionContentSetup(){
-    const kinds = effectiveConfiguredTaskKinds();
     const snapshot = buildContentConfigurationSnapshot();
+    const kinds = effectiveConfiguredTaskKinds(snapshot);
     const problems = [];
     if(kinds.some(kind => ['find-object', 'discriminate-object', 'choice-preference'].includes(kind))){
       const check = findObjectConfiguration(snapshot);
@@ -3382,16 +3527,20 @@
       const check = categoryGroupCompletionConfiguration(snapshot);
       if(!check.valid) problems.push(check.message);
     }
+    if(kinds.includes('find-attribute')){
+      const check = findAttributeConfiguration(snapshot);
+      if(!check.valid) problems.push(check.message);
+    }
     return { valid: problems.length === 0, problems, snapshot };
   }
 
   function sessionPoolFor(kind){
     if(state.sessionContentConfig){
       if(kind === 'find-object') return state.sessionContentConfig.findObject.items.slice();
-      if(['find-category', 'match-category', 'complete-category-group', 'category-exclusion'].includes(kind)) return state.sessionContentConfig.findCategory.items.slice();
+      if(['find-category', 'match-category', 'complete-category-group', 'category-exclusion', 'find-attribute'].includes(kind)) return state.sessionContentConfig.findCategory.items.slice();
     }
     const snapshot = buildContentConfigurationSnapshot();
-    return ['find-category', 'match-category', 'complete-category-group', 'category-exclusion'].includes(kind) ? snapshot.findCategory.items : snapshot.findObject.items;
+    return ['find-category', 'match-category', 'complete-category-group', 'category-exclusion', 'find-attribute'].includes(kind) ? snapshot.findCategory.items : snapshot.findObject.items;
   }
 
   function getFaceObject(){
@@ -3848,6 +3997,52 @@
         categoryRelation: 'same-as-reference-category',
         contentConfiguration: exportableContentConfiguration(snapshot).find_category,
         proceduralVariant: 'category-group-completion',
+        expectedResponseType: 'hit'
+      };
+    }
+
+    if(currentKind === 'find-attribute'){
+      const eligible = sessionPoolFor('find-attribute');
+      const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
+      const fairPredicates = snapshot.findCategory.fairAttributePredicates || [];
+      const occurrence = taskOccurrenceIndex(currentKind, index);
+      const predicate = balancedLessonChoice(fairPredicates, occurrence, 'find-attribute:predicates', item => item.id);
+      const categoryMembers = uniqueOptions(eligible.filter(item => (
+        canonicalCategoryId(item.category) === predicate.category
+        && normalizeImageSource(item.source) === 'personalised'
+      )), true);
+      const targetCandidates = categoryMembers.filter(item => optionMatchesDeclaredAttribute(item, predicate.attributeKey, predicate.attributeValue));
+      const predicateOccurrence = Math.floor((occurrence - 1) / Math.max(1, fairPredicates.length)) + 1;
+      const target = balancedLessonChoice(targetCandidates, predicateOccurrence, `find-attribute:${predicate.id}:targets`);
+      const distractorPool = categoryMembers.filter(item => {
+        const value = optionDeclaredAttributes(item)[predicate.attributeKey];
+        return (item.attributeSource || item.attribute_source) === 'teacher'
+          && value
+          && value !== predicate.attributeValue
+          && item.id !== target.id;
+      });
+      const distractors = balancedLessonOrder(distractorPool, `find-attribute:q${index}:distractors:${predicate.id}:${target.id}`)
+        .slice(0, Math.min(optionCount - 1, distractorPool.length));
+      return {
+        ...baseQuestion,
+        prompt: buildAttributePrompt(predicate.attributeKey, predicate.attributeValue, index),
+        cueSummary: `Choose the item labelled ${predicate.attributeValueLabel.toLowerCase()} by the teacher from other teacher-labelled items in ${predicate.categoryLabel}.`,
+        target,
+        options: shuffle([target].concat(distractors)),
+        correctId: target.id,
+        renderMode: 'grid',
+        distractorCount: distractors.length,
+        targetCategory: predicate.category,
+        targetCategoryLabel: predicate.categoryLabel,
+        categoryRelation: 'same-category-declared-attribute-contrast',
+        targetAttributeKey: predicate.attributeKey,
+        targetAttributeLabel: predicate.attributeLabel,
+        targetAttributeValue: predicate.attributeValue,
+        targetAttributeValueLabel: predicate.attributeValueLabel,
+        attributeSource: 'teacher',
+        attributeRelation: 'matches-teacher-declared-value',
+        contentConfiguration: exportableContentConfiguration(snapshot).find_category,
+        proceduralVariant: 'teacher-declared-colour-selection',
         expectedResponseType: 'hit'
       };
     }
@@ -4326,6 +4521,12 @@
       reference_category: question.referenceCategory || '',
       reference_category_label: question.referenceCategoryLabel || '',
       category_relation: question.categoryRelation || '',
+      target_attribute_key: question.targetAttributeKey || '',
+      target_attribute_label: question.targetAttributeLabel || '',
+      target_attribute_value: question.targetAttributeValue || '',
+      target_attribute_value_label: question.targetAttributeValueLabel || '',
+      attribute_source: question.attributeSource || '',
+      attribute_relation: question.attributeRelation || '',
       target_source: question.target ? normalizeImageSource(question.target.source) : '',
       cue_id: question.cueOption ? question.cueOption.id : '',
       cue_label: question.cueOption ? question.cueOption.label : '',
@@ -7718,8 +7919,108 @@
     })).sort((a, b) => b.trials - a.trials || a.category.localeCompare(b.category));
   }
 
+  function attributeSelectionIntegrity(trial){
+    if(!trial || trial.task_kind !== 'find-attribute') return { observed: false, valid: false };
+    const options = Array.isArray(trial.option_metadata) ? trial.option_metadata : [];
+    const observed = !!(
+      trial.target_id
+      && trial.target_category
+      && trial.target_attribute_key
+      && trial.target_attribute_value
+      && options.length >= 2
+    );
+    if(!observed) return { observed: false, valid: false };
+    const matchingOptions = options.filter(option => optionMatchesDeclaredAttribute(
+      option,
+      trial.target_attribute_key,
+      trial.target_attribute_value
+    ));
+    return {
+      observed: true,
+      valid: trial.attribute_source === 'teacher'
+        && trial.attribute_relation === 'matches-teacher-declared-value'
+        && options.every(option => storedOptionMatchesCategory(option, trial.target_category))
+        && options.every(option => normalizeImageSource(option.source) === 'personalised')
+        && options.every(option => optionDeclaredAttributes(option)[trial.target_attribute_key])
+        && matchingOptions.length === 1
+        && matchingOptions[0].id === trial.target_id
+        && new Set(options.map(option => option.id)).size === options.length
+        && new Set(options.map(option => normalizedConceptLabel(option.label))).size === options.length
+    };
+  }
+
+  function attributeSelectionResearchRows(trials){
+    const groups = new Map();
+    (Array.isArray(trials) ? trials : [])
+      .filter(trial => trial.task_kind === 'find-attribute')
+      .forEach(trial => {
+        const attributeKey = trial.target_attribute_key || 'not-recorded';
+        const attributeValue = trial.target_attribute_value || 'not-recorded';
+        const categoryId = trial.target_category || 'not-recorded';
+        const key = `${attributeKey}|${attributeValue}|${categoryId}`;
+        if(!groups.has(key)){
+          groups.set(key, {
+            attribute_key: attributeKey,
+            attribute_label: trial.target_attribute_label || attributeKey,
+            attribute_value: attributeValue,
+            attribute_value_label: trial.target_attribute_value_label || contentAttributeValueLabel(attributeKey, attributeValue),
+            category_id: categoryId,
+            category: trial.target_category_label || categoryId,
+            trials: 0,
+            correct: 0,
+            independent_correct: 0,
+            omissions: 0,
+            personalised_trials: 0,
+            target_ids: new Set(),
+            displayed_ids: new Set(),
+            response_times: [],
+            integrity_observed: 0,
+            integrity_valid: 0
+          });
+        }
+        const item = groups.get(key);
+        item.trials += 1;
+        if(trial.correct) item.correct += 1;
+        if(trial.correct && trial.independence_status === 'independent') item.independent_correct += 1;
+        if(trial.omission) item.omissions += 1;
+        if(trial.target_id) item.target_ids.add(trial.target_id);
+        const options = Array.isArray(trial.option_metadata) ? trial.option_metadata : [];
+        options.forEach(option => {
+          if(option.id) item.displayed_ids.add(option.id);
+        });
+        if(options.some(option => option.personalised_photo)) item.personalised_trials += 1;
+        if(Number.isFinite(trial.response_time_ms)) item.response_times.push(trial.response_time_ms);
+        const integrity = attributeSelectionIntegrity(trial);
+        if(integrity.observed){
+          item.integrity_observed += 1;
+          if(integrity.valid) item.integrity_valid += 1;
+        }
+      });
+    return Array.from(groups.values()).map(item => ({
+      attribute_key: item.attribute_key,
+      attribute_label: item.attribute_label,
+      attribute_value: item.attribute_value,
+      attribute_value_label: item.attribute_value_label,
+      category_id: item.category_id,
+      category: item.category,
+      trials: item.trials,
+      distinct_targets: item.target_ids.size,
+      distinct_displayed_items: item.displayed_ids.size,
+      personalised_trials: item.personalised_trials,
+      accuracy_pct: percentage(item.correct, item.trials),
+      independent_success_pct: percentage(item.independent_correct, item.trials),
+      omissions: item.omissions,
+      median_reaction_time_ms: item.response_times.length ? Math.round(median(item.response_times)) : null,
+      generator_integrity_observed: item.integrity_observed,
+      generator_integrity_valid: item.integrity_valid,
+      generator_integrity_pct: item.integrity_observed ? percentage(item.integrity_valid, item.integrity_observed) : null
+    })).sort((a, b) => b.trials - a.trials
+      || a.attribute_value_label.localeCompare(b.attribute_value_label)
+      || a.category.localeCompare(b.category));
+  }
+
   function categoryLessonCoverageRows(trials){
-    const categoryKinds = new Set(['find-category', 'match-category', 'complete-category-group', 'category-exclusion']);
+    const categoryKinds = new Set(['find-category', 'match-category', 'complete-category-group', 'category-exclusion', 'find-attribute']);
     const groups = new Map();
     (Array.isArray(trials) ? trials : [])
       .filter(trial => categoryKinds.has(trial.task_kind))
@@ -7735,7 +8036,8 @@
               'find-category': 0,
               'match-category': 0,
               'complete-category-group': 0,
-              'category-exclusion': 0
+              'category-exclusion': 0,
+              'find-attribute': 0
             },
             scored: 0,
             correct: 0,
@@ -7781,6 +8083,7 @@
       match_category_trials: item.task_counts['match-category'],
       complete_group_trials: item.task_counts['complete-category-group'],
       category_exclusion_trials: item.task_counts['category-exclusion'],
+      find_attribute_trials: item.task_counts['find-attribute'],
       distinct_targets: item.target_ids.size,
       distinct_cues: item.cue_ids.size,
       distinct_displayed_items: item.displayed_ids.size,
@@ -8633,6 +8936,43 @@
       ? 'Rows pool learners and are not a single learning trajectory. This profile describes delivered in-app category-difference trials; it does not demonstrate conceptual mastery, transfer, or neural change.'
       : 'This profile describes delivered in-app category-difference trials. Generator integrity checks that exactly one stored option is outside the reference category; it is not a pupil outcome or evidence of conceptual mastery, transfer, or neural change.';
 
+    const attributeRows = attributeSelectionResearchRows(finalTrials);
+    const attributeTrialCount = attributeRows.reduce((sum, item) => sum + item.trials, 0);
+    const attributeValues = new Set(attributeRows.map(item => `${item.attribute_key}|${item.attribute_value}`));
+    const attributeCategories = new Set(attributeRows.map(item => item.category_id));
+    const attributeIntegrityObserved = attributeRows.reduce((sum, item) => sum + item.generator_integrity_observed, 0);
+    const attributeIntegrityValid = attributeRows.reduce((sum, item) => sum + item.generator_integrity_valid, 0);
+    ui.researchAttributeTrials.textContent = String(attributeTrialCount);
+    ui.researchAttributeValues.textContent = String(attributeValues.size);
+    ui.researchAttributeCategories.textContent = String(attributeCategories.size);
+    ui.researchAttributeIntegrity.textContent = attributeIntegrityObserved ? `${percentage(attributeIntegrityValid, attributeIntegrityObserved)}%` : 'Not recorded';
+    drawResearchBars(ui.researchAttributeChart, attributeRows.map(item => ({
+      label: `${item.attribute_value_label} | ${item.category}`,
+      value: item.accuracy_pct,
+      color: themeToken('secondary', themeToken('primary'))
+    })), { maxValue: 100, suffix: '%', labelWidth: 190 });
+    if(attributeRows.length){
+      clearNode(ui.researchAttributeBody);
+      attributeRows.forEach(item => appendResearchRow(ui.researchAttributeBody, [
+        item.attribute_value_label,
+        item.category,
+        item.trials,
+        item.distinct_targets,
+        item.distinct_displayed_items,
+        item.personalised_trials,
+        `${item.accuracy_pct}%`,
+        `${item.independent_success_pct}%`,
+        item.omissions,
+        item.median_reaction_time_ms == null ? null : `${item.median_reaction_time_ms} ms`,
+        item.generator_integrity_pct == null
+          ? 'Not recorded'
+          : `${item.generator_integrity_valid}/${item.generator_integrity_observed} (${item.generator_integrity_pct}%)`
+      ]));
+    } else renderResearchEmptyRow(ui.researchAttributeBody, 11, 'No Find by colour trials in this scope yet.');
+    ui.researchAttributeNote.textContent = scope === 'all-learners'
+      ? 'Rows pool learners and are not one learning trajectory. Colour values are practitioner-entered metadata, not image measurements; pooled results do not demonstrate perception, mastery, transfer, or neural change.'
+      : 'Colour values are practitioner-entered metadata, not measurements made by ChoiceTrain. Results describe delivered in-app practice and should not be treated as proof of colour perception, conceptual mastery, transfer, or neural change.';
+
     const categoryLessonRows = categoryLessonCoverageRows(finalTrials);
     const categoryLessonTrials = categoryLessonRows.reduce((sum, item) => sum + item.trials, 0);
     const categoryLessonTasks = new Set();
@@ -8641,6 +8981,7 @@
       if(item.match_category_trials) categoryLessonTasks.add('match-category');
       if(item.complete_group_trials) categoryLessonTasks.add('complete-category-group');
       if(item.category_exclusion_trials) categoryLessonTasks.add('category-exclusion');
+      if(item.find_attribute_trials) categoryLessonTasks.add('find-attribute');
     });
     const categoryLessonPersonalised = categoryLessonRows.reduce((sum, item) => sum + item.personalised_trials, 0);
     ui.researchCategoryLessonTrials.textContent = String(categoryLessonTrials);
@@ -8661,6 +9002,7 @@
         item.match_category_trials,
         item.complete_group_trials,
         item.category_exclusion_trials,
+        item.find_attribute_trials,
         item.distinct_targets,
         item.distinct_cues,
         item.distinct_displayed_items,
@@ -8669,7 +9011,7 @@
         item.independent_success_pct == null ? null : `${item.independent_success_pct}%`,
         item.omissions
       ]));
-    } else renderResearchEmptyRow(ui.researchCategoryLessonBody, 13, 'No category lessons in this scope yet.');
+    } else renderResearchEmptyRow(ui.researchCategoryLessonBody, 14, 'No category lessons in this scope yet.');
     ui.researchCategoryLessonNote.textContent = scope === 'all-learners'
       ? 'Rows pool delivered category lessons across learners and are not one progression sequence. Counts describe exposure balance and observed in-app outcomes; they do not establish equivalent difficulty, generalisation, or treatment effects.'
       : 'Counts describe delivered category-task exposure and observed in-app outcomes. Use them to identify narrow or uneven practice, not as proof of equivalent difficulty, generalisation, or conceptual mastery.';
@@ -9800,6 +10142,7 @@
       category_matching: categoryMatchResearchRows(finalTrials),
       category_group_completion: categoryGroupCompletionResearchRows(finalTrials),
       category_exclusion: categoryExclusionResearchRows(finalTrials),
+      attribute_selection: attributeSelectionResearchRows(finalTrials),
       category_lesson_coverage: categoryLessonCoverageRows(finalTrials),
       session_context: context,
       eeg_readiness: eegReadiness,
@@ -9912,6 +10255,10 @@
       cue_category_id: cueCategoryId,
       reference_category_id: referenceCategoryId,
       category_relation: trial.category_relation || null,
+      target_attribute_key: trial.target_attribute_key || null,
+      target_attribute_value: trial.target_attribute_value || null,
+      attribute_source: trial.attribute_source || null,
+      attribute_relation: trial.attribute_relation || null,
       cue_target_distinct: trial.cue_id ? trial.cue_id !== trial.target_id : null,
       personalised_content: personalisedContent,
       option_count: Array.isArray(trial.option_metadata)
