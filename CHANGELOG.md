@@ -90,7 +90,7 @@ All notable changes to ChoiceTrain are listed here.
 - a browser-level local-only check proving the V1.8 alpha makes no external runtime requests during load
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
-- refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary
+- refreshed the V1.8 alpha build information from reviewed touch-visualisation checkpoint `14985de` while retaining the experimental channel and explicit non-published V1.7 boundary
 - 30 focused V1.8 browser tests, including multi-seed group-completion and category-difference integrity, deterministic teacher-declared colour replay, multi-learner AI-composition visualisation, participant-separated split safeguards, fixed-condition persistence, drift blocking, export, marker, trial-recording completeness, normalized touch-map evidence, local-only runtime behavior, and every-Research-chart accessibility coverage; the complete stable, archive, and alpha matrix passes 107 tests
 
 ### Planned
