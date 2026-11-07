@@ -113,6 +113,28 @@ These papers inform design choices, classroom workflow decisions, ChoiceTrain At
   Link: https://doi.org/10.3389/frobt.2021.746311
   Why it matters: sensory sensitivity was relevant to response during technology-based training. It supports recording and adapting visual and sound settings, while not establishing a universal ChoiceTrain sensory profile.
 
+## 7. Longitudinal Personalisation, Retention, and Interpretation
+
+- Corbett, A. T., & Anderson, J. R. (1994). *Knowledge tracing: Modeling the acquisition of procedural knowledge*. User Modeling and User-Adapted Interaction, 4, 253-278.
+  Link: https://doi.org/10.1007/BF01099821
+  Why it matters: this is a foundational skill-specific learner-model paper. It supports versioning ChoiceTrain skills and updating state from repeated opportunities, while V1.8 initially keeps its estimates descriptive and inspectable rather than claiming a validated knowledge-tracing model.
+
+- Cepeda, N. J., Pashler, H., Vul, E., Wixted, J. T., & Rohrer, D. (2006). *Distributed practice in verbal recall tasks: A review and quantitative synthesis*. Psychological Bulletin, 132(3), 354-380.
+  Link: https://doi.org/10.1037/0033-2909.132.3.354
+  Why it matters: spacing and retention interval jointly affected later recall across the reviewed experiments. This supports recording practice gaps and delayed maintenance checks, not prescribing one universal interval.
+
+- Roediger, H. L., & Karpicke, J. D. (2006). *Test-enhanced learning: Taking memory tests improves long-term retention*. Psychological Science, 17(3), 249-255.
+  Link: https://doi.org/10.1111/j.1467-9280.2006.01693.x
+  Why it matters: delayed testing showed retention benefits from retrieval practice in the studied materials. ChoiceTrain uses this cautiously to justify measuring delayed retention rather than treating immediate session accuracy as durable learning.
+
+- Camerota, M., Willoughby, M. T., & Blair, C. B. (2019). *Speed and accuracy on the Hearts and Flowers task interact to predict child outcomes*. Psychological Assessment, 31(8), 995-1005.
+  Link: https://doi.org/10.1037/pas0000725
+  Why it matters: reaction time and accuracy interacted when predicting child outcomes. This supports joint visualisation and cautions against using faster responses as a stand-alone improvement signal.
+
+- Ganesan, K., Thompson, A., Smid, C. R., et al. (2024). *Cognitive control training with domain-general response inhibition does not change children's brains or behavior*. Nature Neuroscience, 27, 1364-1375.
+  Link: https://doi.org/10.1038/s41593-024-01672-w
+  Why it matters: the preregistered randomized child trial found trained-function changes but no broad behavioural or neural transfer. It strengthens the case for active controls, delayed follow-up, direct transfer measures, pre-specified outcomes, and cautious claims about neural plasticity.
+
 ## Standards and Design Sources
 
 The following sources guide implementation but are not peer-reviewed evidence that ChoiceTrain improves an educational or clinical outcome:
@@ -144,6 +166,9 @@ The papers above were used to support these broad feature areas:
 
 - **EEG research mode, event markers, artifact logging, and cautious neuroplasticity framing**
   Supported mainly by Brooker et al. (2020), Xu et al. (2022), Jiang et al. (2019), and Tymofiyeva & Gaschler (2021).
+
+- **V1.8 skill graph, longitudinal trends, retention checks, and interpretable recommendations**
+  Supported mainly by Corbett and Anderson (1994), Cepeda et al. (2006), Roediger and Karpicke (2006), Camerota et al. (2019), and the transfer caution from Ganesan et al. (2024). These papers inform what should be measured; they do not validate ChoiceTrain's future recommendation rules.
 
 ## Important Note
 

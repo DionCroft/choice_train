@@ -2,6 +2,18 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.8.0-alpha] - Unreleased
+
+### Planned
+
+- versioned skill graph and reproducible procedural lesson plans
+- longitudinal, interpretable learner-state and retention summaries
+- dedicated Research workspace with accessible visualisations across behavioural, touch, support, content, transfer, fidelity, artifact, EEG-quality, and recommendation data
+- teacher-reviewed recommendations and privacy-preserving AI-training exports
+- additional EEG protocol and synchronization-diagnostic fields without claiming hardware-synchronised triggers
+
+See [the V1.8 research and personalisation plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md) for evidence boundaries, milestones, and promotion gates.
+
 ## [1.7.0] - 2026-11-07
 
 ### Promoted

@@ -3,7 +3,7 @@
 [![Browser tests](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/ci.yml)
 [![GitHub Pages](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml/badge.svg)](https://github.com/DionCroft/choice_train/actions/workflows/pages.yml)
 
-**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.7 design decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Colour-system audit](docs/V1.7.0_COLOUR_SYSTEM_AUDIT.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
+**[Live application](https://dioncroft.github.io/choice_train/)** | **[User guide](docs/USER_GUIDE.md)** | **[V1.8 research plan](docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md)** | **[V1.7 design decisions](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md)** | **[Research evidence](docs/RESEARCH_EVIDENCE.md)** | **[Data and privacy](docs/DATA_AND_PRIVACY.md)** | **[Release history](CHANGELOG.md)**
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
