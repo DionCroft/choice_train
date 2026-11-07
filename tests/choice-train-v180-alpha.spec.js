@@ -319,6 +319,36 @@ test('Research separates Attention Training families and avoids unsupported slop
   await expect(page.locator('#researchAttentionFamilyBody')).toContainText('Use learner scope');
 });
 
+test('Research visualises error, timing-consistency, and touch trends with observed-value counts', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 3);
+
+  await completeSessionAndExport(page, 3);
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-learner');
+
+  await expect(page.locator('#researchErrorRateChart')).toBeVisible();
+  await expect(page.locator('#researchRtVariabilityChart')).toBeVisible();
+  await expect(page.locator('#researchTouchDistanceChart')).toBeVisible();
+  await expect(page.locator('#researchBehaviourBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchBehaviourBody')).toContainText('3/3');
+  await expect(page.locator('#researchBehaviourBody')).toContainText('0%');
+  await expect(page.locator('#researchBehaviourBody')).toContainText('ms');
+  await expect(page.locator('#researchBehaviourBody')).toContainText('px');
+  await expect(page.locator('#researchBehaviourNote')).toContainText('device setup');
+
+  await setValue(page, 'researchScopeSelect', 'all-learners');
+  await expect(page.locator('#researchBehaviourNote')).toContainText('not connected');
+});
+
 test('teacher-reviewed recommendations persist locally and export an audit record', async ({ page }) => {
   await gotoAlpha(page);
   await setCheckbox(page, 'ttsToggle', false);

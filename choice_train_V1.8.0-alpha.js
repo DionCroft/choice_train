@@ -5926,8 +5926,13 @@
       accuracy_pct: accuracy,
       independent_pct: responded.length ? Math.round((independent.length / responded.length) * 100) : null,
       median_rt_ms: responseTimes.length ? Math.round(median(responseTimes)) : null,
+      rt_observed_count: responseTimes.length,
+      rt_variability_ms: responseTimes.length > 1 ? Math.round(standardDeviation(responseTimes)) : null,
       omissions: finalTrials.filter(trial => trial.omission).length,
       commissions: finalTrials.filter(trial => trial.commission).length,
+      omission_pct: finalTrials.length ? Math.round((finalTrials.filter(trial => trial.omission).length / finalTrials.length) * 100) : null,
+      commission_pct: finalTrials.length ? Math.round((finalTrials.filter(trial => trial.commission).length / finalTrials.length) * 100) : null,
+      touch_observed_count: touchDistances.length,
       mean_touch_distance_px: touchDistances.length ? Number(mean(touchDistances).toFixed(1)) : null
     };
   }
@@ -6284,6 +6289,64 @@
     });
   }
 
+  function drawResearchMetricTrend(canvas, rows, series, options={}){
+    const ctx = prepareResearchCanvas(canvas);
+    const plot = { left: 54, top: 22, right: canvas.width - 18, bottom: canvas.height - 42 };
+    const observedValues = series.flatMap(entry => rows.map(row => row[entry.key]).filter(Number.isFinite));
+    const maxValue = Number.isFinite(options.maxValue)
+      ? options.maxValue
+      : Math.max(1, Math.ceil(Math.max(0, ...observedValues) * 1.1));
+    ctx.strokeStyle = themeToken('border', '#738c91');
+    ctx.fillStyle = themeToken('text-muted', '#52656d');
+    ctx.textAlign = 'right';
+    [0, maxValue / 2, maxValue].forEach(value => {
+      const y = plot.bottom - ((plot.bottom - plot.top) * value / maxValue);
+      ctx.beginPath();
+      ctx.moveTo(plot.left, y);
+      ctx.lineTo(plot.right, y);
+      ctx.stroke();
+      const display = Number.isInteger(value) ? value : Number(value.toFixed(1));
+      ctx.fillText(`${display}${options.suffix || ''}`, plot.left - 7, y);
+    });
+    if(!observedValues.length){
+      ctx.textAlign = 'left';
+      ctx.fillText(options.emptyText || 'No observed values in this scope', plot.left + 12, (plot.top + plot.bottom) / 2);
+      return;
+    }
+    series.forEach((entry, seriesIndex) => {
+      const points = rows.map((row, index) => ({ value: row[entry.key], index })).filter(point => Number.isFinite(point.value));
+      ctx.strokeStyle = entry.color;
+      ctx.fillStyle = entry.color;
+      ctx.lineWidth = 3;
+      if(options.connectPoints !== false){
+        ctx.beginPath();
+        points.forEach((point, index) => {
+          const x = plot.left + ((plot.right - plot.left) * (rows.length <= 1 ? 0.5 : point.index / (rows.length - 1)));
+          const y = plot.bottom - ((plot.bottom - plot.top) * clamp(point.value / maxValue, 0, 1));
+          if(index === 0) ctx.moveTo(x, y);
+          else ctx.lineTo(x, y);
+        });
+        ctx.stroke();
+      }
+      points.forEach(point => {
+        const x = plot.left + ((plot.right - plot.left) * (rows.length <= 1 ? 0.5 : point.index / (rows.length - 1)));
+        const y = plot.bottom - ((plot.bottom - plot.top) * clamp(point.value / maxValue, 0, 1));
+        if(seriesIndex % 2){
+          ctx.fillRect(x - 4, y - 4, 8, 8);
+        } else {
+          ctx.beginPath();
+          ctx.arc(x, y, 4, 0, Math.PI * 2);
+          ctx.fill();
+        }
+      });
+      const legendX = plot.left + (seriesIndex * 190);
+      ctx.fillRect(legendX, canvas.height - 22, 12, 4);
+      ctx.fillStyle = themeToken('text', '#172b35');
+      ctx.textAlign = 'left';
+      ctx.fillText(entry.label, legendX + 18, canvas.height - 20);
+    });
+  }
+
   function researchReviewsForSessions(sessions){
     const scope = ui.researchScopeSelect ? ui.researchScopeSelect.value : 'current-learner';
     const reviews = [];
@@ -6538,6 +6601,35 @@
     ui.researchAttentionFamilyNote.textContent = scope === 'all-learners'
       ? 'Family totals are shown across learners. Select Current learner history before interpreting longitudinal change.'
       : 'Descriptive slopes require at least three observed sessions in a family. They summarise in-app practice only and do not establish transfer, causation, or neural change.';
+
+    const connectBehaviourPoints = scope !== 'all-learners';
+    drawResearchMetricTrend(ui.researchErrorRateChart, sessionRows, [
+      { key: 'omission_pct', label: 'Omission rate', color: themeToken('warning') },
+      { key: 'commission_pct', label: 'Commission rate', color: themeToken('danger') }
+    ], { maxValue: 100, suffix: '%', connectPoints: connectBehaviourPoints });
+    drawResearchMetricTrend(ui.researchRtVariabilityChart, sessionRows, [
+      { key: 'rt_variability_ms', label: 'RT variability', color: themeToken('primary') }
+    ], { suffix: ' ms', connectPoints: connectBehaviourPoints, emptyText: 'At least two timed responses per session are required' });
+    drawResearchMetricTrend(ui.researchTouchDistanceChart, sessionRows, [
+      { key: 'mean_touch_distance_px', label: 'Touch distance', color: themeToken('success') }
+    ], { suffix: ' px', connectPoints: connectBehaviourPoints, emptyText: 'No touch-distance values in this scope' });
+    if(sessionRows.length){
+      clearNode(ui.researchBehaviourBody);
+      sessionRows.forEach(row => appendResearchRow(ui.researchBehaviourBody, [
+        row.date,
+        row.learner,
+        row.trials,
+        row.omission_pct == null ? null : `${row.omission_pct}%`,
+        row.commission_pct == null ? null : `${row.commission_pct}%`,
+        `${row.rt_observed_count}/${row.trials}`,
+        row.rt_variability_ms == null ? null : `${row.rt_variability_ms} ms`,
+        `${row.touch_observed_count}/${row.trials}`,
+        row.mean_touch_distance_px == null ? null : `${row.mean_touch_distance_px} px`
+      ]));
+    } else renderResearchEmptyRow(ui.researchBehaviourBody, 9);
+    ui.researchBehaviourNote.textContent = scope === 'all-learners'
+      ? 'Each point is one session; points are not connected across different learners. Missing timing and touch values remain missing.'
+      : 'Rates use final trial outcomes. RT variability requires at least two observed response times; touch distance depends on task geometry and device setup.';
 
     const skillRows = researchSummary.skill_summaries;
     drawResearchBars(ui.researchSkillChart, skillRows.filter(item => item.accuracy_pct != null).map(item => ({

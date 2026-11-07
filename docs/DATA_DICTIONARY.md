@@ -38,6 +38,12 @@ The Research workspace recomputes a separate descriptive profile for `sustained`
 
 `Descriptive slope` is an on-screen percentage-point change per observed session, calculated from family-level session accuracy only when the current-learner scope contains at least three sessions for that family. It is not calculated in all-learner scope and is not a validated learning, transfer, or neural-plasticity estimate.
 
+### Research response-quality view
+
+The response-quality card derives session-level `omission_pct`, `commission_pct`, `rt_variability_ms`, and `mean_touch_distance_px` from final trial outcomes. It also displays `rt_observed_count` and `touch_observed_count` against the session's final-trial count. RT variability is missing unless at least two response times were observed. Touch distance remains missing when target geometry was unavailable and should be compared cautiously across tasks, layouts, devices, or touch-scaling settings.
+
+Current-learner points may be connected in chronological order. All-learner points are deliberately unconnected because records from different learners are not one longitudinal series.
+
 ## V1.8 Procedural Lesson Provenance
 
 Generator version `1.1.0` adds a `balanced-before-repeat` coverage strategy for `Find object` and `Find category`.

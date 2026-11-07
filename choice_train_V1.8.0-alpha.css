@@ -1157,6 +1157,16 @@ body.panel-view-admin .tableWrap {
   margin-top: 10px;
 }
 
+.researchMetricPair {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.researchMetricPair .researchCanvas {
+  min-height: 200px;
+}
+
 .recommendationProposal {
   margin: 10px 0;
   padding: 14px;
@@ -1246,6 +1256,10 @@ body.panel-view-admin .tableWrap {
 }
 
 @media (max-width: 720px) {
+  .researchMetricPair {
+    grid-template-columns: 1fr;
+  }
+
   .compactDashboard {
     grid-template-columns: 1fr;
   }

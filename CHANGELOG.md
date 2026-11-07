@@ -33,7 +33,9 @@ All notable changes to ChoiceTrain are listed here.
 - full exports retain the local governance declaration for audit, while the privacy-minimised dataset excludes authority references and review dates
 - a dedicated Attention Training family profile for sustained, selective-spatial, orienting, and executive performance, including accuracy, independence, omissions, commissions, RT, RT variability, and touch distance
 - current-learner family trajectories with an accessible table and a descriptive percentage-point slope only after three observed sessions; all-learner scope deliberately suppresses slope interpretation
-- 16 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 93 tests
+- response-quality visualisations for per-session omission and commission rates, RT variability, and mean touch distance, with observed-value counts and missing values preserved
+- pooled all-learner response-quality points are left unconnected so they cannot be mistaken for one learner's longitudinal trajectory
+- 17 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 94 tests
 
 ### Planned
 

@@ -1244,6 +1244,27 @@
               <div id="researchAttentionFamilyNote" class="compactNote">A descriptive family view will appear after Attention Training trials are recorded.</div>
             </div>
             <div class="chartCard span2">
+              <h4>Response quality and touch behaviour over time</h4>
+              <canvas id="researchErrorRateChart" class="researchCanvas" width="760" height="240" role="img" aria-label="Omission and commission rates across sessions"></canvas>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Reaction-time variability</div>
+                  <canvas id="researchRtVariabilityChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Reaction-time variability in milliseconds across sessions"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Mean touch distance</div>
+                  <canvas id="researchTouchDistanceChart" class="researchCanvas" width="360" height="220" role="img" aria-label="Mean touch distance in pixels across sessions"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Trials</th><th>Omission rate</th><th>Commission rate</th><th>RT observed</th><th>RT variability</th><th>Touch observed</th><th>Mean touch distance</th></tr></thead>
+                  <tbody id="researchBehaviourBody"></tbody>
+                </table>
+              </div>
+              <div id="researchBehaviourNote" class="compactNote">Missing timing and touch values remain missing. Rates use final trial outcomes in each session.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Versioned skill profile</h4>
               <canvas id="researchSkillChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Accuracy by ChoiceTrain skill"></canvas>
               <div class="tableWrap researchTableWrap">
