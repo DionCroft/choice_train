@@ -29,7 +29,11 @@ All notable changes to ChoiceTrain are listed here.
 - a metadata-defined `Match category` lesson that keeps one non-selectable cue exemplar visible above the choices, requires a different same-category target, excludes category-matching distractors, rotates with Find category in the automatic Level 6 path, and records the cue/target/category relationship for skill and Research views
 - multi-seed browser safeguards for category-match grammar, distinct cue and target IDs, source/category constraints, unique options, exactly one valid answer, reproducible provenance, and Level 6 task rotation
 - an accessible category-matching Research profile for trials, categories, distinct cues, targets and cue-target pairs, accuracy, independent success, omissions, median RT, and stored generator-invariant coverage
-- Research workspace summary export version 1.1.0 with category-level matching aggregates and no cue or target item labels
+- Research workspace summary export version 1.2.0 with category-level matching aggregates, fixed-condition adherence rows, and no cue or target item labels
+- local fixed-condition manifests with non-identifying condition IDs, deterministic settings fingerprints, required replay seeds, protected non-overwrite behaviour, and save/apply controls under Admin and research
+- opt-in session-start enforcement that blocks missing or drifted fixed conditions while leaving ordinary classroom sessions unrestricted; the frozen manifest, adherence result, condition ID, and fingerprint are retained in session, EEG, and marker exports
+- fixed-condition Research cards, chart, and accessible session table for condition use, adherence, exceptions, replay seed, and settings fingerprint, with explicit boundaries around allocation, blinding, preregistration, ethics approval, and hardware timing
+- EEG protocol metadata version 1.1.0 and condition IDs propagated to browser marker exports; the privacy-minimised model-development export excludes condition IDs and manifest settings
 - fair category rotation and target rotation across stock, personalised, and teacher-created content while preserving source/category filters and exactly one valid answer
 - two-option discrimination that prefers a within-category contrast and exports the actual contrast type without claiming visual or attribute equivalence
 - open-ended preference lessons that accept every configured option, retain the selected content, suppress arbitrary target-distance measures, and mark the response as valid but unscored
@@ -67,7 +71,7 @@ All notable changes to ChoiceTrain are listed here.
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary
-- 23 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 100 tests
+- 24 focused V1.8 browser tests, including fixed-condition persistence, drift blocking, replay, export, marker, and Research-view coverage; the complete stable, archive, and alpha matrix passes 101 tests
 
 ### Planned
 

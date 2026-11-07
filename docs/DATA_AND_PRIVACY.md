@@ -12,6 +12,7 @@ The browser may store:
 - session settings and progress
 - responses, timings, touch positions, and heatmap data
 - prompting, fidelity, artifact, and EEG-preparation markers
+- local fixed-condition manifests containing software settings, non-identifying condition IDs, and deterministic lesson seeds
 
 This information remains on the device unless a user deliberately downloads an export. ChoiceTrain currently makes no external analytics, LLM, pupil-account, or cloud-storage request.
 
@@ -58,6 +59,8 @@ The pseudonymised export excludes pupil names and aliases, free-text notes, imag
 This output is **pseudonymised, not anonymous**. The random participant code is stored in the local pupil profile and can support longitudinal linkage; the source device or a separately held mapping may therefore permit re-identification. Governance references and review dates remain available in full session records but are excluded from the privacy-minimised dataset. Export creation does not establish consent or another lawful basis and does not transmit the file. Before research or model development, schools and researchers must define purpose, lawful basis or consent/authority, data minimisation, access, secure transfer, retention/deletion, train/validation/test separation, bias review, human oversight, and incident handling.
 
 V1.8 protocol controls record the declared synchronisation method but do not activate LSL or hardware triggers. Marker completeness, event ordering, and timing-difference cards are software-log diagnostics. They do not validate amplifier clocks, display/audio latency, transport delay, cap quality, artifact removal, or physiological signal quality.
+
+Fixed-condition enforcement is also a software control. It stores a local manifest and blocks Start when selected controls no longer match. It does not establish a study's randomisation, allocation, blinding, preregistration, ethics approval, or hardware timing. Condition IDs must not contain pupil names. The pseudonymised model-development export retains only enabled/adherence/fingerprint state and excludes the condition ID and manifest settings.
 
 ## Incident Reporting
 

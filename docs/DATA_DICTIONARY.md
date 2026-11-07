@@ -66,7 +66,7 @@ The Research demand view derives per-session mean displayed option count, mean d
 
 ### Research workspace summary export
 
-`Download scope summary` creates local JSON with `export_schema_version: 1.1.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `session_demands`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
+`Download scope summary` creates local JSON with `export_schema_version: 1.2.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
 
 The summary includes configured learner aliases and day-level session dates. Its privacy manifest confirms that raw trials, raw events, raw coordinates, images, photo labels, and free-text notes are excluded. It is a local staff/research report, not an anonymous dataset and not the separately governed pseudonymised model-development export. ChoiceTrain does not transmit it externally.
 
@@ -208,6 +208,12 @@ The session-start protocol snapshot is immutable for that session. It records de
 | `study_protocol.run_number` | Run number within the visit |
 | `study_protocol.acquisition_system` | Locally entered equipment/amplifier label |
 | `study_protocol.declared_sync_method` | `browser-only`, `manual-event-log`, `lsl-bridge`, or `hardware-trigger`; this is a declaration, not verification |
+| `study_protocol.protocol_condition_id` | Non-identifying local fixed-condition ID when enforcement was enabled |
+| `study_protocol.fixed_condition.schema_version` | Version of the local fixed-condition structure |
+| `study_protocol.fixed_condition.enabled` | Whether fixed-condition enforcement was enabled at session start |
+| `study_protocol.fixed_condition.adherence_status` | `adherent` for a verified match; non-adherent states remain visible for imported or incomplete records |
+| `study_protocol.fixed_condition.settings_fingerprint` | Eight-character FNV-1a fingerprint of canonical manifest settings for comparison, not a cryptographic signature |
+| `study_protocol.fixed_condition.manifest` | Frozen local manifest containing task, timing, prompt, content-filter, research-condition, block, and replay-seed controls |
 | `study_protocol.clock_latency_notes` | Free-text technical notes; excluded from the pseudonymised model-development export |
 | `study_protocol.planned_marker_set` | Marker names expected by the ChoiceTrain protocol layer |
 | `study_protocol.hardware_synchronization_verified` | Always `false` in the current browser-only implementation |
@@ -219,6 +225,8 @@ The session-start protocol snapshot is immutable for that session. It records de
 
 The Research workspace also derives per-session marker-completeness, ordering, protocol-coverage, and mean block-quality values. Block quality is the existing transparent browser-log heuristic: it starts at 100 and subtracts configured weights for practitioner-logged artifacts plus omission/commission penalties. The artifact view reports event counts and the number of affected sessions for Movement, Blink, Speech, Cap adjust, and Interruption. These values are not EEG signal-quality metrics, and even 100% marker completeness does not establish hardware synchronisation.
 
+The fixed-condition Research rows report date, condition ID, research condition, adherence state, replay seed, and fingerprint. `adherent` means the current ChoiceTrain controls matched the locally saved manifest at Start. It does not verify randomisation, allocation concealment, blinding, preregistration, protocol approval, treatment equivalence, or EEG hardware timing. Protocol-relevant speech, target-scale, touch-scaling, and learner-view controls are fixed; pupil identity, notes, themes, fonts, communication mode, and motor-access profile are not.
+
 ## V1.8 Pseudonymised Research / Model-Development Export
 
 This separate JSON uses `export_schema_version: 1.0.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
@@ -228,9 +236,10 @@ This separate JSON uses `export_schema_version: 1.0.0` and `privacy_status: pseu
 - task, skill, outcome, support, reaction-time, and touch-distance features
 - privacy-safe per-skill summaries
 - relative EEG marker times and browser diagnostics
+- fixed-condition enabled/adherence/fingerprint state without the condition ID or manifest settings
 - sanitised teacher decisions, rationale codes, and final task/level without reviewer identity or free text
 
-It excludes direct names and aliases, free text, images, photo labels, exact wall-clock/performance timestamps, source session/trial/recommendation IDs, prompt wording, selected labels, and raw touch coordinates. `external_transmission` is `false`; clicking the button downloads a local file only.
+It excludes direct names and aliases, free text, images, photo labels, exact wall-clock/performance timestamps, source session/trial/recommendation IDs, prompt wording, selected labels, raw touch coordinates, fixed-condition IDs, and fixed manifest settings. `external_transmission` is `false`; clicking the button downloads a local file only.
 
 ### V1.8 Data-use governance declaration
 

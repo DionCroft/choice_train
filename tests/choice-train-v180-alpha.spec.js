@@ -366,7 +366,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
   await expect(page.locator('#researchMatchCategoryNote')).toContainText('engineering/data-quality');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.1.0');
+  expect(researchPayload.export_schema_version).toBe('1.2.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -601,7 +601,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('1.1.0');
+  expect(researchPayload.export_schema_version).toBe('1.2.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);
@@ -1031,7 +1031,7 @@ test('EEG protocol metadata and browser timing diagnostics are exported and visu
   const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
 
   expect(payload.study_protocol).toEqual(expect.objectContaining({
-    protocol_schema_version: '1.0.0',
+    protocol_schema_version: '1.1.0',
     study_protocol_id: 'CT-PILOT-01',
     visit_id: 'baseline',
     run_number: 2,
@@ -1082,6 +1082,85 @@ test('EEG protocol metadata and browser timing diagnostics are exported and visu
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchEegQualityNote')).toContainText('unconnected points');
+});
+
+test('fixed research conditions persist, block drift, reapply, export, and visualise adherence', async ({ page }) => {
+  const errors = trackErrors(page);
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setCheckbox(page, 'eegResearchMode', true);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+  await setValue(page, 'maxObjects', 4);
+  await setValue(page, 'lessonSeedOverride', 314159);
+  await setValue(page, 'protocolConditionId', 'CT-PILOT-TRAIN-A');
+  await setCheckbox(page, 'fixedConditionEnabled', true);
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavEeg').click();
+  await expect(page.locator('#saveFixedConditionBtn')).toBeVisible();
+  await page.locator('#saveFixedConditionBtn').click();
+  await expect(page.locator('#fixedConditionStatus')).toContainText('is ready');
+  await page.waitForTimeout(250);
+
+  await page.reload();
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavEeg').click();
+  await expect(page.locator('#fixedConditionEnabled')).toBeChecked();
+  await expect(page.locator('#protocolConditionId')).toHaveValue('CT-PILOT-TRAIN-A');
+  await expect(page.locator('#fixedConditionStatus')).toContainText('is ready');
+
+  await setValue(page, 'maxObjects', 3);
+  await expect(page.locator('#fixedConditionStatus')).toContainText('max_answer_options');
+  await page.locator('#teacherPanelTab').click();
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('body')).toHaveClass(/panel-view-admin/);
+  await expect(page.locator('#fixedConditionStatus')).toContainText('max_answer_options');
+
+  await page.locator('#applyFixedConditionBtn').click();
+  await expect(page.locator('#maxObjects')).toHaveValue('4');
+  await expect(page.locator('#fixedConditionStatus')).toContainText('is ready');
+  await page.locator('#teacherPanelTab').click();
+  await page.locator('#quickStartSessionBtn').click();
+  await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
+  await expect(page.locator('#screenSummary.active')).toBeVisible();
+  const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
+
+  expect(payload.protocol_condition_id).toBe('CT-PILOT-TRAIN-A');
+  expect(payload.fixed_condition).toEqual(expect.objectContaining({
+    schema_version: '1.0.0',
+    enabled: true,
+    protocol_condition_id: 'CT-PILOT-TRAIN-A',
+    adherence_status: 'adherent'
+  }));
+  expect(payload.fixed_condition.settings_fingerprint).toMatch(/^[0-9a-f]{8}$/);
+  expect(payload.fixed_condition.manifest.settings).toEqual(expect.objectContaining({
+    task_type: 'find-object',
+    max_answer_options: 4,
+    lesson_replay_seed: 314159,
+    speech_prompts: false,
+    target_scale_percent: 100,
+    automatic_touch_scaling: true,
+    student_friendly_mode: true
+  }));
+  expect(payload.lesson_seed).toBe(314159);
+  expect(payload.eeg_markers.every(marker => marker.protocol_condition_id === 'CT-PILOT-TRAIN-A')).toBe(true);
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await page.locator('#refreshResearchBtn').click();
+  await expect(page.locator('#researchFixedConditionSessions')).toHaveText('1');
+  await expect(page.locator('#researchFixedConditionAdherent')).toHaveText('1');
+  await expect(page.locator('#researchFixedConditionExceptions')).toHaveText('0');
+  await expect(page.locator('#researchFixedConditionBody')).toContainText('CT-PILOT-TRAIN-A');
+  await expect(page.locator('#researchFixedConditionBody')).toContainText('adherent');
+  expect(errors, errors.join('\n')).toEqual([]);
 });
 
 test('model-development export is denied by default without a recorded authority declaration', async ({ page }) => {

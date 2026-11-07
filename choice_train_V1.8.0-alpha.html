@@ -884,6 +884,16 @@
             <div class="helperText">Use the same seed with the same settings and content to reproduce generated targets, options, and Attention Training conditions. Leave blank for a new seed.</div>
           </div>
           <div>
+            <label class="toggle"><input id="fixedConditionEnabled" type="checkbox" /> Enforce a fixed research condition</label>
+            <div class="helperText">Checks that the saved task, timing, prompt, content, presentation, touch-scaling, block, and replay-seed settings still match before a session can start.</div>
+          </div>
+          <div>
+            <label for="protocolConditionId">Protocol condition ID</label>
+            <input id="protocolConditionId" type="text" maxlength="80" list="fixedConditionIdList" placeholder="For example CT-PILOT-TRAIN-A" />
+            <datalist id="fixedConditionIdList"></datalist>
+            <div class="helperText">Use a non-identifying condition code containing letters, numbers, dots, hyphens, or underscores.</div>
+          </div>
+          <div>
             <label for="eegExportFormat">Advanced export format</label>
             <select id="eegExportFormat">
               <option value="tsv">Marker TSV</option>
@@ -913,6 +923,12 @@
             </select>
           </div>
         </div>
+        <div class="dashboardTools" style="margin-top:10px">
+          <button id="saveFixedConditionBtn" type="button">Save fixed condition</button>
+          <button id="applyFixedConditionBtn" type="button">Apply saved condition</button>
+        </div>
+        <div id="fixedConditionStatus" class="compactNote" role="status">Fixed-condition checks are off. Ordinary classroom sessions are not restricted.</div>
+        <div class="helperText">A saved condition is a local software-settings manifest. It supports reproducible delivery but does not replace an approved protocol, preregistration, allocation procedures, blinding, or measured EEG synchronisation.</div>
         </div>
 
         <div id="adminPromptSection" class="section adminAnchor" data-admin-pages="learners" style="padding-top:14px">
@@ -1598,6 +1614,19 @@
                 <div class="dashCard"><div class="k">Ordering validity</div><div class="v" id="researchMarkerOrdering">&mdash;</div></div>
                 <div class="dashCard"><div class="k">Protocol metadata</div><div class="v" id="researchProtocolCompleteness">&mdash;</div></div>
               </div>
+              <div class="dashboard">
+                <div class="dashCard"><div class="k">Fixed-condition sessions</div><div class="v" id="researchFixedConditionSessions">0</div></div>
+                <div class="dashCard"><div class="k">Adherent at start</div><div class="v" id="researchFixedConditionAdherent">0</div></div>
+                <div class="dashCard"><div class="k">Condition exceptions</div><div class="v" id="researchFixedConditionExceptions">0</div></div>
+              </div>
+              <canvas id="researchFixedConditionChart" class="researchCanvas" width="760" height="220" role="img" aria-label="Counts of fixed-condition adherence states across sessions"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Condition ID</th><th>Research condition</th><th>Adherence</th><th>Replay seed</th><th>Settings fingerprint</th></tr></thead>
+                  <tbody id="researchFixedConditionBody"></tbody>
+                </table>
+              </div>
+              <div id="researchFixedConditionNote" class="compactNote">Fixed-condition adherence checks software settings captured at session start. It does not verify study allocation, blinding, protocol approval, or hardware timing.</div>
               <canvas id="researchEegQualityChart" class="researchCanvas" width="760" height="240" role="img" aria-label="Aggregate EEG marker completeness, ordering validity, and protocol metadata completeness"></canvas>
               <div class="tiny">Browser marker and protocol checks across sessions (%)</div>
               <canvas id="researchEegQualityTrendChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Browser marker completeness, ordering validity, and protocol coverage across sessions"></canvas>

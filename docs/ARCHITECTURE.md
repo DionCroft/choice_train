@@ -36,7 +36,7 @@ Legacy learner variables remain compatibility aliases, but V1.7 components use s
 
 Feedback audio is synthesised locally with the Web Audio API. There are no remote audio files, microphones, recordings, or copied third-party game sounds. Active tones are stopped before speech so feedback does not overlap a spoken prompt. Motion, sound, and celebration intensity can be reduced or disabled.
 
-The application uses `localStorage` for settings and pupil profiles, and IndexedDB for larger assets and session history. Schema normalisation is idempotent and does not clear legacy data. V1.7 uses data schema version 4 and adds presentation preferences without renaming the established storage keys, preserving compatibility with the V1.6 profile model.
+The application uses `localStorage` for settings and pupil profiles, and IndexedDB for larger assets and session history. Schema normalisation is idempotent and does not clear legacy data. V1.7 uses data schema version 4 and adds presentation preferences without renaming the established storage keys, preserving compatibility with the V1.6 profile model. The isolated V1.8 alpha adds a separate versioned `choice_train_fixed_conditions_v180` local registry for small research-control manifests; it does not place session history or image data back into synchronous storage.
 
 ## Data Boundaries
 

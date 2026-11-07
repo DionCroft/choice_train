@@ -16,6 +16,7 @@
 
   const SETTINGS_KEY = 'choice_train_settings_v140';
   const LEARNERS_KEY = 'choice_train_learners_v140';
+  const FIXED_CONDITIONS_KEY = 'choice_train_fixed_conditions_v180';
   const LEGACY_SETTINGS_KEYS = ['choice_train_settings_v130', 'choice_train_profile_v1'];
   const LEGACY_LEARNERS_KEYS = ['choice_train_learners_v130', 'ct_profiles'];
   const LEGACY_SETTINGS_KEY = 'choice_train_profile_v1';
@@ -35,8 +36,9 @@
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
-  const EEG_PROTOCOL_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.1.0';
+  const EEG_PROTOCOL_VERSION = '1.1.0';
+  const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.2.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
@@ -561,6 +563,21 @@
     return (hash >>> 0) || 1;
   }
 
+  function canonicalJson(value){
+    if(Array.isArray(value)) return value.map(canonicalJson);
+    if(value && typeof value === 'object'){
+      return Object.keys(value).sort().reduce((result, key) => {
+        result[key] = canonicalJson(value[key]);
+        return result;
+      }, {});
+    }
+    return value;
+  }
+
+  function stableStringify(value){
+    return JSON.stringify(canonicalJson(value));
+  }
+
   function createSeededRandom(seed){
     let value = (Number(seed) >>> 0) || 1;
     return () => {
@@ -636,7 +653,263 @@
     return ui.researchCondition ? ui.researchCondition.value : 'training';
   }
 
+  function fixedConditionId(){
+    return String(ui.protocolConditionId && ui.protocolConditionId.value || '').trim();
+  }
+
+  function fixedConditionRegistry(){
+    const stored = readJson(FIXED_CONDITIONS_KEY);
+    return stored && typeof stored === 'object' && !Array.isArray(stored) ? stored : {};
+  }
+
+  function fixedConditionSettingsSnapshot(){
+    const filters = normalizeContentFilters(contentFiltersFromUi());
+    const seedText = String(ui.lessonSeedOverride && ui.lessonSeedOverride.value || '').trim();
+    const seedNumber = Number(seedText);
+    return {
+      task_type: ui.sessionTaskType ? ui.sessionTaskType.value : 'auto',
+      start_level: clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10),
+      question_count: clamp(safeNumber(ui.sessionMax && ui.sessionMax.value, 8), 1, 20),
+      session_length_minutes: clamp(safeNumber(ui.sessionMinutes && ui.sessionMinutes.value, 3), 1, 60),
+      max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
+      prompt_delay_seconds: clamp(safeNumber(ui.delaySec && ui.delaySec.value, 1), 0, 10),
+      response_window_seconds: clamp(safeNumber(ui.responseWindowSec && ui.responseWindowSec.value, 6), 1, 60),
+      inter_trial_interval_seconds: clamp(safeNumber(ui.itiSec && ui.itiSec.value, 0.75), 0, 10),
+      blank_interval_enabled: !!(ui.useBlankInterval && ui.useBlankInterval.checked),
+      blank_interval_seconds: clamp(safeNumber(ui.blankIntervalSec && ui.blankIntervalSec.value, 1), 0.1, 10),
+      two_stage_prompt: !!(ui.useTwoStage && ui.useTwoStage.checked),
+      reward_screen: !!(ui.useReward && ui.useReward.checked),
+      text_prompts: !!(ui.useTextPrompt && ui.useTextPrompt.checked),
+      image_prompts: !!(ui.useImagePrompt && ui.useImagePrompt.checked),
+      speech_prompts: !!(ui.ttsToggle && ui.ttsToggle.checked),
+      speak_selected_label: !!(ui.ttsLabelsToggle && ui.ttsLabelsToggle.checked),
+      familiar_target_enabled: !!(ui.useFace && ui.useFace.checked),
+      target_scale_percent: clamp(safeNumber(ui.targetScale && ui.targetScale.value, 100), 80, 180),
+      automatic_touch_scaling: !!(ui.autoTouchScale && ui.autoTouchScale.checked),
+      student_friendly_mode: studentFriendlyModeEnabled(),
+      auto_advance: !!(ui.autoAdvance && ui.autoAdvance.checked),
+      auto_level_path: !!(ui.autoLevelPath && ui.autoLevelPath.checked),
+      single_target_first_stage: !!(ui.singleTargetStart && ui.singleTargetStart.checked),
+      single_target_repetitions: clamp(safeNumber(ui.singleTargetReps && ui.singleTargetReps.value, 3), 1, 10),
+      eeg_research_mode: !!(ui.eegResearchMode && ui.eegResearchMode.checked),
+      research_condition: researchCondition(),
+      automatic_block_pauses: !!(ui.autoBlockPauses && ui.autoBlockPauses.checked),
+      eeg_block_size: eegBlockSize(),
+      automatic_pause_seconds: Math.round(eegAutoPauseMs() / 1000),
+      lesson_replay_seed: seedText !== '' && Number.isFinite(seedNumber) && seedNumber > 0
+        ? ((Math.floor(seedNumber) >>> 0) || 1)
+        : null,
+      content_filters: {
+        find_object_categories: filters.findObjectCategories.slice().sort(),
+        find_object_source: filters.findObjectSource,
+        find_category_categories: filters.findCategoryCategories.slice().sort(),
+        find_category_source: filters.findCategorySource
+      }
+    };
+  }
+
+  function fixedConditionFingerprint(settings){
+    return hashStringToSeed(stableStringify(settings)).toString(16).padStart(8, '0');
+  }
+
+  function fixedConditionChangedFields(saved, current){
+    const keys = Array.from(new Set(Object.keys(saved || {}).concat(Object.keys(current || {}))));
+    return keys.filter(key => stableStringify(saved && saved[key]) !== stableStringify(current && current[key]));
+  }
+
+  function validateFixedCondition(){
+    const enabled = !!(ui.fixedConditionEnabled && ui.fixedConditionEnabled.checked);
+    const protocolConditionId = fixedConditionId();
+    if(!enabled){
+      return { enabled: false, valid: true, status: 'not-enabled', protocol_condition_id: null, changed_fields: [] };
+    }
+    if(!protocolConditionId){
+      return { enabled: true, valid: false, status: 'missing-id', protocol_condition_id: null, changed_fields: [] };
+    }
+    if(!/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(protocolConditionId)){
+      return { enabled: true, valid: false, status: 'invalid-id', protocol_condition_id: protocolConditionId, changed_fields: [] };
+    }
+    const manifest = fixedConditionRegistry()[protocolConditionId];
+    if(!manifest || manifest.schema_version !== FIXED_CONDITION_SCHEMA_VERSION || !manifest.settings){
+      return { enabled: true, valid: false, status: 'manifest-not-found', protocol_condition_id: protocolConditionId, changed_fields: [] };
+    }
+    const currentSettings = fixedConditionSettingsSnapshot();
+    const changedFields = fixedConditionChangedFields(manifest.settings, currentSettings);
+    const valid = changedFields.length === 0;
+    return {
+      enabled: true,
+      valid,
+      status: valid ? 'adherent' : 'settings-mismatch',
+      protocol_condition_id: protocolConditionId,
+      manifest,
+      current_settings: currentSettings,
+      current_fingerprint: fixedConditionFingerprint(currentSettings),
+      changed_fields: changedFields
+    };
+  }
+
+  function fixedConditionProtocolSnapshot(){
+    const validation = validateFixedCondition();
+    return {
+      schema_version: FIXED_CONDITION_SCHEMA_VERSION,
+      enabled: validation.enabled,
+      protocol_condition_id: validation.protocol_condition_id,
+      adherence_status: validation.status,
+      settings_fingerprint: validation.manifest ? validation.manifest.settings_fingerprint : null,
+      current_fingerprint: validation.enabled ? validation.current_fingerprint || null : null,
+      changed_fields: validation.changed_fields || [],
+      manifest: validation.manifest ? clonePlain(validation.manifest) : null,
+      interpretation_boundary: 'Software-settings adherence only. This does not verify preregistration, allocation, blinding, protocol approval, treatment equivalence, or EEG hardware timing.'
+    };
+  }
+
+  function renderFixedConditionOptions(){
+    if(!ui.fixedConditionIdList) return;
+    clearNode(ui.fixedConditionIdList);
+    Object.keys(fixedConditionRegistry()).sort().forEach(id => {
+      const option = document.createElement('option');
+      option.value = id;
+      ui.fixedConditionIdList.appendChild(option);
+    });
+  }
+
+  function updateFixedConditionStatus(validation=validateFixedCondition()){
+    if(!ui.fixedConditionStatus) return validation;
+    renderFixedConditionOptions();
+    const savedCount = Object.keys(fixedConditionRegistry()).length;
+    let message = `Fixed-condition checks are off. ${savedCount} condition${savedCount === 1 ? '' : 's'} saved on this device; ordinary classroom sessions are not restricted.`;
+    if(validation.status === 'missing-id') message = 'Enter a protocol condition ID, then save or apply its manifest.';
+    else if(validation.status === 'invalid-id') message = 'Condition IDs may contain only letters, numbers, dots, hyphens, and underscores.';
+    else if(validation.status === 'manifest-not-found') message = `No saved local manifest was found for ${validation.protocol_condition_id}. Save this setup or enter an existing ID.`;
+    else if(validation.status === 'settings-mismatch') message = `Current controls differ from ${validation.protocol_condition_id}: ${validation.changed_fields.join(', ')}. Apply the saved condition or use a new condition ID.`;
+    else if(validation.status === 'adherent') message = `${validation.protocol_condition_id} is ready. Settings match fingerprint ${validation.manifest.settings_fingerprint}.`;
+    ui.fixedConditionStatus.textContent = message;
+    ui.fixedConditionStatus.classList.toggle('invalid', validation.enabled && !validation.valid);
+    return validation;
+  }
+
+  function saveFixedConditionManifest(){
+    if(state.phase !== 'idle' && state.phase !== 'complete'){
+      flash('try', 'Finish or reset the current session first');
+      return;
+    }
+    if(ui.fixedConditionEnabled) ui.fixedConditionEnabled.checked = true;
+    const protocolConditionId = fixedConditionId();
+    if(!protocolConditionId || !/^[A-Za-z0-9][A-Za-z0-9._-]{0,79}$/.test(protocolConditionId)){
+      updateFixedConditionStatus(validateFixedCondition());
+      flash('try', 'Enter a valid condition ID');
+      return;
+    }
+    const settings = fixedConditionSettingsSnapshot();
+    if(!settings.lesson_replay_seed){
+      updateFixedConditionStatus({ enabled: true, valid: false, status: 'settings-mismatch', protocol_condition_id: protocolConditionId, changed_fields: ['lesson_replay_seed'] });
+      flash('try', 'Add a lesson replay seed before saving');
+      return;
+    }
+    const fingerprint = fixedConditionFingerprint(settings);
+    const registry = fixedConditionRegistry();
+    const existing = registry[protocolConditionId];
+    if(existing && existing.settings_fingerprint !== fingerprint){
+      updateFixedConditionStatus({ enabled: true, valid: false, status: 'settings-mismatch', protocol_condition_id: protocolConditionId, manifest: existing, changed_fields: fixedConditionChangedFields(existing.settings, settings) });
+      flash('try', 'Use a new ID for changed settings');
+      return;
+    }
+    if(!existing && Object.keys(registry).length >= 100){
+      flash('try', 'Local fixed-condition registry is full');
+      return;
+    }
+    registry[protocolConditionId] = existing || {
+      schema_version: FIXED_CONDITION_SCHEMA_VERSION,
+      protocol_condition_id: protocolConditionId,
+      settings_fingerprint: fingerprint,
+      fingerprint_method: 'fnv1a32-canonical-json',
+      created_at_wall_ms: wallMs(),
+      created_with_build: buildExportMeta(),
+      settings,
+      interpretation_boundary: 'Local reproducibility manifest only; not a security signature or substitute for an approved study protocol.'
+    };
+    if(!persistJson(FIXED_CONDITIONS_KEY, registry)){
+      flash('try', 'Could not save the local condition');
+      return;
+    }
+    saveSettingsSoon();
+    updateFixedConditionStatus(validateFixedCondition());
+    flash('good', existing ? 'Fixed condition already matches' : 'Fixed condition saved locally');
+  }
+
+  function applyFixedConditionManifest(){
+    if(state.phase !== 'idle' && state.phase !== 'complete'){
+      flash('try', 'Finish or reset the current session first');
+      return;
+    }
+    const protocolConditionId = fixedConditionId();
+    const manifest = fixedConditionRegistry()[protocolConditionId];
+    if(!manifest || manifest.schema_version !== FIXED_CONDITION_SCHEMA_VERSION || !manifest.settings){
+      if(ui.fixedConditionEnabled) ui.fixedConditionEnabled.checked = true;
+      updateFixedConditionStatus(validateFixedCondition());
+      flash('try', 'Saved condition not found');
+      return;
+    }
+    const settings = manifest.settings;
+    const values = {
+      sessionTaskType: settings.task_type,
+      startLevel: settings.start_level,
+      sessionMax: settings.question_count,
+      sessionMinutes: settings.session_length_minutes,
+      maxObjects: settings.max_answer_options,
+      delaySec: settings.prompt_delay_seconds,
+      responseWindowSec: settings.response_window_seconds,
+      itiSec: settings.inter_trial_interval_seconds,
+      useBlankInterval: settings.blank_interval_enabled,
+      blankIntervalSec: settings.blank_interval_seconds,
+      useTwoStage: settings.two_stage_prompt,
+      useReward: settings.reward_screen,
+      useTextPrompt: settings.text_prompts,
+      useImagePrompt: settings.image_prompts,
+      ttsToggle: settings.speech_prompts,
+      ttsLabelsToggle: settings.speak_selected_label,
+      useFace: settings.familiar_target_enabled,
+      targetScale: settings.target_scale_percent,
+      autoTouchScale: settings.automatic_touch_scaling,
+      studentFriendlyMode: settings.student_friendly_mode,
+      autoAdvance: settings.auto_advance,
+      autoLevelPath: settings.auto_level_path,
+      singleTargetStart: settings.single_target_first_stage,
+      singleTargetReps: settings.single_target_repetitions,
+      eegResearchMode: settings.eeg_research_mode,
+      researchCondition: settings.research_condition,
+      activeControlEnabled: settings.research_condition === 'active-control',
+      autoBlockPauses: settings.automatic_block_pauses,
+      eegBlockSize: settings.eeg_block_size,
+      eegAutoPauseSec: settings.automatic_pause_seconds,
+      lessonSeedOverride: settings.lesson_replay_seed
+    };
+    Object.keys(values).forEach(id => {
+      const node = ui[id];
+      if(!node) return;
+      if(node.type === 'checkbox') node.checked = !!values[id];
+      else node.value = String(values[id]);
+    });
+    if(ui.fixedConditionEnabled) ui.fixedConditionEnabled.checked = true;
+    const filters = settings.content_filters || {};
+    const normalizedFilters = normalizeContentFilters({
+      findObjectCategories: filters.find_object_categories,
+      findObjectSource: filters.find_object_source,
+      findCategoryCategories: filters.find_category_categories,
+      findCategorySource: filters.find_category_source
+    });
+    renderCategoryControls(normalizedFilters);
+    if(state.currentPupil) state.currentPupil.contentFilters = normalizedFilters;
+    saveCurrentLearnerProfile();
+    saveSettingsSoon();
+    refreshContentConfiguration();
+    updateSessionReadiness();
+    updateFixedConditionStatus(validateFixedCondition());
+    flash('good', 'Fixed condition applied');
+  }
+
   function studyProtocolSnapshot(participantPseudonym=currentResearchParticipantId()){
+    const fixedCondition = fixedConditionProtocolSnapshot();
     return {
       protocol_schema_version: EEG_PROTOCOL_VERSION,
       study_protocol_id: String(ui.studyProtocolId && ui.studyProtocolId.value || '').trim(),
@@ -646,6 +919,8 @@
       acquisition_system: String(ui.eegAcquisitionSystem && ui.eegAcquisitionSystem.value || '').trim(),
       declared_sync_method: ui.eegSyncMethod ? ui.eegSyncMethod.value : 'browser-only',
       research_condition: researchCondition(),
+      protocol_condition_id: fixedCondition.protocol_condition_id,
+      fixed_condition: fixedCondition,
       clock_latency_notes: String(ui.eegClockNotes && ui.eegClockNotes.value || '').trim(),
       planned_marker_set: EEG_PLANNED_MARKER_SET.slice(),
       browser_clock_sources: ['Date.now', 'performance.now'],
@@ -943,6 +1218,9 @@
         max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
         coverage_strategy: 'balanced-before-repeat',
         research_condition: researchCondition(),
+        protocol_condition_id: state.sessionSnapshot && state.sessionSnapshot.study_protocol
+          ? state.sessionSnapshot.study_protocol.protocol_condition_id
+          : null,
         content_configuration: exportableContentConfiguration(state.sessionContentConfig)
       }
     };
@@ -974,6 +1252,9 @@
         max_answer_options: clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6),
         coverage_strategy: 'balanced-before-repeat',
         research_condition: researchCondition(),
+        protocol_condition_id: state.sessionSnapshot && state.sessionSnapshot.study_protocol
+          ? state.sessionSnapshot.study_protocol.protocol_condition_id
+          : null,
         content_configuration: exportableContentConfiguration(state.sessionContentConfig)
       }
     };
@@ -1708,6 +1989,7 @@
       block_index: currentBlockIndex(),
       research_condition: protocol ? protocol.research_condition : researchCondition(),
       study_protocol_id: protocol ? protocol.study_protocol_id : '',
+      protocol_condition_id: protocol ? protocol.protocol_condition_id : null,
       visit_id: protocol ? protocol.visit_id : '',
       run_number: protocol ? protocol.run_number : null,
       declared_sync_method: protocol ? protocol.declared_sync_method : 'browser-only',
@@ -1718,7 +2000,7 @@
   }
 
   function markerTsv(markers){
-    const headers = ['marker_id', 'code', 'name', 'session_id', 'learner', 'learner_alias', 'study_protocol_id', 'visit_id', 'run_number', 'declared_sync_method', 't_rel_ms', 't_wall_ms', 't_perf_ms', 'level', 'question_index', 'block_index', 'research_condition', 'trial_id', 'task_kind', 'task_variant', 'attention_domain', 'response_type', 'correct', 'omission', 'commission', 'artifact_type', 'break_reason'];
+    const headers = ['marker_id', 'code', 'name', 'session_id', 'learner', 'learner_alias', 'study_protocol_id', 'protocol_condition_id', 'visit_id', 'run_number', 'declared_sync_method', 't_rel_ms', 't_wall_ms', 't_perf_ms', 'level', 'question_index', 'block_index', 'research_condition', 'trial_id', 'task_kind', 'task_variant', 'attention_domain', 'response_type', 'correct', 'omission', 'commission', 'artifact_type', 'break_reason'];
     const lines = [headers.join('\t')];
     markers.forEach(marker => {
       lines.push(headers.map(header => {
@@ -1944,6 +2226,8 @@
       eegSyncMethod: ui.eegSyncMethod ? ui.eegSyncMethod.value : 'browser-only',
       eegClockNotes: ui.eegClockNotes ? ui.eegClockNotes.value : '',
       lessonSeedOverride: ui.lessonSeedOverride ? ui.lessonSeedOverride.value : '',
+      fixedConditionEnabled: !!(ui.fixedConditionEnabled && ui.fixedConditionEnabled.checked),
+      protocolConditionId: fixedConditionId(),
       eegExportFormat: ui.eegExportFormat.value,
       studentFriendlyMode: studentFriendlyModeEnabled(),
       faceName: ui.faceName.value,
@@ -2026,6 +2310,8 @@
     if(ui.eegSyncMethod) ui.eegSyncMethod.value = settings.eegSyncMethod || 'browser-only';
     if(ui.eegClockNotes) ui.eegClockNotes.value = settings.eegClockNotes || '';
     if(ui.lessonSeedOverride) ui.lessonSeedOverride.value = settings.lessonSeedOverride || '';
+    if(ui.fixedConditionEnabled) ui.fixedConditionEnabled.checked = !!settings.fixedConditionEnabled;
+    if(ui.protocolConditionId) ui.protocolConditionId.value = settings.protocolConditionId || '';
     if(ui.eegExportFormat) ui.eegExportFormat.value = settings.eegExportFormat || 'tsv';
     if(ui.studentFriendlyMode) ui.studentFriendlyMode.checked = settings.studentFriendlyMode !== false;
     if(ui.faceName) ui.faceName.value = settings.faceName || 'Mum';
@@ -2372,6 +2658,7 @@
         saveSettingsSoon();
         saveCurrentLearnerProfile();
         refreshContentConfiguration();
+        updateFixedConditionStatus();
       });
       const text = document.createElement('span');
       text.textContent = category.label;
@@ -5696,6 +5983,8 @@
       research_summary: researchSummaryForTrials(state.trials),
       fidelity: fidelitySnapshot(),
       research_condition: protocol.research_condition,
+      protocol_condition_id: protocol.protocol_condition_id || null,
+      fixed_condition: protocol.fixed_condition ? clonePlain(protocol.fixed_condition) : null,
       study_protocol: protocol,
       eeg_markers: state.eeg.markers.slice(),
       eeg_marker_diagnostics: markerDiagnostics({
@@ -6108,6 +6397,31 @@
       .filter(session => includeArchived || !session.archived)
       .filter(session => scope !== 'current-learner' || sessionMatchesLearner(session, learner, currentPupilAlias()))
       .sort((a, b) => Number(a.updated_at_wall_ms || 0) - Number(b.updated_at_wall_ms || 0));
+  }
+
+  function fixedConditionResearchRow(session){
+    const protocol = session && session.study_protocol && typeof session.study_protocol === 'object'
+      ? session.study_protocol
+      : {};
+    const fixed = session && session.fixed_condition && typeof session.fixed_condition === 'object'
+      ? session.fixed_condition
+      : (protocol.fixed_condition && typeof protocol.fixed_condition === 'object' ? protocol.fixed_condition : {});
+    const enabled = fixed.enabled === true;
+    const manifestSettings = fixed.manifest && fixed.manifest.settings ? fixed.manifest.settings : {};
+    return {
+      date: researchDateLabel(Number(session && session.updated_at_wall_ms)),
+      protocol_condition_id: enabled
+        ? (fixed.protocol_condition_id || protocol.protocol_condition_id || session.protocol_condition_id || 'Missing')
+        : null,
+      research_condition: protocol.research_condition || session.research_condition || 'not recorded',
+      enabled,
+      adherence_status: enabled ? (fixed.adherence_status || 'not-recorded') : 'not-enabled',
+      lesson_replay_seed: Number.isFinite(manifestSettings.lesson_replay_seed)
+        ? manifestSettings.lesson_replay_seed
+        : (Number.isFinite(session && session.lesson_seed) ? session.lesson_seed : null),
+      settings_fingerprint: fixed.settings_fingerprint || (fixed.manifest && fixed.manifest.settings_fingerprint) || null,
+      changed_fields: Array.isArray(fixed.changed_fields) ? fixed.changed_fields.slice() : []
+    };
   }
 
   function researchDateLabel(timestamp){
@@ -7920,6 +8234,33 @@
       ]));
     } else renderResearchEmptyRow(ui.researchPreferenceBody, 6, 'No open-ended preference selections in this scope yet.');
 
+    const fixedConditionRows = sessions.map(fixedConditionResearchRow);
+    const fixedEnabledRows = fixedConditionRows.filter(row => row.enabled);
+    const fixedAdherentRows = fixedEnabledRows.filter(row => row.adherence_status === 'adherent');
+    const fixedExceptionRows = fixedEnabledRows.filter(row => row.adherence_status !== 'adherent');
+    ui.researchFixedConditionSessions.textContent = String(fixedEnabledRows.length);
+    ui.researchFixedConditionAdherent.textContent = String(fixedAdherentRows.length);
+    ui.researchFixedConditionExceptions.textContent = String(fixedExceptionRows.length);
+    drawResearchBars(ui.researchFixedConditionChart, [
+      { label: 'Adherent', value: fixedAdherentRows.length, color: themeToken('success') },
+      { label: 'Exception', value: fixedExceptionRows.length, color: themeToken('danger') },
+      { label: 'Not enabled', value: fixedConditionRows.filter(row => !row.enabled).length, color: themeToken('text-muted') }
+    ], { labelWidth: 140 });
+    if(fixedConditionRows.length){
+      clearNode(ui.researchFixedConditionBody);
+      fixedConditionRows.forEach(row => appendResearchRow(ui.researchFixedConditionBody, [
+        row.date,
+        row.protocol_condition_id,
+        row.research_condition,
+        row.adherence_status.replace(/-/g, ' '),
+        row.lesson_replay_seed,
+        row.settings_fingerprint
+      ]));
+    } else renderResearchEmptyRow(ui.researchFixedConditionBody, 6, 'No sessions in this scope yet.');
+    ui.researchFixedConditionNote.textContent = scope === 'all-learners'
+      ? 'Counts pool sessions across learners. Adherence means the software controls matched a locally saved manifest at session start; it does not verify allocation, blinding, protocol approval, or EEG hardware timing.'
+      : 'Adherence means the software controls matched a locally saved manifest at session start. It does not verify allocation, blinding, protocol approval, or EEG hardware timing.';
+
     const qualityRows = sessions.map(session => {
       const markerSet = coreMarkerCompleteness(session);
       const diagnostics = session.eeg_marker_diagnostics || markerDiagnostics(session);
@@ -8474,6 +8815,18 @@
     if(ui.pupilSelect && ui.pupilSelect.value && ui.pupilSelect.value !== currentPupilName()){
       selectPupil(ui.pupilSelect.value, { speakGreeting: false });
     }
+    const fixedConditionValidation = updateFixedConditionStatus(validateFixedCondition());
+    if(!fixedConditionValidation.valid){
+      if(ui.sessionSetupStatus){
+        ui.sessionSetupStatus.hidden = false;
+        ui.sessionSetupStatus.classList.add('invalid');
+        ui.sessionSetupStatus.textContent = 'The fixed research condition is not ready. Review the condition ID, replay seed, and saved settings in Admin and research.';
+      }
+      openAdminPanel();
+      applyAdminPage('eeg', { scroll: true, behavior: 'auto' });
+      flash('try', 'Fixed condition needs attention');
+      return;
+    }
     const contentValidation = validateSessionContentSetup();
     if(!contentValidation.valid){
       if(ui.sessionSetupStatus){
@@ -8558,6 +8911,8 @@
       fidelity: fidelitySnapshot(),
       data_governance: clonePlain(state.sessionSnapshot.data_governance),
       research_condition: state.sessionSnapshot.study_protocol.research_condition,
+      protocol_condition_id: state.sessionSnapshot.study_protocol.protocol_condition_id,
+      fixed_condition: clonePlain(state.sessionSnapshot.study_protocol.fixed_condition),
       eeg_mode: eegModeEnabled(),
       study_protocol: clonePlain(state.sessionSnapshot.study_protocol),
       content_configuration: exportableContentConfiguration()
@@ -8636,6 +8991,8 @@
       summary,
       fidelity: fidelitySnapshot(),
       research_condition: protocol.research_condition,
+      protocol_condition_id: protocol.protocol_condition_id || null,
+      fixed_condition: protocol.fixed_condition ? clonePlain(protocol.fixed_condition) : null,
       eeg_mode: eegModeEnabled(),
       study_protocol: protocol,
       context_notes: snapshot ? snapshot.context_notes : currentContextNotes(),
@@ -8684,6 +9041,12 @@
       research_condition: state.sessionSnapshot && state.sessionSnapshot.study_protocol
         ? state.sessionSnapshot.study_protocol.research_condition
         : researchCondition(),
+      protocol_condition_id: state.sessionSnapshot && state.sessionSnapshot.study_protocol
+        ? state.sessionSnapshot.study_protocol.protocol_condition_id
+        : null,
+      fixed_condition: state.sessionSnapshot && state.sessionSnapshot.study_protocol
+        ? clonePlain(state.sessionSnapshot.study_protocol.fixed_condition)
+        : fixedConditionProtocolSnapshot(),
       eeg_mode: eegModeEnabled(),
       study_protocol: state.sessionSnapshot && state.sessionSnapshot.study_protocol
         ? clonePlain(state.sessionSnapshot.study_protocol)
@@ -8860,6 +9223,7 @@
       session_performance: sessionPerformance,
       session_timing: sessions.map(sessionTimingResearchRow),
       session_demands: sessions.map(sessionDemandResearchRow),
+      fixed_conditions: sessions.map(fixedConditionResearchRow),
       skill_summaries: summary.skill_summaries.map(item => ({
         skill_id: item.skill_id,
         label: item.label,
@@ -9109,6 +9473,7 @@
         const trials = Array.isArray(session.trials) ? session.trials : [];
         const summary = session.summary || analyticsSummaryForTrials(trials);
         const protocol = session.study_protocol || {};
+        const fixedCondition = fixedConditionResearchRow(session);
         const diagnostics = session.eeg_marker_diagnostics || markerDiagnostics(session);
         const daysSinceFirst = Number.isFinite(firstTime) && Number.isFinite(sessionTime)
           ? Math.max(0, Math.round((sessionTime - firstTime) / 86400000))
@@ -9127,6 +9492,11 @@
           skill_graph_version: session.skill_graph_version || SKILL_GRAPH_VERSION,
           generator_version: session.generator_version || GENERATOR_VERSION,
           research_condition: session.research_condition || protocol.research_condition || null,
+          fixed_condition: {
+            enabled: fixedCondition.enabled,
+            adherence_status: fixedCondition.adherence_status,
+            settings_fingerprint: fixedCondition.settings_fingerprint
+          },
           starting_level: trials.length && Number.isFinite(trials[0].level) ? trials[0].level : null,
           ending_level: summary.current_level == null ? null : summary.current_level,
           session_task_mode: summary.task_kind || null,
@@ -9192,6 +9562,8 @@
         raw_touch_coordinates_included: false,
         prompt_wording_included: false,
         source_session_ids_included: false,
+        protocol_condition_ids_included: false,
+        fixed_condition_settings_included: false,
         external_transmission: false
       },
       interpretation_boundary: 'Behavioural and browser-event data support exploratory teaching and research analysis. They are not diagnostic and do not prove neural change or validate EEG synchronisation.',
@@ -9320,6 +9692,8 @@
       applyTeacherPage('results', { scroll: true });
     });
     bindAction(ui.soundPreviewBtn, () => playSoundCue('preview', { source: 'teacher-preview' }));
+    bindAction(ui.saveFixedConditionBtn, saveFixedConditionManifest);
+    bindAction(ui.applyFixedConditionBtn, applyFixedConditionManifest);
     bindAction(ui.adminExportSessionBtn, exportLogs);
     bindAction(ui.adminExportResearchBtn, exportEegMarkers);
     bindAction(ui.adminExportHistoryBtn, exportStoredHistory);
@@ -9493,7 +9867,8 @@
       'eegResearchMode', 'autoBlockPauses',
       'allowLearnerHelp', 'allowLearnerBreak', 'allowLearnerStop', 'activeControlEnabled', 'eegBlockSize',
       'eegAutoPauseSec', 'researchCondition', 'studyProtocolId', 'studyVisitId', 'studyRunNumber',
-      'eegAcquisitionSystem', 'eegSyncMethod', 'eegClockNotes', 'lessonSeedOverride', 'eegExportFormat',
+      'eegAcquisitionSystem', 'eegSyncMethod', 'eegClockNotes', 'lessonSeedOverride',
+      'fixedConditionEnabled', 'protocolConditionId', 'eegExportFormat',
       'faceName', 'contextNotes', 'rewardChoice',
       'themeChoice', 'fontChoice', 'textScale', 'motionPreference', 'feedbackSoundMode', 'celebrationIntensity',
       'communicationSupportChoice', 'preSessionPreference',
@@ -9520,6 +9895,7 @@
         if(id === 'allowLearnerHelp' || id === 'allowLearnerBreak' || id === 'allowLearnerStop') updateLearnerControls();
         if(['dataUseStatus', 'researchAnalysisApproved', 'eegLinkageApproved', 'modelDevelopmentApproved', 'governanceReference', 'governanceReviewDate'].includes(id)) updateAiExportGovernanceStatus();
         if(['sessionTaskType', 'startLevel', 'autoLevelPath', 'maxObjects', 'findObjectSourceMode', 'findCategorySourceMode'].includes(id)) refreshContentConfiguration();
+        updateFixedConditionStatus();
         updateStats();
         updateSessionReadiness();
       };
@@ -9629,6 +10005,7 @@
     updateSessionReadiness();
     refreshDashboard(true);
     initialiseStorage().then(() => {
+      updateFixedConditionStatus();
       refreshDashboard(true);
       logEvent('app_loaded', {
         build: buildExportMeta(),
