@@ -1633,6 +1633,7 @@ body.panel-view-admin th {
   .wrap.learner .stage {
     height: 100vh;
     height: 100dvh;
+    height: var(--app-usable-viewport-height);
     min-height: 0;
     gap: 8px;
     padding-top: max(8px, env(safe-area-inset-top));

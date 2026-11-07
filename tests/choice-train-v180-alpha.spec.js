@@ -3360,6 +3360,81 @@ test('active learner question relayouts after portrait-to-landscape rotation wit
   expect(payload.trials).toHaveLength(1);
 });
 
+test('learner stage follows a live visual viewport height change without restarting the task', async ({ page }) => {
+  await page.addInitScript(() => {
+    let width = 390;
+    let height = 844;
+    const listeners = new Map();
+    const visualViewportMock = {
+      get width(){ return width; },
+      get height(){ return height; },
+      get scale(){ return 1; },
+      get offsetLeft(){ return 0; },
+      get offsetTop(){ return 0; },
+      get pageLeft(){ return 0; },
+      get pageTop(){ return 0; },
+      addEventListener(type, listener){
+        if(!listeners.has(type)) listeners.set(type, new Set());
+        listeners.get(type).add(listener);
+      },
+      removeEventListener(type, listener){
+        if(listeners.has(type)) listeners.get(type).delete(listener);
+      }
+    };
+    Object.defineProperty(window, 'visualViewport', {
+      configurable: true,
+      value: visualViewportMock
+    });
+    window.__setChoiceTrainVisualViewport = dimensions => {
+      width = dimensions.width;
+      height = dimensions.height;
+      (listeners.get('resize') || []).forEach(listener => listener.call(visualViewportMock, new Event('resize')));
+    };
+  });
+  await page.setViewportSize({ width: 390, height: 844 });
+  await gotoAlpha(page);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'startLevel', 2);
+  await setValue(page, 'sessionMax', 1);
+  await setValue(page, 'maxObjects', 1);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useBlankInterval', false);
+  await setCheckbox(page, 'ttsToggle', false);
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+
+  const promptBefore = await page.locator('#questionText').textContent();
+  const targetBefore = await page.locator('#choiceGrid [data-role="correct-target"]').getAttribute('data-id');
+  await page.evaluate(() => window.__setChoiceTrainVisualViewport({ width: 390, height: 500 }));
+  await expect.poll(() => page.evaluate(() => (
+    parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-usable-viewport-height'))
+  ))).toBeCloseTo(500, 0);
+
+  const layout = await page.evaluate(() => {
+    const box = selector => {
+      const rect = document.querySelector(selector).getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom, height: rect.height };
+    };
+    return {
+      wrap: box('.wrap.learner'),
+      main: box('.wrap.learner .main'),
+      stage: box('.wrap.learner .stage'),
+      usableHeight: parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-usable-viewport-height')),
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth
+    };
+  });
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.wrap.top).toBeGreaterThanOrEqual(0);
+  expect(layout.wrap.bottom).toBeLessThanOrEqual(layout.usableHeight + 1);
+  expect(layout.main.bottom).toBeLessThanOrEqual(layout.usableHeight + 1);
+  expect(layout.stage.bottom).toBeLessThanOrEqual(layout.usableHeight + 1);
+  expect(layout.stage.height).toBeCloseTo(layout.usableHeight, 0);
+  await expect(page.locator('#questionText')).toHaveText(promptBefore);
+  await expect(page.locator('#choiceGrid [data-role="correct-target"]')).toHaveAttribute('data-id', targetBefore);
+  await expect(page.locator('#qIndex')).toHaveText('1 / 1');
+});
+
 test('teacher and admin workspaces remain reachable without horizontal overflow on a narrow enlarged-text viewport', async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 568 });
   await gotoAlpha(page);
