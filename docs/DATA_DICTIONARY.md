@@ -60,6 +60,12 @@ New V1.8 session records and full session exports include `session_timing.starte
 
 The Research timing view derives median response-window use from `response_time_ms / timeout_after_ms` only when both values were observed, and counts `timed_out` final trials. Historical records without the new object use existing session events, trial timestamps, and frozen settings where available; unavailable values remain missing. Completion, duration, and window use describe delivery and response opportunity. They are not targets for speed, ability scores, or evidence of learning or neural change.
 
+### Research workspace summary export
+
+`Download scope summary` creates local JSON with `export_schema_version: 1.0.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
+
+The summary includes configured learner aliases and day-level session dates. Its privacy manifest confirms that raw trials, raw events, raw coordinates, images, photo labels, and free-text notes are excluded. It is a local staff/research report, not an anonymous dataset and not the separately governed pseudonymised model-development export. ChoiceTrain does not transmit it externally.
+
 The prompt/agency view groups final trials by `highest_prompt_level` and counts `help_requested`, `prompt_applied`, `question_repeat`, learner and automatic `break_onset`, `learner_stop_requested`, and `reward_onset` records by session. Reward onsets come from the browser marker stream; other flow events come from the session event log. Counts depend on enabled controls, session opportunities, and practitioner practice. They are not deficit, motivation, or regulation scores.
 
 The teacher-observation view displays the session-start 1-5 attention and independence ratings and counts recorded maintenance/generalisation statuses. `not-run` and missing statuses are excluded from status bars but remain visible in the table. These are practitioner-entered observations, not validated task scores or evidence of transfer. Current-learner points may be connected by session date; all-learner points are unconnected.

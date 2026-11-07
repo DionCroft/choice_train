@@ -35,6 +35,7 @@
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.0.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.0.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
@@ -8414,6 +8415,205 @@
     });
   }
 
+  function buildResearchWorkspaceSummary(sessions){
+    const scope = ui.researchScopeSelect ? ui.researchScopeSelect.value : 'current-learner';
+    const allTrials = sessions.flatMap(session => Array.isArray(session.trials) ? session.trials : []);
+    const finalTrials = latestTrialsByQuestion(allTrials);
+    const summary = researchSummaryForTrials(allTrials);
+    const taskGroups = new Map();
+    const categoryGroups = new Map();
+    const supportGroups = new Map();
+
+    finalTrials.forEach(trial => {
+      const taskKey = [trial.research_condition || 'not-recorded', trial.task_kind || 'unknown', trial.task_variant || 'default'].join('|');
+      if(!taskGroups.has(taskKey)) taskGroups.set(taskKey, { condition: trial.research_condition || 'not-recorded', task_kind: trial.task_kind || 'unknown', task_variant: trial.task_variant || 'default', opportunities: 0, scored: 0, correct: 0, omissions: 0, commissions: 0 });
+      const task = taskGroups.get(taskKey);
+      task.opportunities += 1;
+      if(trial.scored_response !== false){
+        task.scored += 1;
+        if(trial.correct) task.correct += 1;
+      }
+      if(trial.omission) task.omissions += 1;
+      if(trial.commission) task.commissions += 1;
+
+      const category = trial.target_category_label || trial.target_category || 'Not recorded';
+      if(!categoryGroups.has(category)) categoryGroups.set(category, { category, opportunities: 0, scored: 0, correct: 0, personalised: 0 });
+      const categoryItem = categoryGroups.get(category);
+      categoryItem.opportunities += 1;
+      if(trial.scored_response !== false){
+        categoryItem.scored += 1;
+        if(trial.correct) categoryItem.correct += 1;
+      }
+      if(trial.target_source === 'personalised') categoryItem.personalised += 1;
+
+      const support = ['independent', 'prompted', 'assisted'].includes(trial.independence_status) ? trial.independence_status : 'unknown';
+      if(!supportGroups.has(support)) supportGroups.set(support, { status: support, responses: 0, correct: 0 });
+      supportGroups.get(support).responses += 1;
+      if(trial.correct) supportGroups.get(support).correct += 1;
+    });
+
+    const sessionPerformance = sessions.map(session => {
+      const { session: _session, ...row } = sessionTrendRow(session);
+      return row;
+    });
+    const attentionFamilies = attentionFamilyResearchRows(sessions, scope === 'current-learner').map(item => ({
+      domain: item.domain,
+      label: item.label,
+      sessions: item.sessions,
+      opportunities: item.opportunities,
+      accuracy_pct: item.accuracy_pct,
+      independent_success_pct: item.independent_success_pct,
+      omissions: item.omissions,
+      commissions: item.commissions,
+      median_rt_ms: item.median_rt_ms,
+      rt_variability_ms: item.rt_variability_ms,
+      mean_touch_distance_px: item.mean_touch_distance_px,
+      descriptive_slope_pp_per_session: item.descriptive_slope_pp_per_session,
+      observations: item.observations
+    }));
+    const practiceStates = skillPracticeStatesForSessions(sessions).map(item => ({
+      skill_id: item.skill_id,
+      label: item.label,
+      practice_status: item.practice_status,
+      sessions_observed: item.sessions_observed,
+      scored_opportunities: item.scored_opportunities,
+      recent_accuracy_pct: item.recent_accuracy_pct,
+      recent_independent_success_pct: item.recent_independent_success_pct,
+      recent_omissions: item.recent_omissions,
+      recent_commissions: item.recent_commissions,
+      days_since_last_practice: item.days_since_last_practice,
+      trend_status: item.trend_status,
+      retention_status: item.retention_status,
+      retention_gap_days: item.retention_gap_days,
+      retention_difference_pct: item.retention_difference_pct,
+      support_direction: item.support_direction
+    }));
+    const context = sessions.map(session => {
+      const trials = latestTrialsByQuestion(session.trials || []);
+      const trial = trials.find(item => item.session_context || item.learner_baseline) || {};
+      const baseline = (session.learner_snapshot && session.learner_snapshot.baseline) || trial.learner_baseline || {};
+      const sessionContext = trial.session_context || {};
+      return {
+        date: researchDateLabel(Number(session.updated_at_wall_ms)),
+        learner: session.learner_alias || session.learner || 'Unknown',
+        fatigue_level: sessionContext.fatigue_level || baseline.fatigueLevel || null,
+        sensory_state: sessionContext.sensory_state || baseline.sensoryState || null,
+        sleep_quality: baseline.sleepQuality || baseline.sleep_quality || null,
+        breaks_used: Number.isFinite(sessionContext.breaks_used) ? sessionContext.breaks_used : baseline.breakCount,
+        maintenance_status: sessionContext.maintenance_status || baseline.maintenanceStatus || null,
+        generalisation_status: sessionContext.generalisation_status || baseline.generalisationStatus || null,
+        teacher_attention_rating: baseline.teacherAttentionRating || baseline.teacher_attention_rating || null,
+        teacher_independence_rating: baseline.teacherIndependenceRating || baseline.teacher_independence_rating || null,
+        dosage_minutes_actual: session.fidelity && Number.isFinite(session.fidelity.dosage_minutes_actual) ? session.fidelity.dosage_minutes_actual : null,
+        dosage_minutes_target: session.fidelity && Number.isFinite(session.fidelity.dosage_minutes_target) ? session.fidelity.dosage_minutes_target : null,
+        fidelity_score_pct: session.fidelity && Number.isFinite(session.fidelity.score_pct) ? session.fidelity.score_pct : null
+      };
+    });
+    const eegReadiness = sessions.map(session => ({
+      date: researchDateLabel(Number(session.updated_at_wall_ms)),
+      learner: session.learner_alias || session.learner || 'Unknown',
+      eeg_expected: !!((session.settings && session.settings.eegResearchMode) || latestTrialsByQuestion(session.trials || []).some(trial => trial.eeg_research_mode)),
+      marker_count: Array.isArray(session.eeg_markers) ? session.eeg_markers.length : 0,
+      artifact_count: Array.isArray(session.events) ? session.events.filter(event => event.type === 'artifact_noted').length : 0,
+      core_marker_sets: coreMarkerCompleteness(session),
+      diagnostics: markerDiagnostics(session)
+    }));
+    const teacherDecisions = researchReviewsForSessions(sessions).map(review => ({
+      date: researchDateLabel(Number(review.reviewed_at_wall_ms)),
+      learner_alias: review.learner_alias || 'Unknown',
+      recommendation_id: review.recommendation_id,
+      decision: review.decision,
+      proposed_action: review.proposal && review.proposal.action,
+      skill_id: review.proposal && review.proposal.skill_id,
+      final_task_kind: review.final_plan && review.final_plan.task_kind,
+      final_level: review.final_plan && review.final_plan.level
+    }));
+
+    return {
+      app: APP_BUILD.app,
+      build: buildExportMeta(),
+      export_schema_version: RESEARCH_WORKSPACE_EXPORT_VERSION,
+      exported_at_wall_ms: wallMs(),
+      scope,
+      archived_sessions_included: !!(ui.researchIncludeArchived && ui.researchIncludeArchived.checked),
+      learner_aliases_included: true,
+      session_count: sessions.length,
+      final_trial_count: finalTrials.length,
+      privacy_manifest: {
+        local_download_only: true,
+        external_transmission: false,
+        raw_trials_included: false,
+        raw_events_included: false,
+        raw_touch_coordinates_included: false,
+        image_data_included: false,
+        photo_labels_included: false,
+        free_text_notes_included: false,
+        day_level_session_dates_included: true
+      },
+      data_quality: summary.data_quality,
+      coverage_by_session: sessions.map(researchCoverageForSession),
+      session_performance: sessionPerformance,
+      session_timing: sessions.map(sessionTimingResearchRow),
+      skill_summaries: summary.skill_summaries.map(item => ({
+        skill_id: item.skill_id,
+        label: item.label,
+        opportunities: item.opportunities,
+        scored_opportunities: item.scored_opportunities,
+        response_count: item.response_count,
+        correct: item.correct,
+        incorrect: item.incorrect,
+        accuracy_pct: item.accuracy_pct,
+        omissions: item.omissions,
+        commissions: item.commissions,
+        correct_rejections: item.correct_rejections,
+        independent_responses: item.independent_responses,
+        assisted_responses: item.assisted_responses,
+        independent_correct: item.independent_correct,
+        assisted_correct: item.assisted_correct,
+        highest_prompt_level: item.highest_prompt_level,
+        median_reaction_time_ms: item.median_reaction_time_ms,
+        reaction_time_variability_ms: item.reaction_time_variability_ms,
+        mean_touch_distance_px: item.mean_touch_distance_px
+      })),
+      practice_states: practiceStates,
+      attention_families: attentionFamilies,
+      support_summary: Array.from(supportGroups.values()),
+      task_exposure: Array.from(taskGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
+      category_exposure: Array.from(categoryGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
+      session_context: context,
+      eeg_readiness: eegReadiness,
+      teacher_decisions: teacherDecisions,
+      interpretation_boundary: 'Descriptive teaching and research-support summary only. It is not diagnostic, does not establish causation or transfer, and does not demonstrate neural change or validated EEG synchronisation.'
+    };
+  }
+
+  async function exportResearchWorkspaceSummary(){
+    await persistCurrentSession();
+    await refreshStoredHistory();
+    const sessions = researchSessionsInScope();
+    if(!sessions.length){
+      flash('try', 'No research sessions in this scope');
+      return;
+    }
+    const payload = buildResearchWorkspaceSummary(sessions);
+    const stamp = schoolTimestampParts();
+    const scopePart = payload.scope === 'all-learners'
+      ? 'AllLearners'
+      : payload.scope === 'current-session'
+        ? 'CurrentSession'
+        : safeFilenamePart(currentPupilAlias());
+    const filename = `ChoiceTrain_Research_${scopePart}_${stamp.date}_${stamp.time}_summary.json`;
+    triggerBlobDownload(new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' }), filename);
+    if(state.trials.length){
+      logEvent('research_scope_summary_exported', {
+        export_schema_version: RESEARCH_WORKSPACE_EXPORT_VERSION,
+        scope: payload.scope,
+        session_count: payload.session_count,
+        external_transmission: false
+      });
+    }
+  }
+
   function participantCodeForSession(session, fallbackCodes){
     const snapshotCode = session && session.learner_snapshot && session.learner_snapshot.researchParticipantId;
     const storedLearner = session && session.learner ? state.learners[session.learner] : null;
@@ -8826,6 +9026,7 @@
       await refreshStoredHistory();
       renderResearchWorkspace();
     });
+    bindAction(ui.exportResearchSummaryBtn, exportResearchWorkspaceSummary);
     bindAction(ui.saveRecommendationReviewBtn, saveRecommendationReview);
     bindAction(ui.copyBuildInfoBtn, async () => {
       if(await copyText(buildInfoClipboardText())){

@@ -497,6 +497,29 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await expect(spatialCells.nth(12)).toContainText('radii');
   await expect(page.locator('#researchTouchSpatialNote')).toContainText('not a motor');
 
+  const researchDownloadPromise = page.waitForEvent('download');
+  await page.locator('#exportResearchSummaryBtn').click();
+  const researchDownload = await researchDownloadPromise;
+  expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
+  const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
+  expect(researchPayload.export_schema_version).toBe('1.0.0');
+  expect(researchPayload.scope).toBe('current-learner');
+  expect(researchPayload.session_count).toBe(1);
+  expect(researchPayload.final_trial_count).toBe(3);
+  expect(researchPayload.session_timing).toHaveLength(1);
+  expect(researchPayload.skill_summaries.length).toBeGreaterThan(0);
+  expect(researchPayload.privacy_manifest).toEqual(expect.objectContaining({
+    local_download_only: true,
+    external_transmission: false,
+    raw_trials_included: false,
+    raw_events_included: false,
+    raw_touch_coordinates_included: false,
+    image_data_included: false,
+    free_text_notes_included: false
+  }));
+  expect(researchPayload).not.toHaveProperty('trials');
+  expect(researchPayload).not.toHaveProperty('events');
+
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchBehaviourNote')).toContainText('not connected');
   await expect(page.locator('#researchSessionTimingNote')).toContainText('not connected');
