@@ -143,6 +143,15 @@ async function setValue(page, id, value) {
   }, value);
 }
 
+async function setCategorySelection(page, containerId, selectedIds) {
+  await page.locator(`#${containerId} input[data-category-id]`).evaluateAll((nodes, ids) => {
+    nodes.forEach(node => {
+      node.checked = ids.includes(node.dataset.categoryId);
+      node.dispatchEvent(new Event('change', { bubbles: true }));
+    });
+  }, selectedIds);
+}
+
 async function downloadJsonAfter(page, action) {
   const downloadPromise = page.waitForEvent('download');
   await action();
@@ -578,6 +587,126 @@ test('Find category rotates fair categories and keeps exactly one correct option
     await page.locator('#teacherExitHold').focus();
     await page.locator('#teacherExitHold').press('Enter');
   }
+});
+
+test('teacher-created categories generate reproducible personalised lessons and Research coverage', async ({ page }) => {
+  test.slow();
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'itiSec', 0);
+  await page.locator('#teacherNavPersonalise').click();
+
+  const categories = [
+    {
+      id: 'custom-musical-instruments',
+      label: 'Musical instruments',
+      photos: [
+        { label: 'Drum', fill: '#d48145' },
+        { label: 'Guitar', fill: '#c85c5c' },
+        { label: 'Piano', fill: '#4e657a' }
+      ]
+    },
+    {
+      id: 'custom-sensory-tools',
+      label: 'Sensory tools',
+      photos: [
+        { label: 'Fidget spinner', fill: '#4e86c8' },
+        { label: 'Wobble cushion', fill: '#45a477' },
+        { label: 'Sensory bottle', fill: '#9b68b5' }
+      ]
+    }
+  ];
+
+  for(const category of categories){
+    await page.locator('#createCategoryName').fill(category.label);
+    await page.locator('#createCategoryBtn').click();
+    await expect(page.locator('#categoryCreateStatus')).toContainText('ready to use');
+  }
+
+  let photoCount = 0;
+  for(const category of categories){
+    for(const photo of category.photos){
+      await page.locator('#photoLabel').fill(photo.label);
+      await page.locator('#photoCategory').selectOption(category.id);
+      await page.locator('#photoUpload').setInputFiles({
+        name: `${photo.label.toLowerCase().replaceAll(' ', '-')}.svg`,
+        mimeType: 'image/svg+xml',
+        buffer: Buffer.from(`<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="12" fill="${photo.fill}"/></svg>`)
+      });
+      await page.locator('#addPhotoBtn').click();
+      photoCount += 1;
+      await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(photoCount, { timeout: 15_000 });
+    }
+  }
+
+  await page.locator('#teacherNavToday').click();
+  await setValue(page, 'sessionTaskType', 'find-category');
+  await setValue(page, 'findCategorySourceMode', 'personalised');
+  await setValue(page, 'startLevel', 6);
+  await setValue(page, 'sessionMax', 6);
+  await setValue(page, 'maxObjects', 4);
+  await setValue(page, 'lessonSeedOverride', 27182818);
+  await setCategorySelection(page, 'findCategoryCategoryList', categories.map(category => category.id));
+  await expect(page.locator('#findCategoryConfigSummary')).toContainText('2 can produce fair');
+
+  const first = await completeSessionAndExport(page, 6);
+  const selectedCategories = first.content_configuration.find_category.selected_categories;
+  expect(selectedCategories.map(category => category.id).sort()).toEqual(categories.map(category => category.id).sort());
+  expect(selectedCategories.map(category => category.label).sort()).toEqual(categories.map(category => category.label).sort());
+  expect(first.lesson_plan.constraints.coverage_strategy).toBe('balanced-before-repeat');
+  expect(new Set(first.trials.map(trial => trial.target_category))).toEqual(new Set(categories.map(category => category.id)));
+  expect(new Set(first.trials.map(trial => trial.target_id)).size).toBe(6);
+  const categoryCounts = first.trials.reduce((counts, trial) => {
+    counts[trial.target_category] = (counts[trial.target_category] || 0) + 1;
+    return counts;
+  }, {});
+  expect(Object.values(categoryCounts).sort()).toEqual([3, 3]);
+  first.trials.forEach(trial => {
+    const matchingOptions = trial.option_metadata.filter(option => option.category_ids.includes(trial.target_category));
+    expectCoreSchema(trial, TRIAL_SCHEMA, 'trial');
+    expect(trial.skill_ids).toContain('categorisation.category_member');
+    expect(trial.target_source).toBe('personalised');
+    expect(trial.option_metadata.every(option => option.source === 'personalised')).toBe(true);
+    expect(matchingOptions).toHaveLength(1);
+    expect(matchingOptions[0].id).toBe(trial.target_id);
+    expect(trial.generator_constraints.coverage_strategy).toBe('balanced-before-repeat');
+  });
+  expect(first.photo_library_metadata.map(photo => photo.label).sort()).toEqual(
+    categories.flatMap(category => category.photos.map(photo => photo.label)).sort()
+  );
+  expect(JSON.stringify(first)).not.toContain('data:image');
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await setValue(page, 'startLevel', 6);
+  const second = await completeSessionAndExport(page, 6);
+  expect(second.trials.map(trial => ({
+    target: trial.target_id,
+    options: trial.option_metadata.map(option => option.id),
+    prompt: trial.prompt_wording
+  }))).toEqual(first.trials.map(trial => ({
+    target: trial.target_id,
+    options: trial.option_metadata.map(option => option.id),
+    prompt: trial.prompt_wording
+  })));
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-session');
+  await expect(page.locator('#researchCategoryBody')).toContainText('Musical instruments');
+  await expect(page.locator('#researchCategoryBody')).toContainText('Sensory tools');
+  await expect(page.locator('#researchCategoryLessonPersonalised')).toHaveText('6');
+
+  const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
+  expect(researchPayload.category_exposure.map(row => row.category).sort()).toEqual(categories.map(category => category.label).sort());
+  expect(researchPayload.category_exposure.every(row => row.personalised === row.opportunities)).toBe(true);
 });
 
 test('Match category uses a distinct cue and same-category target with reproducible fair distractors', async ({ page }) => {
