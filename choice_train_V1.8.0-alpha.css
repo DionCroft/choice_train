@@ -1687,6 +1687,97 @@ body.panel-view-admin th {
   }
 }
 
+/* Keep the complete learner task visible in narrow split-screen and small-phone views. */
+@media (max-width: 360px) and (max-height: 700px) {
+  .wrap.learner .stage {
+    gap: 5px;
+    padding-top: max(6px, env(safe-area-inset-top));
+    padding-right: max(6px, env(safe-area-inset-right));
+    padding-bottom: max(6px, env(safe-area-inset-bottom));
+    padding-left: max(6px, env(safe-area-inset-left));
+  }
+
+  .student-friendly-on .wrap.learner .learnerBanner,
+  .student-friendly-on .wrap.learner #levelBadge,
+  .student-friendly-on .wrap.learner .footerBar > div:first-child {
+    display: none;
+  }
+
+  .wrap.learner .trackWrap {
+    grid-column: 1 / -1;
+    padding: 4px 6px;
+    border-radius: 12px;
+  }
+
+  .wrap.learner .station {
+    width: 22px;
+    height: 22px;
+    font-size: 0.65rem;
+  }
+
+  .wrap.learner .trackLine {
+    min-width: 4px;
+    height: 4px;
+  }
+
+  .wrap.learner .screen {
+    gap: 8px;
+    padding: 6px;
+  }
+
+  .wrap.learner #screenChoice .promptBox {
+    padding: 5px 8px;
+  }
+
+  .wrap.learner #screenChoice .promptText {
+    font-size: clamp(1.1rem, 7vw, 1.45rem);
+  }
+
+  .wrap.learner #screenChoice .grid {
+    gap: 6px;
+  }
+
+  .wrap.learner #screenChoice .choice {
+    min-height: 82px;
+    gap: 3px;
+    padding: 5px;
+    border-radius: 13px;
+  }
+
+  .wrap.learner #screenChoice .choiceMedia {
+    width: min(100%, 48px);
+    font-size: 28px;
+    border-radius: 10px;
+  }
+
+  .wrap.learner #screenChoice .choiceLabel {
+    font-size: 0.78rem;
+    line-height: 1.08;
+  }
+
+  .student-friendly-on .wrap.learner #screenChoice .choiceSmall {
+    display: none;
+  }
+
+  .wrap.learner .footerBar {
+    min-height: 44px;
+    padding: 3px 5px;
+  }
+
+  .wrap.learner .learnerControls {
+    width: 100%;
+    flex-wrap: nowrap;
+    gap: 4px;
+  }
+
+  .wrap.learner .learnerControls button {
+    flex: 1 1 0;
+    min-width: 0;
+    min-height: 44px;
+    padding: 4px 6px;
+  }
+}
+
 @media (orientation: landscape) and (max-height: 540px) {
   .wrap.learner .stage {
     gap: 6px;
@@ -1843,5 +1934,58 @@ body.panel-view-admin th {
     right: max(6px, env(safe-area-inset-right));
     width: 44px;
     min-height: 44px;
+  }
+}
+
+@media (orientation: landscape) and (max-height: 360px) {
+  .student-friendly-on .wrap.learner .learnerBanner,
+  .student-friendly-on .wrap.learner .footerBar > div:first-child {
+    display: none;
+  }
+
+  .student-friendly-on .wrap.learner .trackWrap {
+    grid-column: 1 / 3;
+  }
+
+  .wrap.learner #screenChoice.active {
+    grid-template-columns: minmax(126px, 0.3fr) minmax(0, 1fr);
+    gap: 6px;
+    padding: 6px;
+  }
+
+  .wrap.learner #screenChoice .grid {
+    grid-template-columns: repeat(auto-fit, minmax(86px, 1fr));
+    gap: 5px;
+  }
+
+  .wrap.learner #screenChoice .choice {
+    min-height: 68px;
+    gap: 2px;
+    padding: 4px;
+  }
+
+  .wrap.learner #screenChoice .choiceMedia {
+    width: min(100%, 42px);
+    font-size: 25px;
+  }
+
+  .wrap.learner #screenChoice .choiceLabel {
+    font-size: 0.76rem;
+    line-height: 1.05;
+  }
+
+  .student-friendly-on .wrap.learner #screenChoice .choiceSmall {
+    display: none;
+  }
+
+  .wrap.learner .footerBar {
+    min-height: 44px;
+    padding: 3px 5px;
+  }
+
+  .wrap.learner .learnerControls button {
+    min-width: 60px;
+    min-height: 44px;
+    padding: 4px 6px;
   }
 }

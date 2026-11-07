@@ -19,10 +19,12 @@ ChoiceTrain is a local-first static web application. It deliberately avoids a se
 V1.7 adds a presentation layer around the existing static runtime rather than replacing its learning and research model:
 
 - the teacher workspace exposes Today, Personalise, and Results task contexts
-- learner mode occupies the dynamic viewport and hides configuration surfaces
+- learner mode occupies the dynamic viewport, applies notch-aware safe-area padding, and hides configuration surfaces
 - the admin/research workspace exposes Overview, Sessions, Learners, EEG, and System destinations
 
 The views share one application state and one set of DOM controls. Navigation changes visibility and focus; it does not create duplicate settings. Admin groups declare their destinations with `data-admin-pages`; a body-level destination state exposes only the groups relevant to Overview, Sessions, Learners, EEG, or System. Header-aware scrolling is deferred until the full-width layout and stored-history hydration settle. A 1.2-second hold gesture protects the learner-to-teacher return control from accidental taps, while keyboard activation remains immediate.
+
+The V1.8 candidate treats usable browser dimensions as runtime inputs rather than assuming a desktop canvas. CSS dynamic-viewport units, `viewport-fit=cover`, safe-area environment values, compact portrait/landscape breakpoints, and fit-aware target sizing keep learner content contained. Resize, orientation, and `visualViewport` events schedule one animation-frame relayout of the existing unanswered question; they do not regenerate content, restart the response window, or emit a second stimulus marker. The regression contract includes six-choice 320 x 568 portrait and 568 x 320 landscape routes at 130% in-app text, but physical browser chrome, zoom, virtual keyboards, and assistive access remain external validation concerns.
 
 ## Presentation and Audio
 

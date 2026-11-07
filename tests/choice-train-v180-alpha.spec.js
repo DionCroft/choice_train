@@ -3071,6 +3071,35 @@ test('learner Q&A fits compact landscape with enlarged text and six choices', as
   expectLearnerLayoutContained(await learnerLayoutSnapshot(page), 6);
 });
 
+[
+  { name: 'small phone portrait', width: 320, height: 568 },
+  { name: 'small phone landscape', width: 568, height: 320 }
+].forEach(viewport => {
+  test(`six-choice learner Q&A fits a ${viewport.name} with enlarged text`, async ({ page }) => {
+    await page.setViewportSize({ width: viewport.width, height: viewport.height });
+    await gotoAlpha(page);
+    await expect(page.locator('meta[name="viewport"]')).toHaveAttribute('content', /viewport-fit=cover/);
+    await setValue(page, 'textScale', 1.3);
+    await setValue(page, 'sessionTaskType', 'find-object');
+    await setValue(page, 'startLevel', 6);
+    await setValue(page, 'sessionMax', 1);
+    await setValue(page, 'maxObjects', 6);
+    await setCheckbox(page, 'studentFriendlyMode', true);
+    await setCheckbox(page, 'useTwoStage', false);
+    await setCheckbox(page, 'useBlankInterval', false);
+    await setCheckbox(page, 'ttsToggle', false);
+    await page.locator('#quickStartSessionBtn').click();
+    await expect(page.locator('#screenChoice.active')).toBeVisible();
+
+    expectLearnerLayoutContained(await learnerLayoutSnapshot(page), 6);
+    const learnerButtons = page.locator('.learnerControls button:visible');
+    for(let index = 0; index < await learnerButtons.count(); index += 1){
+      const box = await learnerButtons.nth(index).boundingBox();
+      expect(box && box.height).toBeGreaterThanOrEqual(44);
+    }
+  });
+});
+
 test('active learner question relayouts after portrait-to-landscape rotation without changing the task', async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await gotoAlpha(page);
