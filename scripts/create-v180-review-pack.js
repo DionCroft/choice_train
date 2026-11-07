@@ -10,8 +10,9 @@ const { validateManifestShape: validatePromotionManifestShape } = require('./che
 
 const ROOT = path.resolve(__dirname, '..');
 const DEFAULT_OUTPUT_DIR = 'test-results/v180-review-pack';
-const REPORT_VERSION = '1.0.0';
+const REPORT_VERSION = '1.1.0';
 const CANDIDATE_VERSION = '1.8.0-alpha';
+const WORKSHEET_FILENAME = 'ChoiceTrain_V1.8.0-alpha_ExternalValidationWorksheet.md';
 const PROTECTED_STABLE_SHA256 = '77b4033411d9b20caafaaa6739f7c5317eef1efb010cf88c92a1571ed58e16aa';
 const REQUIRED_COMMANDS = Object.freeze([
   'node --check choice_train_V1.8.0-alpha.js',
@@ -185,6 +186,11 @@ function buildReviewPack(options={}){
     },
     required_engineering_commands: REQUIRED_COMMANDS.slice(),
     external_review_protocol: 'docs/V1.8.0_EXTERNAL_VALIDATION_PROTOCOL.md',
+    review_materials: {
+      external_validation_worksheet: WORKSHEET_FILENAME,
+      worksheet_state: 'blank-template',
+      contains_review_evidence: false
+    },
     privacy_boundary: {
       copied_fields: ['build and Git provenance', 'stable hashes', 'coverage requirement IDs', 'promotion gate status codes', 'required command names'],
       excluded_fields: ['pupil or learner records', 'session data', 'photographs', 'context notes', 'responses', 'touch coordinates', 'reviewer identities', 'evidence references', 'consent or authority records', 'EEG recordings']
@@ -236,15 +242,159 @@ function renderMarkdown(pack){
   ].join('\n');
 }
 
+function renderValidationWorksheet(pack){
+  const gateRows = pack.promotion_record.gates
+    .map(gate => `| ${gate.id} | pending |  |  |  |  |`)
+    .join('\n');
+  return [
+    '# ChoiceTrain V1.8 External Validation Worksheet',
+    '',
+    `Generated from candidate: \`${pack.source_state.candidate_commit}\``,
+    '',
+    `Branch: \`${pack.source_state.branch}\``,
+    '',
+    `Engineering snapshot: **${pack.source_state.pack_state}**`,
+    '',
+    `Worksheet generated: ${pack.generated_at_iso}`,
+    '',
+    '> Complete this worksheet only in the approved external evidence location. Do not commit a completed copy. Do not record pupil names, aliases, photographs, session exports, consent records, safeguarding observations, free-text pupil notes, EEG recordings, or other personal data here.',
+    '',
+    'Use non-identifying evidence references and reviewer roles. A device or staff-review gate remains pending until the named review has actually been completed against the exact candidate above.',
+    '',
+    '## Candidate Freeze',
+    '',
+    '- [ ] The candidate SHA above matches the deployed review build.',
+    '- [ ] The tracked worktree and remote feature branch match that SHA.',
+    '- [ ] All required engineering commands passed against that SHA.',
+    '- [ ] The successful branch CI URL and conclusion are recorded below.',
+    '- [ ] The protected V1.7 stable entry remains unchanged.',
+    '',
+    '| Engineering evidence | Value |',
+    '|---|---|',
+    `| Exact candidate SHA | \`${pack.source_state.candidate_commit}\` |`,
+    `| Runtime source commit | \`${pack.runtime_build.based_on_commit}\` |`,
+    `| Feature branch | \`${pack.source_state.branch}\` |`,
+    '| Branch CI URL |  |',
+    '| CI conclusion and date |  |',
+    '| Local command record reference |  |',
+    '| Review-pack copy reference |  |',
+    '',
+    '## Gate Summary',
+    '',
+    'Allowed outcomes are `pending`, `passed`, `passed-with-limitations`, or `failed`. A limitation-qualified result needs an explicit accepted limitation.',
+    '',
+    '| Gate | Outcome | Evidence reference | Reviewer role/group | Review date | Accepted limitations |',
+    '|---|---|---|---|---|---|',
+    gateRows,
+    '',
+    '## Staff Usability',
+    '',
+    'Record aggregate staff-task evidence only. Do not identify individual staff members.',
+    '',
+    '| Measure | Result | Acceptance check | Evidence reference |',
+    '|---|---|---|---|',
+    '| Participants by role |  | Teachers/TAs and SEND or accessibility lead represented |  |',
+    '| Daily route completion without developer intervention |  | Every participant completes |  |',
+    '| First-attempt task completion |  | At least 80% |  |',
+    '| Median completion time |  | Reviewed for classroom practicality |  |',
+    '| Wrong turns or accidental starts/exits |  | No unresolved blocker or high finding |  |',
+    '| Confidence rating summary |  | 1-5 aggregate recorded |  |',
+    '| Local storage and export boundary understood |  | Staff can explain it in plain language |  |',
+    '| Non-diagnostic and non-autonomous boundary understood |  | No diagnostic or autonomous interpretation |  |',
+    '',
+    '## Safeguarding, Governance, and Ethics',
+    '',
+    'Record references and release limitations only. Keep underlying records in the approved school or research system.',
+    '',
+    '| Review | Evidence reference | Responsible role/group | Date | Outcome | Release limitation |',
+    '|---|---|---|---|---|---|',
+    '| Learner safeguarding and stopping process |  |  |  | pending |  |',
+    '| Information governance, retention, access, export, and DPIA |  |  |  | pending |  |',
+    '| Legal and research-ethics decision |  |  |  | pending |  |',
+    '| Model-development purpose and authority boundary |  |  |  | pending |  |',
+    '',
+    '## Physical Device Matrix',
+    '',
+    'Use real intended hardware. Emulation does not pass a physical-device gate.',
+    '',
+    '| Gate | Device / OS / browser | Input and access method | Portrait | Landscape | Zoom or text size | Keyboard | Speech | Persistence and export | Outcome | Evidence reference |',
+    '|---|---|---|---|---|---|---|---|---|---|---|',
+    '| windows_touchscreen |  |  |  |  |  |  |  |  | pending |  |',
+    '| ipad_safari |  |  |  |  |  |  |  |  | pending |  |',
+    '| android_chrome |  |  |  |  |  |  |  |  | pending |  |',
+    '| kindle_silk |  |  |  |  |  |  |  |  | pending |  |',
+    '',
+    'For every applicable row, verify Teacher/Admin navigation, four-choice and maximum-choice learner tasks, question-to-answer blank timing, rotation during an unanswered question, Help/Break/Stop, deliberate teacher return, speech fallback, local persistence, and synthetic export metadata.',
+    '',
+    '## Assistive Access',
+    '',
+    '| Intended method | Hardware/software | Focus and order | Controls and labels | Non-colour cues | Safe return | Outcome | Evidence reference |',
+    '|---|---|---|---|---|---|---|---|',
+    '| Keyboard |  |  |  |  |  | pending |  |',
+    '| Switch or switch-emulated input |  |  |  |  |  | pending |  |',
+    '| AAC-supported prompting |  |  |  |  |  | pending |  |',
+    '| Browser zoom or enlarged text |  |  |  |  |  | pending |  |',
+    '| Screen reader for staff/research controls |  |  |  |  |  | pending |  |',
+    '| Other intended access method |  |  |  |  |  | pending |  |',
+    '',
+    '## EEG Hardware Timing',
+    '',
+    'Do not attach raw EEG data. Record a non-identifying laboratory evidence reference and aggregate timing results from the approved protocol.',
+    '',
+    '| Field | Result |',
+    '|---|---|',
+    '| Acquisition system, sampling rate, and acquisition software version |  |',
+    '| Browser/device, display, and audio hardware |  |',
+    '| Bridge version and marker transport |  |',
+    '| Measurement method and reference sensor |  |',
+    '| Warm-up and trial count |  |',
+    '| Pre-specified latency and jitter thresholds |  |',
+    '| Observed latency distribution |  |',
+    '| Observed jitter distribution |  |',
+    '| Dropped, duplicated, or out-of-order markers |  |',
+    '| Clock alignment and observed drift |  |',
+    '| Condition-specific limitations |  |',
+    '| Overall outcome and evidence reference | pending |',
+    '',
+    '## Findings and Retests',
+    '',
+    '| Finding ID | Severity | Affected gate/route | Non-identifying finding summary | Fix commit | Retest reference | Retest outcome |',
+    '|---|---|---|---|---|---|---|',
+    '|  |  |  |  |  |  |  |',
+    '',
+    'Blocker and high findings must be fixed and affected gates retested against the new candidate commit. Do not carry an approval forward silently after code changes.',
+    '',
+    '## Product-owner Decision',
+    '',
+    '- [ ] Every required gate has acceptable evidence for the same exact candidate commit.',
+    '- [ ] Every `passed-with-limitations` result has an explicit accepted limitation.',
+    '- [ ] No blocker or unresolved high-severity finding remains.',
+    '- [ ] The product owner has explicitly authorised or declined promotion.',
+    '',
+    '| Decision field | Value |',
+    '|---|---|',
+    '| Decision (`authorise` or `decline`) |  |',
+    '| Evidence reference |  |',
+    '| Product-owner role |  |',
+    '| Decision date |  |',
+    '| Accepted release limitations |  |',
+    '',
+    'Only after this external process is complete should the repository promotion record be updated with non-identifying references and the fail-closed promotion guard be run.',
+    ''
+  ].join('\n');
+}
+
 function writeReviewPack(pack, outputDir){
   const targetDir = resolveOutputDir(outputDir);
   fs.mkdirSync(targetDir, { recursive: true });
   const baseName = 'ChoiceTrain_V1.8.0-alpha_ReviewPack';
   const jsonPath = path.join(targetDir, `${baseName}.json`);
   const markdownPath = path.join(targetDir, `${baseName}.md`);
+  const worksheetPath = path.join(targetDir, WORKSHEET_FILENAME);
   fs.writeFileSync(jsonPath, `${JSON.stringify(pack, null, 2)}\n`, 'utf8');
   fs.writeFileSync(markdownPath, renderMarkdown(pack), 'utf8');
-  return { jsonPath, markdownPath };
+  fs.writeFileSync(worksheetPath, renderValidationWorksheet(pack), 'utf8');
+  return { jsonPath, markdownPath, worksheetPath };
 }
 
 function main(argv=process.argv.slice(2)){
@@ -264,6 +414,7 @@ function main(argv=process.argv.slice(2)){
   const files = writeReviewPack(pack, options.outputDir);
   process.stdout.write(`Wrote ${path.relative(ROOT, files.jsonPath)}\n`);
   process.stdout.write(`Wrote ${path.relative(ROOT, files.markdownPath)}\n`);
+  process.stdout.write(`Wrote ${path.relative(ROOT, files.worksheetPath)}\n`);
   process.stdout.write('No pupil, session, reviewer, or external evidence data was copied.\n');
   return 0;
 }
@@ -286,6 +437,7 @@ module.exports = {
   normaliseGitOutput,
   parseArgs,
   renderMarkdown,
+  renderValidationWorksheet,
   resolveOutputDir,
   usage,
   writeReviewPack

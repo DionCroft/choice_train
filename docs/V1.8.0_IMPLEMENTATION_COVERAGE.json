@@ -223,7 +223,8 @@
       "automated_evidence": [
         { "path": "scripts/check-v180-promotion.test.js", "contains": "a pending record cannot authorise release" },
         { "path": "scripts/check-v180-promotion.test.js", "contains": "complete evidence for the exact frozen commit passes the manual guard" },
-        { "path": "scripts/create-v180-review-pack.test.js", "contains": "review pack is pupil-data-free and excludes protected evidence fields" }
+        { "path": "scripts/create-v180-review-pack.test.js", "contains": "review pack is pupil-data-free and excludes protected evidence fields" },
+        { "path": "scripts/create-v180-review-pack.test.js", "contains": "review pack renders a blank external worksheet for every human and device gate" }
       ],
       "limitations": ["Automation can reject incomplete evidence but cannot perform or approve product-owner, school, safeguarding, governance, ethics, device, access, or EEG reviews."]
     },

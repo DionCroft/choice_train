@@ -10,6 +10,7 @@ const {
   normaliseGitOutput,
   parseArgs,
   renderMarkdown,
+  renderValidationWorksheet,
   resolveOutputDir
 } = require('./create-v180-review-pack.js');
 
@@ -75,6 +76,25 @@ test('review pack lists every required engineering command and explicit boundary
   assert.match(markdown, /Candidate commit: `0123456789abcdef/);
   assert.match(markdown, /External Gate Status/);
   assert.match(markdown, /Keep protected evidence outside the repository/);
+});
+
+test('review pack renders a blank external worksheet for every human and device gate', () => {
+  const pack = fixedPack();
+  const worksheet = renderValidationWorksheet(pack);
+  assert.equal(pack.report_version, '1.1.0');
+  assert.equal(pack.review_materials.external_validation_worksheet, 'ChoiceTrain_V1.8.0-alpha_ExternalValidationWorksheet.md');
+  assert.match(worksheet, new RegExp(FIXED_COMMIT));
+  assert.match(worksheet, /Do not commit a completed copy/i);
+  assert.match(worksheet, /Do not record pupil names, aliases, photographs/i);
+  assert.match(worksheet, /Staff Usability/);
+  assert.match(worksheet, /Physical Device Matrix/);
+  assert.match(worksheet, /Assistive Access/);
+  assert.match(worksheet, /EEG Hardware Timing/);
+  assert.match(worksheet, /Findings and Retests/);
+  assert.match(worksheet, /Product-owner Decision/);
+  pack.promotion_record.gates.forEach(gate => assert.match(worksheet, new RegExp(`\\| ${gate.id} \\| pending \\|`)));
+  assert.equal(pack.review_materials.worksheet_state, 'blank-template');
+  assert.equal(pack.review_materials.contains_review_evidence, false);
 });
 
 test('review pack output is restricted to ignored test-results', () => {
