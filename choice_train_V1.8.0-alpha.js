@@ -30,15 +30,15 @@
   const CUSTOM_IMAGES_ASSET_KEY = 'profile:customImages';
   const SESSION_ARCHIVE_LIMIT = 60;
   const LOCAL_DATA_MIGRATION_VERSION = 5;
-  const DATA_SCHEMA_VERSION = 6;
-  const SKILL_GRAPH_VERSION = '1.1.0';
-  const GENERATOR_VERSION = '1.3.0';
+  const DATA_SCHEMA_VERSION = 7;
+  const SKILL_GRAPH_VERSION = '1.2.0';
+  const GENERATOR_VERSION = '1.4.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.2.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '1.3.0';
   const PRIVACY_EXPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 2;
@@ -274,6 +274,7 @@
     'discriminate-object': { label: 'Discriminate object', family: 'foundation', domain: 'discrimination' },
     'find-category': { label: 'Find category', family: 'foundation', domain: 'reasoning' },
     'match-category': { label: 'Match category', family: 'foundation', domain: 'reasoning' },
+    'category-exclusion': { label: 'Find the different one', family: 'foundation', domain: 'reasoning' },
     'choice-preference': { label: 'Choice preference', family: 'foundation', domain: 'choice' },
     'cpat-suite': { label: 'AT suite', family: 'cpat', domain: 'mixed' },
     'cpat-sustained': { label: 'AT sustained attention', family: 'cpat', domain: 'sustained' },
@@ -290,6 +291,7 @@
     'discrimination.named_object': Object.freeze({ label: 'Discriminate a named object', prerequisites: ['recognition.named_object'] }),
     'categorisation.category_member': Object.freeze({ label: 'Select a category member', prerequisites: ['discrimination.named_object'] }),
     'categorisation.match_category': Object.freeze({ label: 'Match different members of a category', prerequisites: ['categorisation.category_member'] }),
+    'categorisation.category_exclusion': Object.freeze({ label: 'Select an item outside a reference category', prerequisites: ['categorisation.category_member'] }),
     'choice.preference': Object.freeze({ label: 'Express a preference', prerequisites: ['access.touch_target'] }),
     'attention.sustained': Object.freeze({ label: 'Sustained attention practice', prerequisites: ['access.touch_target'] }),
     'attention.selective_spatial': Object.freeze({ label: 'Selective-spatial attention practice', prerequisites: ['attention.sustained'] }),
@@ -305,6 +307,7 @@
     'discriminate-object': Object.freeze(['discrimination.named_object']),
     'find-category': Object.freeze(['categorisation.category_member']),
     'match-category': Object.freeze(['categorisation.match_category']),
+    'category-exclusion': Object.freeze(['categorisation.category_exclusion']),
     'choice-preference': Object.freeze(['choice.preference']),
     'cpat-suite': Object.freeze(['attention.sustained', 'attention.selective_spatial', 'attention.orienting', 'attention.executive']),
     'cpat-sustained': Object.freeze(['attention.sustained']),
@@ -1119,6 +1122,16 @@
     return prompts[Math.max(0, index - 1) % prompts.length];
   }
 
+  function buildCategoryExclusionPrompt(index){
+    const prompts = [
+      'Find the one that is different',
+      'Which one is different?',
+      'Can you find the one from a different group?',
+      'Which one does not belong with the others?'
+    ];
+    return prompts[Math.max(0, index - 1) % prompts.length];
+  }
+
   function setFooter(text, pillText){
     if(ui.footerHint) ui.footerHint.textContent = text;
     if(ui.touchInfo) ui.touchInfo.textContent = pillText;
@@ -1270,6 +1283,8 @@
       auto_level_path: !!(ui.autoLevelPath && ui.autoLevelPath.checked),
       response_window_ms: question.responseWindowMs == null ? null : question.responseWindowMs,
       target_category: question.targetCategory || null,
+      reference_category: question.referenceCategory || null,
+      category_relation: question.categoryRelation || null,
       cue_id: question.cueOption ? question.cueOption.id : null,
       cue_category: question.cueCategory || null,
       procedural_variant: question.proceduralVariant || null,
@@ -3136,6 +3151,20 @@
     });
   }
 
+  function fairExclusionCategories(categories, pool){
+    const selected = normalizeCategorySelection(categories, []);
+    return selected.filter(category => {
+      const members = uniqueOptions(pool.filter(item => optionMatchesCategory(item, category)), true);
+      if(members.length < 2) return false;
+      const memberLabels = new Set(members.map(item => normalizedConceptLabel(item.label)));
+      const outsideItems = uniqueOptions(pool.filter(item => (
+        !optionMatchesCategory(item, category)
+        && !memberLabels.has(normalizedConceptLabel(item.label))
+      )), true);
+      return outsideItems.length > 0;
+    });
+  }
+
   function contentOptionMetadata(item){
     return {
       id: item.id,
@@ -3154,6 +3183,7 @@
     const findCategoryItems = eligibleContentPool(filters.findCategoryCategories, filters.findCategorySource, fullPool);
     const findCategoryFair = fairPromptCategories(filters.findCategoryCategories, findCategoryItems);
     const matchCategoryFair = fairMatchCategories(filters.findCategoryCategories, findCategoryItems);
+    const exclusionCategoryFair = fairExclusionCategories(filters.findCategoryCategories, findCategoryItems);
     const categoryLabels = ids => ids.map(id => ({ id, label: categoryMeta(id).label }));
     return {
       schemaVersion: DATA_SCHEMA_VERSION,
@@ -3169,6 +3199,7 @@
         categories: categoryLabels(filters.findCategoryCategories),
         fairPromptCategories: categoryLabels(findCategoryFair),
         fairMatchCategories: categoryLabels(matchCategoryFair),
+        fairExclusionCategories: categoryLabels(exclusionCategoryFair),
         sourceMode: filters.findCategorySource,
         items: findCategoryItems.map(item => ({ ...item })),
         itemMetadata: findCategoryItems.map(contentOptionMetadata)
@@ -3192,6 +3223,7 @@
         selected_categories: snapshot.findCategory.categories,
         fair_prompt_categories: snapshot.findCategory.fairPromptCategories,
         fair_match_categories: snapshot.findCategory.fairMatchCategories,
+        fair_exclusion_categories: snapshot.findCategory.fairExclusionCategories,
         source_mode: snapshot.findCategory.sourceMode,
         usable_item_count: snapshot.findCategory.itemMetadata.length,
         items: snapshot.findCategory.itemMetadata
@@ -3234,14 +3266,34 @@
     return { valid, message, config, fair };
   }
 
+  function categoryExclusionConfiguration(snapshot=buildContentConfigurationSnapshot()){
+    const config = snapshot.findCategory;
+    const fair = config.fairExclusionCategories || [];
+    const maxAnswerOptions = clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6);
+    const valid = maxAnswerOptions >= 3 && fair.length >= 2;
+    const categoryNames = config.categories.map(category => category.label).join(', ') || 'None';
+    let message = `Categories: ${categoryNames}. Source: ${sourceModeLabel(config.sourceMode)}. ${config.items.length} usable items; ${fair.length} can produce fair find-the-different-one questions.`;
+    if(maxAnswerOptions < 3) message = 'Find the different one needs at least three answer options.';
+    else if(config.categories.length < 2) message = 'Find the different one needs at least two selected categories.';
+    else if(fair.length < 2) message = 'Find the different one needs at least two categories with two differently labelled members and a differently labelled item outside the category.';
+    return { valid, message, config, fair };
+  }
+
+  function categoryLessonTaskKinds(){
+    const maxAnswerOptions = clamp(safeNumber(ui.maxObjects && ui.maxObjects.value, 4), 2, 6);
+    return maxAnswerOptions >= 3
+      ? ['find-category', 'match-category', 'category-exclusion']
+      : ['find-category', 'match-category'];
+  }
+
   function effectiveConfiguredTaskKinds(){
     const selected = ui.sessionTaskType ? ui.sessionTaskType.value : 'auto';
     if(selected !== 'auto') return selected === 'cpat-suite' ? CPAT_TASK_ORDER.slice() : [selected];
     if(ui.autoLevelPath && ui.autoLevelPath.checked){
       const level = clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10);
-      return level === 6 ? ['find-category', 'match-category'] : [levelSpec(level).kind];
+      return level === 6 ? categoryLessonTaskKinds() : [levelSpec(level).kind];
     }
-    return ['moving-target', 'find-object', 'discriminate-object', 'find-category', 'match-category', 'choice-preference'];
+    return ['moving-target', 'find-object', 'discriminate-object'].concat(categoryLessonTaskKinds(), ['choice-preference']);
   }
 
   function refreshContentConfiguration(){
@@ -3251,12 +3303,18 @@
     const objectCheck = findObjectConfiguration(snapshot);
     const categoryCheck = findCategoryConfiguration(snapshot);
     const matchCheck = matchCategoryConfiguration(snapshot);
+    const exclusionCheck = categoryExclusionConfiguration(snapshot);
     const usesObjectContent = kinds.some(kind => ['find-object', 'discriminate-object', 'choice-preference'].includes(kind));
     ui.findObjectConfig.hidden = !usesObjectContent;
-    ui.findCategoryConfig.hidden = !kinds.some(kind => ['find-category', 'match-category'].includes(kind));
+    ui.findCategoryConfig.hidden = !kinds.some(kind => ['find-category', 'match-category', 'category-exclusion'].includes(kind));
     ui.findObjectConfigSummary.textContent = objectCheck.message;
     ui.findObjectConfigSummary.classList.toggle('invalid', !objectCheck.valid);
-    const activeCategoryCheck = kinds.includes('match-category') ? matchCheck : categoryCheck;
+    const activeCategoryChecks = [
+      kinds.includes('find-category') ? categoryCheck : null,
+      kinds.includes('match-category') ? matchCheck : null,
+      kinds.includes('category-exclusion') ? exclusionCheck : null
+    ].filter(Boolean);
+    const activeCategoryCheck = activeCategoryChecks.find(check => !check.valid) || activeCategoryChecks[activeCategoryChecks.length - 1] || categoryCheck;
     ui.findCategoryConfigSummary.textContent = activeCategoryCheck.message;
     ui.findCategoryConfigSummary.classList.toggle('invalid', !activeCategoryCheck.valid);
   }
@@ -3277,16 +3335,20 @@
       const check = matchCategoryConfiguration(snapshot);
       if(!check.valid) problems.push(check.message);
     }
+    if(kinds.includes('category-exclusion')){
+      const check = categoryExclusionConfiguration(snapshot);
+      if(!check.valid) problems.push(check.message);
+    }
     return { valid: problems.length === 0, problems, snapshot };
   }
 
   function sessionPoolFor(kind){
     if(state.sessionContentConfig){
       if(kind === 'find-object') return state.sessionContentConfig.findObject.items.slice();
-      if(kind === 'find-category' || kind === 'match-category') return state.sessionContentConfig.findCategory.items.slice();
+      if(['find-category', 'match-category', 'category-exclusion'].includes(kind)) return state.sessionContentConfig.findCategory.items.slice();
     }
     const snapshot = buildContentConfigurationSnapshot();
-    return kind === 'find-category' || kind === 'match-category' ? snapshot.findCategory.items : snapshot.findObject.items;
+    return ['find-category', 'match-category', 'category-exclusion'].includes(kind) ? snapshot.findCategory.items : snapshot.findObject.items;
   }
 
   function getFaceObject(){
@@ -3373,7 +3435,7 @@
       3: { kind: 'moving-target', size: 175 * scale, movable: true, subtitle: 'Level 3: track and touch the moving target.' },
       4: { kind: 'find-object', size: 150 * scale, movable: false, subtitle: 'Level 4: choose the named object from a small set.' },
       5: { kind: 'discriminate-object', size: 145 * scale, movable: false, subtitle: 'Level 5: choose the named item from two options.' },
-      6: { kind: 'find-category', size: 140 * scale, movable: false, subtitle: 'Level 6: use category knowledge to find and match related items.' },
+      6: { kind: 'find-category', size: 140 * scale, movable: false, subtitle: 'Level 6: use category knowledge to find, match, and compare related items.' },
       7: { kind: 'cpat-sustained', size: 170 * scale, movable: false, subtitle: 'Level 7: sustained attention. Tap only when the target appears.' },
       8: { kind: 'cpat-selective', size: 160 * scale, movable: false, subtitle: 'Level 8: selective-spatial attention. Find the correct target among distractors.' },
       9: { kind: 'cpat-orienting', size: 160 * scale, movable: false, subtitle: 'Level 9: orienting attention. Use the cue, then reorient when needed.' },
@@ -3410,11 +3472,14 @@
     const selected = selectedSessionTaskMode();
     if(selected !== 'auto') return selected;
     if(ui.autoLevelPath.checked){
-      if(state.currentLevel === 6) return index % 2 === 0 ? 'match-category' : 'find-category';
+      if(state.currentLevel === 6){
+        const categoryKinds = categoryLessonTaskKinds();
+        return categoryKinds[Math.max(0, index - 1) % categoryKinds.length];
+      }
       return levelSpec(state.currentLevel).kind;
     }
     if(index <= state.singleTargetRepetitions && ui.singleTargetStart.checked) return index === 1 ? 'touch-screen' : 'touch-object';
-    const cycle = ['moving-target', 'find-object', 'discriminate-object', 'find-category', 'match-category', 'choice-preference'];
+    const cycle = ['moving-target', 'find-object', 'discriminate-object'].concat(categoryLessonTaskKinds(), ['choice-preference']);
     const cycleStart = ui.singleTargetStart.checked ? state.singleTargetRepetitions + 1 : 1;
     return cycle[Math.max(0, index - cycleStart) % cycle.length];
   }
@@ -3660,6 +3725,43 @@
         targetCategoryLabel: categoryMeta(category).label,
         contentConfiguration: exportableContentConfiguration(snapshot).find_category,
         proceduralVariant: 'category-exemplar-match',
+        expectedResponseType: 'hit'
+      };
+    }
+
+    if(currentKind === 'category-exclusion'){
+      const eligible = sessionPoolFor('category-exclusion');
+      const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
+      const fairCategories = snapshot.findCategory.fairExclusionCategories.map(item => item.id);
+      const occurrence = taskOccurrenceIndex(currentKind, index);
+      const referenceCategory = balancedLessonChoice(fairCategories, occurrence, 'category-exclusion:categories', item => item);
+      const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, fairCategories.length)) + 1;
+      const members = uniqueOptions(eligible.filter(item => optionMatchesCategory(item, referenceCategory)), true);
+      const groupMembers = balancedLessonOrder(members, `category-exclusion:${referenceCategory}:members:${categoryOccurrence}`)
+        .slice(0, Math.min(Math.max(2, optionCount - 1), members.length));
+      const groupLabels = new Set(groupMembers.map(item => normalizedConceptLabel(item.label)));
+      const outsideCandidates = uniqueOptions(eligible.filter(item => (
+        !optionMatchesCategory(item, referenceCategory)
+        && !groupLabels.has(normalizedConceptLabel(item.label))
+      )), true);
+      const target = balancedLessonChoice(outsideCandidates, categoryOccurrence, `category-exclusion:${referenceCategory}:targets`);
+      const targetCategory = canonicalCategoryId(target.category);
+      return {
+        ...baseQuestion,
+        prompt: buildCategoryExclusionPrompt(index),
+        cueSummary: `Two or more items are from ${categoryMeta(referenceCategory).label}. Choose the one from a different teacher-defined category.`,
+        target,
+        options: shuffle(groupMembers.concat(target)),
+        correctId: target.id,
+        renderMode: 'grid',
+        distractorCount: groupMembers.length,
+        targetCategory,
+        targetCategoryLabel: categoryMeta(targetCategory).label,
+        referenceCategory,
+        referenceCategoryLabel: categoryMeta(referenceCategory).label,
+        categoryRelation: 'outside-reference-category',
+        contentConfiguration: exportableContentConfiguration(snapshot).find_category,
+        proceduralVariant: 'category-exclusion',
         expectedResponseType: 'hit'
       };
     }
@@ -4132,6 +4234,9 @@
       target_label: (question.target && question.target.label) || '',
       target_category: question.targetCategory || (question.target && canonicalCategoryId(question.target.category)) || '',
       target_category_label: question.targetCategoryLabel || (question.target && categoryMeta(question.target.category).label) || '',
+      reference_category: question.referenceCategory || '',
+      reference_category_label: question.referenceCategoryLabel || '',
+      category_relation: question.categoryRelation || '',
       target_source: question.target ? normalizeImageSource(question.target.source) : '',
       cue_id: question.cueOption ? question.cueOption.id : '',
       cue_label: question.cueOption ? question.cueOption.label : '',
@@ -5614,7 +5719,7 @@
   function preferredTaskKindForSkill(skillId){
     const preferredOrder = [
       'touch-screen', 'touch-object', 'moving-target', 'find-object', 'discriminate-object', 'find-category',
-      'match-category', 'choice-preference', 'cpat-sustained', 'cpat-selective', 'cpat-orienting', 'cpat-executive'
+      'match-category', 'category-exclusion', 'choice-preference', 'cpat-sustained', 'cpat-selective', 'cpat-orienting', 'cpat-executive'
     ];
     return preferredOrder.find(kind => (TASK_SKILL_IDS[kind] || []).includes(skillId)) || 'auto';
   }
@@ -7354,6 +7459,75 @@
     })).sort((a, b) => b.trials - a.trials || a.category.localeCompare(b.category));
   }
 
+  function categoryExclusionIntegrity(trial){
+    if(!trial || trial.task_kind !== 'category-exclusion') return { observed: false, valid: false };
+    const options = Array.isArray(trial.option_metadata) ? trial.option_metadata : [];
+    const observed = !!(trial.reference_category && trial.target_id && options.length >= 3);
+    if(!observed) return { observed: false, valid: false };
+    const matchingOptions = options.filter(option => storedOptionMatchesCategory(option, trial.reference_category));
+    const outsideOptions = options.filter(option => !storedOptionMatchesCategory(option, trial.reference_category));
+    return {
+      observed: true,
+      valid: matchingOptions.length >= 2
+        && outsideOptions.length === 1
+        && outsideOptions[0].id === trial.target_id
+        && !storedOptionMatchesCategory(outsideOptions[0], trial.reference_category)
+        && new Set(options.map(option => option.id)).size === options.length
+        && new Set(options.map(option => normalizedConceptLabel(option.label))).size === options.length
+    };
+  }
+
+  function categoryExclusionResearchRows(trials){
+    const groups = new Map();
+    (Array.isArray(trials) ? trials : [])
+      .filter(trial => trial.task_kind === 'category-exclusion')
+      .forEach(trial => {
+        const category = trial.reference_category_label || trial.reference_category || 'Not recorded';
+        if(!groups.has(category)){
+          groups.set(category, {
+            category,
+            trials: 0,
+            correct: 0,
+            independent_correct: 0,
+            omissions: 0,
+            group_ids: new Set(),
+            outside_target_ids: new Set(),
+            response_times: [],
+            integrity_observed: 0,
+            integrity_valid: 0
+          });
+        }
+        const item = groups.get(category);
+        item.trials += 1;
+        if(trial.correct) item.correct += 1;
+        if(trial.correct && trial.independence_status === 'independent') item.independent_correct += 1;
+        if(trial.omission) item.omissions += 1;
+        (Array.isArray(trial.option_metadata) ? trial.option_metadata : [])
+          .filter(option => storedOptionMatchesCategory(option, trial.reference_category))
+          .forEach(option => item.group_ids.add(option.id));
+        if(trial.target_id) item.outside_target_ids.add(trial.target_id);
+        if(Number.isFinite(trial.response_time_ms)) item.response_times.push(trial.response_time_ms);
+        const integrity = categoryExclusionIntegrity(trial);
+        if(integrity.observed){
+          item.integrity_observed += 1;
+          if(integrity.valid) item.integrity_valid += 1;
+        }
+      });
+    return Array.from(groups.values()).map(item => ({
+      reference_category: item.category,
+      trials: item.trials,
+      distinct_group_exemplars: item.group_ids.size,
+      distinct_outside_targets: item.outside_target_ids.size,
+      accuracy_pct: percentage(item.correct, item.trials),
+      independent_success_pct: percentage(item.independent_correct, item.trials),
+      omissions: item.omissions,
+      median_reaction_time_ms: item.response_times.length ? Math.round(median(item.response_times)) : null,
+      generator_integrity_observed: item.integrity_observed,
+      generator_integrity_valid: item.integrity_valid,
+      generator_integrity_pct: item.integrity_observed ? percentage(item.integrity_valid, item.integrity_observed) : null
+    })).sort((a, b) => b.trials - a.trials || a.reference_category.localeCompare(b.reference_category));
+  }
+
   function renderResearchWorkspace(){
     if(!ui.researchScopeSelect) return;
     const sessions = researchSessionsInScope();
@@ -8126,6 +8300,40 @@
     ui.researchMatchCategoryNote.textContent = scope === 'all-learners'
       ? 'Rows pool learners and are not a single learning trajectory. Category matching describes delivered in-app tasks; generator integrity is an engineering/data-quality check, not a pupil outcome or evidence of generalisation.'
       : 'Category matching describes delivered in-app cue-and-choice tasks. Generator integrity is an engineering/data-quality check of stored cue, target, category, and option relationships; neither measure proves conceptual mastery or real-world generalisation.';
+
+    const exclusionRows = categoryExclusionResearchRows(finalTrials);
+    const exclusionTrialCount = exclusionRows.reduce((sum, item) => sum + item.trials, 0);
+    const exclusionTargetCount = exclusionRows.reduce((sum, item) => sum + item.distinct_outside_targets, 0);
+    const exclusionIntegrityObserved = exclusionRows.reduce((sum, item) => sum + item.generator_integrity_observed, 0);
+    const exclusionIntegrityValid = exclusionRows.reduce((sum, item) => sum + item.generator_integrity_valid, 0);
+    ui.researchExclusionTrials.textContent = String(exclusionTrialCount);
+    ui.researchExclusionCategories.textContent = String(exclusionRows.length);
+    ui.researchExclusionTargets.textContent = String(exclusionTargetCount);
+    ui.researchExclusionIntegrity.textContent = exclusionIntegrityObserved ? `${percentage(exclusionIntegrityValid, exclusionIntegrityObserved)}%` : 'Not recorded';
+    drawResearchBars(ui.researchExclusionCategoryChart, exclusionRows.map(item => ({
+      label: item.reference_category,
+      value: item.accuracy_pct,
+      color: themeToken('reward', themeToken('primary'))
+    })), { maxValue: 100, suffix: '%', labelWidth: 145 });
+    if(exclusionRows.length){
+      clearNode(ui.researchExclusionCategoryBody);
+      exclusionRows.forEach(item => appendResearchRow(ui.researchExclusionCategoryBody, [
+        item.reference_category,
+        item.trials,
+        item.distinct_group_exemplars,
+        item.distinct_outside_targets,
+        `${item.accuracy_pct}%`,
+        `${item.independent_success_pct}%`,
+        item.omissions,
+        item.median_reaction_time_ms == null ? null : `${item.median_reaction_time_ms} ms`,
+        item.generator_integrity_pct == null
+          ? 'Not recorded'
+          : `${item.generator_integrity_valid}/${item.generator_integrity_observed} (${item.generator_integrity_pct}%)`
+      ]));
+    } else renderResearchEmptyRow(ui.researchExclusionCategoryBody, 9, 'No Find the different one trials in this scope yet.');
+    ui.researchExclusionCategoryNote.textContent = scope === 'all-learners'
+      ? 'Rows pool learners and are not a single learning trajectory. This profile describes delivered in-app category-difference trials; it does not demonstrate conceptual mastery, transfer, or neural change.'
+      : 'This profile describes delivered in-app category-difference trials. Generator integrity checks that exactly one stored option is outside the reference category; it is not a pupil outcome or evidence of conceptual mastery, transfer, or neural change.';
 
     const contentBreadthRows = sessions.map(session => {
       const sessionTrials = latestTrialsByQuestion(session.trials || []);
@@ -9251,6 +9459,7 @@
       task_exposure: Array.from(taskGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
       category_exposure: Array.from(categoryGroups.values()).map(item => ({ ...item, accuracy_pct: item.scored ? Math.round((item.correct / item.scored) * 100) : null })),
       category_matching: categoryMatchResearchRows(finalTrials),
+      category_exclusion: categoryExclusionResearchRows(finalTrials),
       session_context: context,
       eeg_readiness: eegReadiness,
       teacher_decisions: teacherDecisions,
@@ -9328,6 +9537,9 @@
     const cueCategoryId = trial.cue_category && PHOTO_CATEGORY_META[trial.cue_category]
       ? trial.cue_category
       : (trial.cue_category ? 'custom' : null);
+    const referenceCategoryId = trial.reference_category && PHOTO_CATEGORY_META[trial.reference_category]
+      ? trial.reference_category
+      : (trial.reference_category ? 'custom' : null);
     const personalisedContent = !!(
       (Array.isArray(trial.photo_labels_used) && trial.photo_labels_used.length)
       || ['upload', 'uploaded', 'pupil-photo', 'personalised'].includes(trial.target_source)
@@ -9357,6 +9569,8 @@
       research_condition: trial.research_condition || null,
       category_id: categoryId,
       cue_category_id: cueCategoryId,
+      reference_category_id: referenceCategoryId,
+      category_relation: trial.category_relation || null,
       cue_target_distinct: trial.cue_id ? trial.cue_id !== trial.target_id : null,
       personalised_content: personalisedContent,
       option_count: Array.isArray(trial.option_metadata)

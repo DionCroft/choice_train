@@ -496,6 +496,7 @@
                 <option value="find-object">Find object</option>
                 <option value="find-category">Find category</option>
                 <option value="match-category">Match category</option>
+                <option value="category-exclusion">Find the different one</option>
                 <option value="discriminate-object">Discriminate object</option>
                 <option value="choice-preference">Choice preference</option>
                 <option value="cpat-suite">AT suite</option>
@@ -1567,6 +1568,23 @@
                 </table>
               </div>
               <div id="researchMatchCategoryNote" class="compactNote">Category matching describes performance on delivered in-app cue-and-choice tasks. Generator integrity checks the stored cue, target, category, and option relationship; neither measure proves conceptual mastery or real-world generalisation.</div>
+            </div>
+            <div class="chartCard span2">
+              <h4>Category difference profile</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Difference trials</div><div class="v" id="researchExclusionTrials">0</div></div>
+                <div class="dashCard"><div class="k">Reference categories</div><div class="v" id="researchExclusionCategories">0</div></div>
+                <div class="dashCard"><div class="k">Outside targets</div><div class="v" id="researchExclusionTargets">0</div></div>
+                <div class="dashCard"><div class="k">Generator integrity observed</div><div class="v" id="researchExclusionIntegrity">&mdash;</div></div>
+              </div>
+              <canvas id="researchExclusionCategoryChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Find the different one accuracy by teacher-defined reference category"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Reference category</th><th>Trials</th><th>Group examples</th><th>Outside targets</th><th>Accuracy</th><th>Independent success</th><th>Omissions</th><th>Median RT</th><th>Generator integrity</th></tr></thead>
+                  <tbody id="researchExclusionCategoryBody"></tbody>
+                </table>
+              </div>
+              <div id="researchExclusionCategoryNote" class="compactNote">This profile describes delivered in-app category-difference trials. Generator integrity checks that exactly one stored option is outside the reference category; it is not a pupil outcome or evidence of conceptual mastery, transfer, or neural change.</div>
             </div>
             <div class="chartCard span2">
               <h4>Content breadth over time</h4>

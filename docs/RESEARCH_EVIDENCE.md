@@ -135,6 +135,20 @@ These papers inform design choices, classroom workflow decisions, ChoiceTrain At
   Link: https://doi.org/10.1038/s41593-024-01672-w
   Why it matters: the preregistered randomized child trial found trained-function changes but no broad behavioural or neural transfer. It strengthens the case for active controls, delayed follow-up, direct transfer measures, pre-specified outcomes, and cautious claims about neural plasticity.
 
+## 8. Category Learning and Procedural Category Lessons
+
+- Wimmer, M. C., Steininger, T., Schmid, J., & Wittwer, J. (2023). *Category learning in autistic individuals: A meta-analysis*. Psychonomic Bulletin & Review.
+  Link: https://doi.org/10.3758/s13423-023-02365-4
+  Why it matters: the meta-analysis supports category learning as a relevant area to measure while reporting heterogeneous findings and publication-bias concerns. It informs ChoiceTrain's category-task data collection and strengthens the need to avoid claiming that one in-app task proves category mastery or generalisation.
+
+- Ellawadi, A. B., Fein, D., & Naigles, L. R. (2017). *Category structure and processing in 6-year-old children with autism*. Autism Research, 10, 327-336.
+  Link: https://doi.org/10.1002/aur.1652
+  Why it matters: category-verification performance was examined through accuracy, response time, and response stability. This supports recording multiple signals for ChoiceTrain's category tasks instead of relying on accuracy alone, while not validating ChoiceTrain's task design.
+
+- Snape, S., Krott, A., & McCleery, J. P. (2018). *Do children with Autism Spectrum Disorder benefit from structural alignment when constructing categories?* Journal of Autism and Developmental Disorders.
+  Link: https://doi.org/10.1007/s10803-018-3551-8
+  Why it matters: benefits from multiple examples and structural alignment were not uniform. This supports learner-specific review of exemplar breadth and careful interpretation rather than assuming that varied examples automatically produce generalisation.
+
 ## Standards and Design Sources
 
 The following sources guide implementation but are not peer-reviewed evidence that ChoiceTrain improves an educational or clinical outcome:
@@ -169,6 +183,9 @@ The papers above were used to support these broad feature areas:
 
 - **V1.8 skill graph, longitudinal trends, retention checks, and interpretable recommendations**
   Supported mainly by Corbett and Anderson (1994), Cepeda et al. (2006), Roediger and Karpicke (2006), Camerota et al. (2019), and the transfer caution from Ganesan et al. (2024). These papers inform what should be measured; they do not validate ChoiceTrain's future recommendation rules.
+
+- **V1.8 category matching, category difference, exemplar breadth, and Research profiles**
+  Informed by Wimmer et al. (2023), Ellawadi et al. (2017), and Snape et al. (2018). The papers support category processing as a relevant measurement area and justify collecting accuracy, response time, stability, and exemplar exposure. They do not validate ChoiceTrain as an intervention or establish conceptual mastery, classroom transfer, or neural change.
 
 ## Important Note
 

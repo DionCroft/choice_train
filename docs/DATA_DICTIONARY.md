@@ -8,7 +8,7 @@ This dictionary documents the principal exported and locally stored fields used 
 - Ordinary session exports omit raw image bytes and retain labels or content metadata.
 - Context notes and pupil aliases can still be personal data.
 - No field is a diagnosis, medical finding, or validated measure unless a future protocol establishes that separately.
-- V1.7.0 uses export schema version 4. The isolated V1.8 alpha uses schema version 6.
+- V1.7.0 uses export schema version 4. The isolated V1.8 alpha uses schema version 7.
 
 ## V1.8 Alpha Derived Planning Fields
 
@@ -66,11 +66,13 @@ The Research demand view derives per-session mean displayed option count, mean d
 
 ### Research workspace summary export
 
-`Download scope summary` creates local JSON with `export_schema_version: 1.2.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
+`Download scope summary` creates local JSON with `export_schema_version: 1.3.0` for the current Research scope. It contains derived `coverage_by_session`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_exclusion`, `session_context`, `eeg_readiness`, and `teacher_decisions`. It preserves missing values rather than converting them to zero.
 
 The summary includes configured learner aliases and day-level session dates. Its privacy manifest confirms that raw trials, raw events, raw coordinates, images, photo labels, and free-text notes are excluded. It is a local staff/research report, not an anonymous dataset and not the separately governed pseudonymised model-development export. ChoiceTrain does not transmit it externally.
 
-`category_matching` contains one derived row per teacher-defined category represented in Match category trials: trial count, distinct cue count, distinct target count, distinct cue-target pair count, accuracy, independent-success percentage, omissions, median reaction time, and generator-integrity observed/valid counts. Generator integrity checks whether stored schema-6 records contain a distinct cue and target, a cue in the target category, exactly one same-category selectable option, that option as the target, and no selectable copy of the cue. It is an engineering/data-quality metric, not a pupil score. Item labels are not included in this derived section.
+`category_matching` contains one derived row per teacher-defined category represented in Match category trials: trial count, distinct cue count, distinct target count, distinct cue-target pair count, accuracy, independent-success percentage, omissions, median reaction time, and generator-integrity observed/valid counts. Generator integrity checks whether compatible records contain a distinct cue and target, a cue in the target category, exactly one same-category selectable option, that option as the target, and no selectable copy of the cue. It is an engineering/data-quality metric, not a pupil score. Item labels are not included in this derived section.
+
+`category_exclusion` contains one derived row per teacher-defined reference category represented in Find the different one trials: trial count, distinct in-group exemplars, distinct outside targets, accuracy, independent-success percentage, omissions, median reaction time, and generator-integrity observed/valid counts. Integrity requires at least two unique options in the reference category and exactly one outside option, which must be the target. This is an engineering/data-quality check, not evidence of conceptual mastery, transfer, or neural change. Item labels are not included in this derived section.
 
 The prompt/agency view groups final trials by `highest_prompt_level` and counts `help_requested`, `prompt_applied`, `question_repeat`, learner and automatic `break_onset`, `learner_stop_requested`, and `reward_onset` records by session. Reward onsets come from the browser marker stream; other flow events come from the session event log. Counts depend on enabled controls, session opportunities, and practitioner practice. They are not deficit, motivation, or regulation scores.
 
@@ -96,12 +98,12 @@ The on-screen coverage audit groups planned fields into behaviour, support, cont
 
 ## V1.8 Procedural Lesson Provenance
 
-Generator version `1.3.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Match category`, `Discriminate object`, and `Choice preference`. Data schema 6 adds structured cue fields and skill graph 1.1.0 adds `categorisation.match_category`.
+Generator version `1.4.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Match category`, `Find the different one`, `Discriminate object`, and `Choice preference`. Data schema 7 adds structured reference-category relationship fields and skill graph 1.2.0 adds `categorisation.category_exclusion`.
 
 | Field | Meaning |
 | --- | --- |
 | `lesson_plan.lesson_seed` | Session-level seed used to reproduce the lesson schedule |
-| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.3.0 |
+| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.4.0 |
 | `trial.question_seed` | Per-question seed used for reproducible option ordering and other question variation |
 | `trial.generator_version` | Algorithm version required to interpret/replay the generated question |
 | `trial.generator_constraints.coverage_strategy` | Coverage rule active for the question |
@@ -109,14 +111,16 @@ Generator version `1.3.0` applies a `balanced-before-repeat` coverage strategy t
 | `trial.cue_id` / `trial.cue_label` | The non-selectable exemplar shown before a category-match response; blank for tasks without an exemplar cue |
 | `trial.cue_category` / `trial.cue_category_label` | Teacher-defined category attached to the cue |
 | `trial.cue_source` / `trial.cue_metadata` | Cue source and structured category metadata without image bytes |
+| `trial.reference_category` / `trial.reference_category_label` | Teacher-defined in-group category for Find the different one |
+| `trial.category_relation` | Explicit target relationship; `outside-reference-category` for Find the different one |
 | `trial.procedural_variant` | Named generator path, including category-balanced discrimination or preference |
 | `trial.discrimination_contrast` | `within-category` or `cross-category` for generated discrimination trials |
 | `trial.open_ended_choice` | `true` when every presented option is an acceptable preference selection |
 | `trial.scored_response` | `false` when the response must not contribute to accuracy or target scoring |
 
-For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. `Match category` rotates categories that contain at least two differently labelled members plus an outside-category distractor, shows one member as the cue, and requires a different member as the only selectable same-category answer. Distractors remain outside the prompted category, option IDs are unique, and the correct target appears exactly once. The automatic Level 6 path alternates Find category and Match category. `Discriminate object` prefers a same-category distractor but records a cross-category fallback when needed. `Choice preference` rotates category/content anchors only to balance exposure; the anchor is not a correct answer. Every preference option is accepted, target-distance fields remain missing, and `scored_response` is `false`.
+For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. `Match category` rotates categories that contain at least two differently labelled members plus an outside-category distractor, shows one member as the cue, and requires a different member as the only selectable same-category answer. `Find the different one` rotates reference categories with at least two differently labelled members and an outside item, then presents exactly one outside target alongside two or more reference-category items. Options have unique IDs and labels, and the correct target appears exactly once. With at least three configured answer options, the automatic Level 6 path rotates Find category, Match category, and Find the different one; two-option sessions retain Find category and Match category. `Discriminate object` prefers a same-category distractor but records a cross-category fallback when needed. `Choice preference` rotates category/content anchors only to balance exposure; the anchor is not a correct answer. Every preference option is accepted, target-distance fields remain missing, and `scored_response` is `false`.
 
-Category-match accuracy is evidence about performance on the delivered in-app task. It is not, by itself, evidence of classroom generalisation, durable transfer, conceptual mastery, or neural change.
+Category-match and category-difference accuracy describe performance on delivered in-app tasks. They are not, by themselves, evidence of classroom generalisation, durable transfer, conceptual mastery, or neural change.
 
 ## Core Export Fields
 

@@ -70,13 +70,14 @@ test('V1.8 export declares the versioned research contract and preserves missing
   const payload = await downloadJsonAfter(page, () => page.locator('#exportBtn').click());
 
   expect(payload.build.version).toBe('1.8.0-alpha');
-  expect(payload.schema_version).toBe(6);
-  expect(payload.skill_graph_version).toBe('1.1.0');
-  expect(payload.generator_version).toBe('1.3.0');
+  expect(payload.schema_version).toBe(7);
+  expect(payload.skill_graph_version).toBe('1.2.0');
+  expect(payload.generator_version).toBe('1.4.0');
   expect(payload.research_summary_version).toBe('1.0.0');
   expect(payload.skill_graph).toEqual(expect.arrayContaining([
     expect.objectContaining({ skill_id: 'access.touch_screen' }),
     expect.objectContaining({ skill_id: 'categorisation.match_category' }),
+    expect.objectContaining({ skill_id: 'categorisation.category_exclusion' }),
     expect.objectContaining({ skill_id: 'attention.executive' })
   ]));
   expect(payload.research_summary.final_trial_count).toBe(0);
@@ -101,8 +102,8 @@ test('a learner trial exports skill, generator, and descriptive research metadat
 
   const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
   const trial = payload.trials[0];
-  expect(trial.schema_version).toBe(6);
-  expect(trial.skill_graph_version).toBe('1.1.0');
+  expect(trial.schema_version).toBe(7);
+  expect(trial.skill_graph_version).toBe('1.2.0');
   expect(trial.skill_ids).toEqual(['recognition.named_object']);
   expect(trial.lesson_plan_id).toBe(payload.lesson_plan_id);
   expect(trial.lesson_seed).toEqual(expect.any(Number));
@@ -208,7 +209,7 @@ test('Find object balances configured categories before repeating and preserves 
     await setValue(page, 'lessonSeedOverride', seed);
     await setValue(page, 'startLevel', 4);
     const payload = await completeSessionAndExport(page, 6);
-    expect(payload.generator_version).toBe('1.3.0');
+    expect(payload.generator_version).toBe('1.4.0');
     expect(payload.lesson_plan.constraints.coverage_strategy).toBe('balanced-before-repeat');
     expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(6);
     expect(new Set(payload.trials.map(trial => trial.target_id)).size).toBe(6);
@@ -312,9 +313,9 @@ test('Match category uses a distinct cue and same-category target with reproduci
     }
     await expect(page.locator('#screenSummary.active')).toBeVisible();
     const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
-    expect(payload.schema_version).toBe(6);
-    expect(payload.generator_version).toBe('1.3.0');
-    expect(payload.skill_graph_version).toBe('1.1.0');
+    expect(payload.schema_version).toBe(7);
+    expect(payload.generator_version).toBe('1.4.0');
+    expect(payload.skill_graph_version).toBe('1.2.0');
     expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(4);
 
     payload.trials.forEach(trial => {
@@ -347,10 +348,11 @@ test('Match category uses a distinct cue and same-category target with reproduci
   await setValue(page, 'sessionTaskType', 'auto');
   await setCheckbox(page, 'autoLevelPath', true);
   await setValue(page, 'startLevel', 6);
-  await setValue(page, 'sessionMax', 4);
-  const autoPayload = await completeSessionAndExport(page, 4);
+  await setValue(page, 'sessionMax', 6);
+  const autoPayload = await completeSessionAndExport(page, 6);
   expect(autoPayload.trials.map(trial => trial.task_kind)).toEqual([
-    'find-category', 'match-category', 'find-category', 'match-category'
+    'find-category', 'match-category', 'category-exclusion',
+    'find-category', 'match-category', 'category-exclusion'
   ]);
 
   await page.locator('#teacherExitHold').focus();
@@ -366,9 +368,77 @@ test('Match category uses a distinct cue and same-category target with reproduci
   await expect(page.locator('#researchMatchCategoryNote')).toContainText('engineering/data-quality');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('1.2.0');
+  expect(researchPayload.export_schema_version).toBe('1.3.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
+});
+
+test('Find the different one keeps exactly one outside-category target and visualises integrity', async ({ page }) => {
+  test.slow();
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setCheckbox(page, 'autoLevelPath', false);
+  await setValue(page, 'itiSec', 0);
+  await setValue(page, 'sessionTaskType', 'category-exclusion');
+  await setValue(page, 'findCategorySourceMode', 'stock');
+  await setValue(page, 'startLevel', 6);
+  await setValue(page, 'sessionMax', 8);
+  await setValue(page, 'maxObjects', 4);
+
+  for(const seed of [53, 1357911, 4294967271]) {
+    await setValue(page, 'lessonSeedOverride', seed);
+    await setValue(page, 'startLevel', 6);
+    const payload = await completeSessionAndExport(page, 8);
+    expect(payload.schema_version).toBe(7);
+    expect(payload.generator_version).toBe('1.4.0');
+    expect(payload.skill_graph_version).toBe('1.2.0');
+    expect(new Set(payload.trials.map(trial => trial.reference_category)).size).toBe(4);
+
+    payload.trials.forEach(trial => {
+      const groupOptions = trial.option_metadata.filter(option => option.category_ids.includes(trial.reference_category));
+      const outsideOptions = trial.option_metadata.filter(option => !option.category_ids.includes(trial.reference_category));
+      const optionIds = trial.option_metadata.map(option => option.id);
+      const optionLabels = trial.option_metadata.map(option => option.label.toLowerCase());
+      expect(trial.task_kind).toBe('category-exclusion');
+      expect(trial.skill_ids).toEqual(['categorisation.category_exclusion']);
+      expect(trial.procedural_variant).toBe('category-exclusion');
+      expect(trial.category_relation).toBe('outside-reference-category');
+      expect(trial.reference_category).toBeTruthy();
+      expect(groupOptions.length).toBeGreaterThanOrEqual(2);
+      expect(outsideOptions).toHaveLength(1);
+      expect(outsideOptions[0].id).toBe(trial.target_id);
+      expect(new Set(optionIds).size).toBe(optionIds.length);
+      expect(new Set(optionLabels).size).toBe(optionLabels.length);
+      expect(trial.option_metadata.length).toBeGreaterThanOrEqual(3);
+      expect(trial.option_metadata.length).toBeLessThanOrEqual(4);
+      expect(trial.prompt_wording).toMatch(/different|does not belong/i);
+      expect(trial.generator_constraints).toEqual(expect.objectContaining({
+        reference_category: trial.reference_category,
+        category_relation: 'outside-reference-category',
+        procedural_variant: 'category-exclusion'
+      }));
+    });
+
+    await page.locator('#teacherExitHold').focus();
+    await page.locator('#teacherExitHold').press('Enter');
+  }
+
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'researchScopeSelect', 'current-session');
+  await expect(page.locator('#researchExclusionTrials')).toHaveText('8');
+  await expect(page.locator('#researchExclusionCategories')).toHaveText('4');
+  await expect(page.locator('#researchExclusionIntegrity')).toHaveText('100%');
+  await expect(page.locator('#researchExclusionCategoryBody tr')).toHaveCount(4);
+  await expect(page.locator('#researchExclusionCategoryNote')).toContainText('not a pupil outcome');
+
+  const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expect(researchPayload.export_schema_version).toBe('1.3.0');
+  expect(researchPayload.category_exclusion).toHaveLength(4);
+  expect(researchPayload.category_exclusion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
 
 test('Discriminate object uses configured categories and a reproducible two-option contrast', async ({ page }) => {
@@ -388,7 +458,7 @@ test('Discriminate object uses configured categories and a reproducible two-opti
   await setValue(page, 'lessonSeedOverride', 86420);
 
   const payload = await completeSessionAndExport(page, 6);
-  expect(payload.generator_version).toBe('1.3.0');
+  expect(payload.generator_version).toBe('1.4.0');
   expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(6);
   expect(new Set(payload.trials.map(trial => trial.target_id)).size).toBe(6);
   payload.trials.forEach(trial => {
@@ -432,7 +502,7 @@ test('Choice preference accepts every configured option and exports an unscored 
   await expect(page.locator('#screenSummary.active')).toBeVisible();
   const payload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
 
-  expect(payload.generator_version).toBe('1.3.0');
+  expect(payload.generator_version).toBe('1.4.0');
   expect(new Set(payload.trials.map(trial => trial.target_category)).size).toBe(4);
   payload.trials.forEach(trial => {
     expect(trial.procedural_variant).toBe('category-balanced-preference');
@@ -601,7 +671,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('1.2.0');
+  expect(researchPayload.export_schema_version).toBe('1.3.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);

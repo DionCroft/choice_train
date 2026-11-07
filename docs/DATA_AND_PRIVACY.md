@@ -50,6 +50,8 @@ The V1.8 alpha has separate exports for different authorised purposes:
 - EEG/research exports retain detailed event timing and declared study-protocol metadata for audit and later alignment
 - the `Pseudonymised AI research data` export applies a separate minimisation transform and is intended only as a governed analysis/model-development input
 
+Schema-7 category-difference trials add a teacher-defined reference-category ID and an `outside-reference-category` relationship. Full local session exports retain the corresponding category labels and option metadata for audit. The privacy-minimised model-development transform keeps only a built-in category ID or the generic value `custom`, plus the relationship code; it excludes item labels and custom category names.
+
 Each local pupil profile can record a data-use status, a school/research governance reference, a review date, and purpose-specific declarations for research analysis, EEG linkage, and model development. These fields are declarations only. The school or research team must hold the actual consent or other authority evidence in its approved system; ChoiceTrain neither stores nor validates that evidence.
 
 The pseudonymised model-development export is denied by default. Before creating it, ChoiceTrain checks the current local profile for every pupil represented in the selected session scope. Every profile must be marked `recorded separately` with model-development use approved. Missing, not-recorded, classroom-only, and withdrawn profiles block the whole export, even if an older session snapshot contains a previous approval. This current-profile check supports withdrawal, but it does not replace an organisational withdrawal and deletion process.
