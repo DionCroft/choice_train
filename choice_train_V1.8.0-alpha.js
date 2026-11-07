@@ -28,9 +28,10 @@
   const FAMILIAR_FACE_ASSET_KEY = 'profile:familiarFace';
   const CUSTOM_IMAGES_ASSET_KEY = 'profile:customImages';
   const SESSION_ARCHIVE_LIMIT = 60;
-  const DATA_SCHEMA_VERSION = 5;
-  const SKILL_GRAPH_VERSION = '1.0.0';
-  const GENERATOR_VERSION = '1.2.0';
+  const LOCAL_DATA_MIGRATION_VERSION = 5;
+  const DATA_SCHEMA_VERSION = 6;
+  const SKILL_GRAPH_VERSION = '1.1.0';
+  const GENERATOR_VERSION = '1.3.0';
   const RESEARCH_SUMMARY_VERSION = '1.0.0';
   const PRACTICE_STATUS_VERSION = '1.0.0';
   const RECOMMENDATION_VERSION = '1.0.0';
@@ -270,6 +271,7 @@
     'find-object': { label: 'Find object', family: 'foundation', domain: 'recognition' },
     'discriminate-object': { label: 'Discriminate object', family: 'foundation', domain: 'discrimination' },
     'find-category': { label: 'Find category', family: 'foundation', domain: 'reasoning' },
+    'match-category': { label: 'Match category', family: 'foundation', domain: 'reasoning' },
     'choice-preference': { label: 'Choice preference', family: 'foundation', domain: 'choice' },
     'cpat-suite': { label: 'AT suite', family: 'cpat', domain: 'mixed' },
     'cpat-sustained': { label: 'AT sustained attention', family: 'cpat', domain: 'sustained' },
@@ -285,6 +287,7 @@
     'recognition.named_object': Object.freeze({ label: 'Find a named object', prerequisites: ['access.touch_target'] }),
     'discrimination.named_object': Object.freeze({ label: 'Discriminate a named object', prerequisites: ['recognition.named_object'] }),
     'categorisation.category_member': Object.freeze({ label: 'Select a category member', prerequisites: ['discrimination.named_object'] }),
+    'categorisation.match_category': Object.freeze({ label: 'Match different members of a category', prerequisites: ['categorisation.category_member'] }),
     'choice.preference': Object.freeze({ label: 'Express a preference', prerequisites: ['access.touch_target'] }),
     'attention.sustained': Object.freeze({ label: 'Sustained attention practice', prerequisites: ['access.touch_target'] }),
     'attention.selective_spatial': Object.freeze({ label: 'Selective-spatial attention practice', prerequisites: ['attention.sustained'] }),
@@ -299,6 +302,7 @@
     'find-object': Object.freeze(['recognition.named_object']),
     'discriminate-object': Object.freeze(['discrimination.named_object']),
     'find-category': Object.freeze(['categorisation.category_member']),
+    'match-category': Object.freeze(['categorisation.match_category']),
     'choice-preference': Object.freeze(['choice.preference']),
     'cpat-suite': Object.freeze(['attention.sustained', 'attention.selective_spatial', 'attention.orienting', 'attention.executive']),
     'cpat-sustained': Object.freeze(['attention.sustained']),
@@ -394,17 +398,17 @@
   });
 
   const PHOTO_CATEGORY_META = Object.freeze({
-    family: { label: 'Family', objectCategory: 'family', promptFind: 'a family member', promptPredicate: 'family' },
-    people: { label: 'People', objectCategory: 'people', promptFind: 'a person', promptPredicate: 'a person' },
-    animals: { label: 'Animals', objectCategory: 'animals', promptFind: 'an animal', promptPredicate: 'an animal' },
-    transport: { label: 'Transport', objectCategory: 'transport', promptFind: 'transport', promptPredicate: 'transport' },
-    food: { label: 'Food', objectCategory: 'food', promptFind: 'food', promptPredicate: 'food' },
-    fruit: { label: 'Fruit', objectCategory: 'fruit', promptFind: 'fruit', promptPredicate: 'fruit' },
-    'symbols-shapes': { label: 'Symbols / Shapes', objectCategory: 'symbols-shapes', promptFind: 'a symbol or shape', promptPredicate: 'a symbol or shape' },
-    toy: { label: 'Toys', objectCategory: 'toy', promptFind: 'a toy', promptPredicate: 'a toy' },
-    classroom: { label: 'Classroom objects', objectCategory: 'classroom', promptFind: 'a classroom object', promptPredicate: 'a classroom object' },
-    activity: { label: 'Activities', objectCategory: 'activity', promptFind: 'an activity', promptPredicate: 'an activity' },
-    custom: { label: 'Legacy Custom', objectCategory: 'custom', promptFind: 'a custom item', promptPredicate: 'a custom item' }
+    family: { label: 'Family', objectCategory: 'family', promptFind: 'a family member', promptPredicate: 'family', promptMatch: 'another family member' },
+    people: { label: 'People', objectCategory: 'people', promptFind: 'a person', promptPredicate: 'a person', promptMatch: 'another person' },
+    animals: { label: 'Animals', objectCategory: 'animals', promptFind: 'an animal', promptPredicate: 'an animal', promptMatch: 'another animal' },
+    transport: { label: 'Transport', objectCategory: 'transport', promptFind: 'transport', promptPredicate: 'transport', promptMatch: 'another vehicle' },
+    food: { label: 'Food', objectCategory: 'food', promptFind: 'food', promptPredicate: 'food', promptMatch: 'another food item' },
+    fruit: { label: 'Fruit', objectCategory: 'fruit', promptFind: 'fruit', promptPredicate: 'fruit', promptMatch: 'another fruit' },
+    'symbols-shapes': { label: 'Symbols / Shapes', objectCategory: 'symbols-shapes', promptFind: 'a symbol or shape', promptPredicate: 'a symbol or shape', promptMatch: 'another symbol or shape' },
+    toy: { label: 'Toys', objectCategory: 'toy', promptFind: 'a toy', promptPredicate: 'a toy', promptMatch: 'another toy' },
+    classroom: { label: 'Classroom objects', objectCategory: 'classroom', promptFind: 'a classroom object', promptPredicate: 'a classroom object', promptMatch: 'another classroom object' },
+    activity: { label: 'Activities', objectCategory: 'activity', promptFind: 'an activity', promptPredicate: 'an activity', promptMatch: 'another activity' },
+    custom: { label: 'Legacy Custom', objectCategory: 'custom', promptFind: 'a custom item', promptPredicate: 'a custom item', promptMatch: 'another custom item' }
   });
   const CATEGORY_COMPATIBILITY = Object.freeze({
     animal: 'animals',
@@ -828,6 +832,18 @@
     return prompts[Math.max(0, index - 1) % prompts.length];
   }
 
+  function buildCategoryMatchPrompt(categoryId, cueLabel, index){
+    const meta = categoryMeta(categoryId);
+    const safeCueLabel = normalizeCategoryLabel(cueLabel) || 'this one';
+    const prompts = [
+      `Find ${meta.promptMatch || `another item from ${meta.label}`}`,
+      `Which one goes with ${safeCueLabel}?`,
+      `Can you find another one like ${safeCueLabel}?`,
+      `Which one is in the same group as ${safeCueLabel}?`
+    ];
+    return prompts[Math.max(0, index - 1) % prompts.length];
+  }
+
   function setFooter(text, pillText){
     if(ui.footerHint) ui.footerHint.textContent = text;
     if(ui.touchInfo) ui.touchInfo.textContent = pillText;
@@ -973,6 +989,8 @@
       auto_level_path: !!(ui.autoLevelPath && ui.autoLevelPath.checked),
       response_window_ms: question.responseWindowMs == null ? null : question.responseWindowMs,
       target_category: question.targetCategory || null,
+      cue_id: question.cueOption ? question.cueOption.id : null,
+      cue_category: question.cueCategory || null,
       procedural_variant: question.proceduralVariant || null,
       discrimination_contrast: question.discriminationContrast || null,
       open_ended_choice: !!question.openEndedChoice,
@@ -1015,6 +1033,7 @@
         objectCategory: custom.id,
         promptFind: `something from ${custom.label}`,
         promptPredicate: `in ${custom.label}`,
+        promptMatch: `another item from ${custom.label}`,
         custom: true
       };
     }
@@ -2250,12 +2269,12 @@
     if(!state.storage.useIndexedDb) return false;
     const key = 'schema:choice-train-data';
     const marker = await idbGet(IDB_META_STORE, key);
-    if(marker && safeNumber(marker.version, 0) >= DATA_SCHEMA_VERSION && !state.storage.assetMigrationNeeded) return true;
+    if(marker && safeNumber(marker.version, 0) >= LOCAL_DATA_MIGRATION_VERSION && !state.storage.assetMigrationNeeded) return true;
     const assetsSaved = await persistAssets();
     if(!assetsSaved) return false;
     await idbPut(IDB_META_STORE, {
       key,
-      version: DATA_SCHEMA_VERSION,
+      version: LOCAL_DATA_MIGRATION_VERSION,
       photo_schema_version: PHOTO_SCHEMA_VERSION,
       migrated_at_wall_ms: wallMs()
     });
@@ -2821,6 +2840,15 @@
     });
   }
 
+  function fairMatchCategories(categories, pool){
+    const selected = normalizeCategorySelection(categories, []);
+    return selected.filter(category => {
+      const members = uniqueOptions(pool.filter(item => optionMatchesCategory(item, category)), true);
+      const distractors = uniqueOptions(pool.filter(item => !optionMatchesCategory(item, category)), true);
+      return members.length >= 2 && distractors.length > 0;
+    });
+  }
+
   function contentOptionMetadata(item){
     return {
       id: item.id,
@@ -2838,6 +2866,7 @@
     const findObjectItems = eligibleContentPool(filters.findObjectCategories, filters.findObjectSource, fullPool);
     const findCategoryItems = eligibleContentPool(filters.findCategoryCategories, filters.findCategorySource, fullPool);
     const findCategoryFair = fairPromptCategories(filters.findCategoryCategories, findCategoryItems);
+    const matchCategoryFair = fairMatchCategories(filters.findCategoryCategories, findCategoryItems);
     const categoryLabels = ids => ids.map(id => ({ id, label: categoryMeta(id).label }));
     return {
       schemaVersion: DATA_SCHEMA_VERSION,
@@ -2852,6 +2881,7 @@
       findCategory: {
         categories: categoryLabels(filters.findCategoryCategories),
         fairPromptCategories: categoryLabels(findCategoryFair),
+        fairMatchCategories: categoryLabels(matchCategoryFair),
         sourceMode: filters.findCategorySource,
         items: findCategoryItems.map(item => ({ ...item })),
         itemMetadata: findCategoryItems.map(contentOptionMetadata)
@@ -2874,6 +2904,7 @@
       find_category: {
         selected_categories: snapshot.findCategory.categories,
         fair_prompt_categories: snapshot.findCategory.fairPromptCategories,
+        fair_match_categories: snapshot.findCategory.fairMatchCategories,
         source_mode: snapshot.findCategory.sourceMode,
         usable_item_count: snapshot.findCategory.itemMetadata.length,
         items: snapshot.findCategory.itemMetadata
@@ -2905,11 +2936,25 @@
     return { valid, message, config, usableSelected, fair };
   }
 
+  function matchCategoryConfiguration(snapshot=buildContentConfigurationSnapshot()){
+    const config = snapshot.findCategory;
+    const fair = config.fairMatchCategories || [];
+    const valid = fair.length >= 2;
+    const categoryNames = config.categories.map(category => category.label).join(', ') || 'None';
+    let message = `Categories: ${categoryNames}. Source: ${sourceModeLabel(config.sourceMode)}. ${config.items.length} usable items; ${fair.length} can produce fair cue-and-match questions.`;
+    if(config.categories.length < 2) message = 'Match category needs at least two selected categories.';
+    else if(fair.length < 2) message = 'Match category needs at least two categories with two differently labelled members and an item outside the category.';
+    return { valid, message, config, fair };
+  }
+
   function effectiveConfiguredTaskKinds(){
     const selected = ui.sessionTaskType ? ui.sessionTaskType.value : 'auto';
     if(selected !== 'auto') return selected === 'cpat-suite' ? CPAT_TASK_ORDER.slice() : [selected];
-    if(ui.autoLevelPath && ui.autoLevelPath.checked) return [levelSpec(clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10)).kind];
-    return ['moving-target', 'find-object', 'discriminate-object', 'find-category', 'choice-preference'];
+    if(ui.autoLevelPath && ui.autoLevelPath.checked){
+      const level = clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10);
+      return level === 6 ? ['find-category', 'match-category'] : [levelSpec(level).kind];
+    }
+    return ['moving-target', 'find-object', 'discriminate-object', 'find-category', 'match-category', 'choice-preference'];
   }
 
   function refreshContentConfiguration(){
@@ -2918,13 +2963,15 @@
     const snapshot = buildContentConfigurationSnapshot();
     const objectCheck = findObjectConfiguration(snapshot);
     const categoryCheck = findCategoryConfiguration(snapshot);
+    const matchCheck = matchCategoryConfiguration(snapshot);
     const usesObjectContent = kinds.some(kind => ['find-object', 'discriminate-object', 'choice-preference'].includes(kind));
     ui.findObjectConfig.hidden = !usesObjectContent;
-    ui.findCategoryConfig.hidden = !kinds.includes('find-category');
+    ui.findCategoryConfig.hidden = !kinds.some(kind => ['find-category', 'match-category'].includes(kind));
     ui.findObjectConfigSummary.textContent = objectCheck.message;
     ui.findObjectConfigSummary.classList.toggle('invalid', !objectCheck.valid);
-    ui.findCategoryConfigSummary.textContent = categoryCheck.message;
-    ui.findCategoryConfigSummary.classList.toggle('invalid', !categoryCheck.valid);
+    const activeCategoryCheck = kinds.includes('match-category') ? matchCheck : categoryCheck;
+    ui.findCategoryConfigSummary.textContent = activeCategoryCheck.message;
+    ui.findCategoryConfigSummary.classList.toggle('invalid', !activeCategoryCheck.valid);
   }
 
   function validateSessionContentSetup(){
@@ -2939,16 +2986,20 @@
       const check = findCategoryConfiguration(snapshot);
       if(!check.valid) problems.push(check.message);
     }
+    if(kinds.includes('match-category')){
+      const check = matchCategoryConfiguration(snapshot);
+      if(!check.valid) problems.push(check.message);
+    }
     return { valid: problems.length === 0, problems, snapshot };
   }
 
   function sessionPoolFor(kind){
     if(state.sessionContentConfig){
       if(kind === 'find-object') return state.sessionContentConfig.findObject.items.slice();
-      if(kind === 'find-category') return state.sessionContentConfig.findCategory.items.slice();
+      if(kind === 'find-category' || kind === 'match-category') return state.sessionContentConfig.findCategory.items.slice();
     }
     const snapshot = buildContentConfigurationSnapshot();
-    return kind === 'find-category' ? snapshot.findCategory.items : snapshot.findObject.items;
+    return kind === 'find-category' || kind === 'match-category' ? snapshot.findCategory.items : snapshot.findObject.items;
   }
 
   function getFaceObject(){
@@ -3035,7 +3086,7 @@
       3: { kind: 'moving-target', size: 175 * scale, movable: true, subtitle: 'Level 3: track and touch the moving target.' },
       4: { kind: 'find-object', size: 150 * scale, movable: false, subtitle: 'Level 4: choose the named object from a small set.' },
       5: { kind: 'discriminate-object', size: 145 * scale, movable: false, subtitle: 'Level 5: choose the named item from two options.' },
-      6: { kind: 'find-category', size: 140 * scale, movable: false, subtitle: 'Level 6: use reasoning to pick the correct category item.' },
+      6: { kind: 'find-category', size: 140 * scale, movable: false, subtitle: 'Level 6: use category knowledge to find and match related items.' },
       7: { kind: 'cpat-sustained', size: 170 * scale, movable: false, subtitle: 'Level 7: sustained attention. Tap only when the target appears.' },
       8: { kind: 'cpat-selective', size: 160 * scale, movable: false, subtitle: 'Level 8: selective-spatial attention. Find the correct target among distractors.' },
       9: { kind: 'cpat-orienting', size: 160 * scale, movable: false, subtitle: 'Level 9: orienting attention. Use the cue, then reorient when needed.' },
@@ -3071,9 +3122,12 @@
   function chooseSessionTaskKind(index){
     const selected = selectedSessionTaskMode();
     if(selected !== 'auto') return selected;
-    if(ui.autoLevelPath.checked) return levelSpec(state.currentLevel).kind;
+    if(ui.autoLevelPath.checked){
+      if(state.currentLevel === 6) return index % 2 === 0 ? 'match-category' : 'find-category';
+      return levelSpec(state.currentLevel).kind;
+    }
     if(index <= state.singleTargetRepetitions && ui.singleTargetStart.checked) return index === 1 ? 'touch-screen' : 'touch-object';
-    const cycle = ['moving-target', 'find-object', 'discriminate-object', 'find-category', 'choice-preference'];
+    const cycle = ['moving-target', 'find-object', 'discriminate-object', 'find-category', 'match-category', 'choice-preference'];
     const cycleStart = ui.singleTargetStart.checked ? state.singleTargetRepetitions + 1 : 1;
     return cycle[Math.max(0, index - cycleStart) % cycle.length];
   }
@@ -3279,6 +3333,46 @@
         targetCategory: category,
         targetCategoryLabel: categoryMeta(category).label,
         contentConfiguration: exportableContentConfiguration(snapshot).find_category,
+        expectedResponseType: 'hit'
+      };
+    }
+
+    if(currentKind === 'match-category'){
+      const eligible = sessionPoolFor('match-category');
+      const snapshot = state.sessionContentConfig || buildContentConfigurationSnapshot();
+      const fairCategories = snapshot.findCategory.fairMatchCategories.map(item => item.id);
+      const occurrence = taskOccurrenceIndex(currentKind, index);
+      const category = balancedLessonChoice(fairCategories, occurrence, 'match-category:categories', item => item);
+      const categoryOccurrence = Math.floor((occurrence - 1) / Math.max(1, fairCategories.length)) + 1;
+      const members = uniqueOptions(eligible.filter(item => optionMatchesCategory(item, category)), true);
+      const cue = balancedLessonChoice(members, categoryOccurrence, `match-category:${category}:cues`);
+      const targetCandidates = members.filter(item => item.id !== cue.id);
+      const target = balancedLessonChoice(targetCandidates, categoryOccurrence, `match-category:${category}:targets:${cue.id}`);
+      const distractorPool = uniqueOptions(eligible.filter(item =>
+        !optionMatchesCategory(item, category)
+        && item.id !== cue.id
+        && normalizedConceptLabel(item.label) !== normalizedConceptLabel(cue.label)
+        && normalizedConceptLabel(item.label) !== normalizedConceptLabel(target.label)
+      ), true);
+      const distractors = balancedLessonOrder(distractorPool, `match-category:q${index}:distractors:${category}:${cue.id}:${target.id}`)
+        .slice(0, Math.min(optionCount - 1, distractorPool.length));
+      return {
+        ...baseQuestion,
+        prompt: buildCategoryMatchPrompt(category, cue.label, index),
+        cueSummary: `${cue.label} is the cue. Choose a different item from the same teacher-defined category.`,
+        cueOption: cue,
+        cueCategory: category,
+        promptPreviewOption: cue,
+        promptPreviewText: `Find one that belongs with ${cue.label}`,
+        target,
+        options: shuffle([target].concat(distractors)),
+        correctId: target.id,
+        renderMode: 'grid',
+        distractorCount: distractors.length,
+        targetCategory: category,
+        targetCategoryLabel: categoryMeta(category).label,
+        contentConfiguration: exportableContentConfiguration(snapshot).find_category,
+        proceduralVariant: 'category-exemplar-match',
         expectedResponseType: 'hit'
       };
     }
@@ -3752,10 +3846,20 @@
       target_category: question.targetCategory || (question.target && canonicalCategoryId(question.target.category)) || '',
       target_category_label: question.targetCategoryLabel || (question.target && categoryMeta(question.target.category).label) || '',
       target_source: question.target ? normalizeImageSource(question.target.source) : '',
+      cue_id: question.cueOption ? question.cueOption.id : '',
+      cue_label: question.cueOption ? question.cueOption.label : '',
+      cue_category: question.cueCategory || (question.cueOption && canonicalCategoryId(question.cueOption.category)) || '',
+      cue_category_label: question.cueCategory ? categoryMeta(question.cueCategory).label : '',
+      cue_source: question.cueOption ? normalizeImageSource(question.cueOption.source) : '',
+      cue_metadata: question.cueOption ? contentOptionMetadata(question.cueOption) : null,
       prompt_wording: question.prompt || '',
       option_labels: Array.isArray(question.options) ? question.options.map(option => option.label || '').filter(Boolean) : [],
       option_metadata: Array.isArray(question.options) ? question.options.map(contentOptionMetadata) : [],
-      photo_labels_used: Array.isArray(question.options) ? question.options.filter(option => option && option.src).map(option => option.label || '').filter(Boolean) : [],
+      photo_labels_used: Array.from(new Set((Array.isArray(question.options) ? question.options : [])
+        .concat(question.cueOption ? [question.cueOption] : [])
+        .filter(option => option && option.src)
+        .map(option => option.label || '')
+        .filter(Boolean))),
       content_configuration: question.contentConfiguration || null,
       procedural_variant: question.proceduralVariant || '',
       discrimination_contrast: question.discriminationContrast || '',
@@ -4013,12 +4117,13 @@
       sub.textContent = question.cueValidity ? 'Cue may help' : 'Cue may mislead';
       card.append(arrow, sub);
       cards.push(card);
-    } else if(question.target){
+    } else if(question.promptPreviewOption || question.target){
+      const previewOption = question.promptPreviewOption || question.target;
       const card = document.createElement('div');
       card.className = 'bigCard';
-      card.appendChild(buildChoiceMediaElement(question.target, question.target.src ? 'imgCircle' : 'faceCircle'));
+      card.appendChild(buildChoiceMediaElement(previewOption, previewOption.src ? 'imgCircle' : 'faceCircle'));
       const label = document.createElement('div');
-      label.textContent = question.target.label;
+      label.textContent = question.promptPreviewText || previewOption.label;
       card.appendChild(label);
       cards.push(card);
     }
@@ -4198,6 +4303,21 @@
         ui.choiceGrid.appendChild(btn);
       });
       return;
+    }
+
+    if(question.kind === 'match-category' && question.cueOption){
+      const cueCard = document.createElement('div');
+      cueCard.className = 'bigCard matchCueCard';
+      cueCard.dataset.cueId = question.cueOption.id;
+      cueCard.setAttribute('aria-label', `Match with ${question.cueOption.label}`);
+      const cueLead = document.createElement('div');
+      cueLead.className = 'choiceSmall';
+      cueLead.textContent = 'Match with';
+      const cueLabel = document.createElement('div');
+      cueLabel.className = 'choiceLabel';
+      cueLabel.textContent = question.cueOption.label;
+      setNodeChildren(cueCard, buildChoiceMediaElement(question.cueOption, 'choiceMedia'), cueLead, cueLabel);
+      ui.choiceGrid.appendChild(cueCard);
     }
 
     question.options.forEach((option, idx) => {
@@ -5207,7 +5327,7 @@
   function preferredTaskKindForSkill(skillId){
     const preferredOrder = [
       'touch-screen', 'touch-object', 'moving-target', 'find-object', 'discriminate-object', 'find-category',
-      'choice-preference', 'cpat-sustained', 'cpat-selective', 'cpat-orienting', 'cpat-executive'
+      'match-category', 'choice-preference', 'cpat-sustained', 'cpat-selective', 'cpat-orienting', 'cpat-executive'
     ];
     return preferredOrder.find(kind => (TASK_SKILL_IDS[kind] || []).includes(skillId)) || 'auto';
   }
@@ -8729,9 +8849,13 @@
     const categoryId = trial.target_category && PHOTO_CATEGORY_META[trial.target_category]
       ? trial.target_category
       : (trial.target_category ? 'custom' : null);
+    const cueCategoryId = trial.cue_category && PHOTO_CATEGORY_META[trial.cue_category]
+      ? trial.cue_category
+      : (trial.cue_category ? 'custom' : null);
     const personalisedContent = !!(
       (Array.isArray(trial.photo_labels_used) && trial.photo_labels_used.length)
       || ['upload', 'uploaded', 'pupil-photo', 'personalised'].includes(trial.target_source)
+      || ['upload', 'uploaded', 'pupil-photo', 'personalised'].includes(trial.cue_source)
     );
     return {
       trial_index: trialIndex + 1,
@@ -8756,6 +8880,8 @@
       scored_response: trial.scored_response !== false,
       research_condition: trial.research_condition || null,
       category_id: categoryId,
+      cue_category_id: cueCategoryId,
+      cue_target_distinct: trial.cue_id ? trial.cue_id !== trial.target_id : null,
       personalised_content: personalisedContent,
       option_count: Array.isArray(trial.option_metadata)
         ? trial.option_metadata.length

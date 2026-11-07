@@ -8,7 +8,7 @@ This dictionary documents the principal exported and locally stored fields used 
 - Ordinary session exports omit raw image bytes and retain labels or content metadata.
 - Context notes and pupil aliases can still be personal data.
 - No field is a diagnosis, medical finding, or validated measure unless a future protocol establishes that separately.
-- V1.7.0 uses export schema version 4. The isolated V1.8 alpha uses schema version 5.
+- V1.7.0 uses export schema version 4. The isolated V1.8 alpha uses schema version 6.
 
 ## V1.8 Alpha Derived Planning Fields
 
@@ -94,22 +94,27 @@ The on-screen coverage audit groups planned fields into behaviour, support, cont
 
 ## V1.8 Procedural Lesson Provenance
 
-Generator version `1.2.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Discriminate object`, and `Choice preference`.
+Generator version `1.3.0` applies a `balanced-before-repeat` coverage strategy to `Find object`, `Find category`, `Match category`, `Discriminate object`, and `Choice preference`. Data schema 6 adds structured cue fields and skill graph 1.1.0 adds `categorisation.match_category`.
 
 | Field | Meaning |
 | --- | --- |
 | `lesson_plan.lesson_seed` | Session-level seed used to reproduce the lesson schedule |
-| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.2.0 |
+| `lesson_plan.constraints.coverage_strategy` | `balanced-before-repeat` for generator 1.3.0 |
 | `trial.question_seed` | Per-question seed used for reproducible option ordering and other question variation |
 | `trial.generator_version` | Algorithm version required to interpret/replay the generated question |
 | `trial.generator_constraints.coverage_strategy` | Coverage rule active for the question |
 | `trial.target_category` | Configured category selected for the question |
+| `trial.cue_id` / `trial.cue_label` | The non-selectable exemplar shown before a category-match response; blank for tasks without an exemplar cue |
+| `trial.cue_category` / `trial.cue_category_label` | Teacher-defined category attached to the cue |
+| `trial.cue_source` / `trial.cue_metadata` | Cue source and structured category metadata without image bytes |
 | `trial.procedural_variant` | Named generator path, including category-balanced discrimination or preference |
 | `trial.discrimination_contrast` | `within-category` or `cross-category` for generated discrimination trials |
 | `trial.open_ended_choice` | `true` when every presented option is an acceptable preference selection |
 | `trial.scored_response` | `false` when the response must not contribute to accuracy or target scoring |
 
-For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. Distractors remain outside the prompted category, option IDs are unique, and the correct target appears exactly once. `Discriminate object` prefers a same-category distractor but records a cross-category fallback when needed. `Choice preference` rotates category/content anchors only to balance exposure; the anchor is not a correct answer. Every preference option is accepted, target-distance fields remain missing, and `scored_response` is `false`.
+For `Find object`, configured usable categories rotate before repeating and eligible targets rotate within their category. For `Find category`, fair prompt categories rotate before repeating and eligible targets rotate within each prompted category. `Match category` rotates categories that contain at least two differently labelled members plus an outside-category distractor, shows one member as the cue, and requires a different member as the only selectable same-category answer. Distractors remain outside the prompted category, option IDs are unique, and the correct target appears exactly once. The automatic Level 6 path alternates Find category and Match category. `Discriminate object` prefers a same-category distractor but records a cross-category fallback when needed. `Choice preference` rotates category/content anchors only to balance exposure; the anchor is not a correct answer. Every preference option is accepted, target-distance fields remain missing, and `scored_response` is `false`.
+
+Category-match accuracy is evidence about performance on the delivered in-app task. It is not, by itself, evidence of classroom generalisation, durable transfer, conceptual mastery, or neural change.
 
 ## Core Export Fields
 
@@ -152,6 +157,7 @@ Trial records can include:
 
 - exact generated prompt wording
 - target and option labels
+- structured category-match cue ID, label, category, source, and metadata when applicable
 - target-present or no-go state
 - response, omission, or commission outcome
 - reaction time and touch location/distance

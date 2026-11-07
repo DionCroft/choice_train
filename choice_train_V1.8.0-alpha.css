@@ -780,6 +780,23 @@ td {
   box-shadow: 0 0 0 4px var(--focus-soft);
 }
 
+.matchCueCard {
+  grid-column: 1 / -1;
+  flex-direction: row;
+  width: min(100%, 460px);
+  min-width: 0;
+  min-height: 0;
+  justify-self: center;
+  padding: 12px 20px;
+  border-radius: 20px;
+  pointer-events: none;
+}
+
+.matchCueCard .choiceMedia {
+  width: 88px;
+  flex: 0 0 88px;
+}
+
 .main button.choice.correct {
   color: var(--text);
   background: var(--success-soft);

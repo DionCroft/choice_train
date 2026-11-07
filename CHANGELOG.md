@@ -7,7 +7,8 @@ All notable changes to ChoiceTrain are listed here.
 ### Implemented on the feature branch
 
 - isolated `choice_train_V1.8.0-alpha` HTML, JavaScript, and CSS files while leaving the V1.7.0 GitHub Pages entry unchanged
-- schema version 5 with versioned skill IDs, lesson/generator provenance, null-safe descriptive research summaries, and interpretation boundaries in session exports
+- schema version 6 with versioned skill IDs, structured category-match cue metadata, lesson/generator provenance, null-safe descriptive research summaries, and interpretation boundaries in session exports
+- a separate local migration version so research-schema changes do not trigger unnecessary IndexedDB photo-asset rewrites
 - a separate `Research` Admin destination with current-session, current-learner, and all-learner scopes; archived sessions remain excluded unless selected
 - accessible chart-and-table views for session accuracy and independent responding, speed versus accuracy, outcome balance, skill profiles, support, category exposure, fidelity, artifacts, EEG marker completeness, maintenance, generalisation, and transfer observations
 - corrected longitudinal trial grouping so question numbers from separate sessions are not collapsed together
@@ -24,7 +25,9 @@ All notable changes to ChoiceTrain are listed here.
 - Research cards, an accessible aggregate chart, and an expanded session table for marker completeness, ordered trials, timing differences, protocol coverage, and declared synchronisation method
 - a separate pseudonymised AI/research export with behavioural features, relative marker times, skill summaries, and sanitised teacher decisions; it excludes names, aliases, free text, images, photo labels, exact timestamps, source session IDs, prompt wording, and raw touch coordinates
 - persistent random research participant codes, with explicit wording that pseudonymised data is not anonymous and remains subject to school governance
-- generator version 1.2.0 with deterministic `balanced-before-repeat` category and target schedules for Find object, Find category, Discriminate object, and Choice preference
+- generator version 1.3.0 and skill graph version 1.1.0 with deterministic `balanced-before-repeat` category and target schedules for Find object, Find category, Match category, Discriminate object, and Choice preference
+- a metadata-defined `Match category` lesson that keeps one non-selectable cue exemplar visible above the choices, requires a different same-category target, excludes category-matching distractors, rotates with Find category in the automatic Level 6 path, and records the cue/target/category relationship for skill and Research views
+- multi-seed browser safeguards for category-match grammar, distinct cue and target IDs, source/category constraints, unique options, exactly one valid answer, reproducible provenance, and Level 6 task rotation
 - fair category rotation and target rotation across stock, personalised, and teacher-created content while preserving source/category filters and exactly one valid answer
 - two-option discrimination that prefers a within-category contrast and exports the actual contrast type without claiming visual or attribute equivalence
 - open-ended preference lessons that accept every configured option, retain the selected content, suppress arbitrary target-distance measures, and mark the response as valid but unscored
@@ -62,7 +65,7 @@ All notable changes to ChoiceTrain are listed here.
 - a dependency-free cross-platform build stamper that requires explicit runtime files and records version, label, channel, UTC date, branch, commit, source pair, publication status, and repository URLs
 - a hash-safe dry-run mode, strict single-`APP_BUILD` validation, a PowerShell compatibility wrapper, and three release-tool unit tests wired into branch and Pages CI
 - refreshed the V1.8 alpha build information from reviewed checkpoint `c24156c` while retaining the experimental channel and explicit non-published V1.7 boundary
-- 22 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 99 tests
+- 23 focused V1.8 browser tests; the complete stable, archive, and alpha matrix passes 100 tests
 
 ### Planned
 
