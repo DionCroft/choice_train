@@ -4409,6 +4409,14 @@
       ? Math.hypot(selectedCentre.x - targetCentre.x, selectedCentre.y - targetCentre.y)
       : null;
     const playPoint = getPlayAreaPoint(event.clientX, event.clientY);
+    const playRect = ui.playArea.getBoundingClientRect();
+    const targetPlayPoint = targetCentre
+      ? { x: targetCentre.x - playRect.left, y: targetCentre.y - playRect.top }
+      : null;
+    const targetDelta = targetPlayPoint
+      ? { x: playPoint.x - targetPlayPoint.x, y: playPoint.y - targetPlayPoint.y }
+      : null;
+    const playDiagonal = Math.hypot(playRect.width, playRect.height);
 
     let correct = option.id === question.correctId;
     let commission = !correct;
@@ -4455,8 +4463,19 @@
         pointer_client_y: Math.round(event.clientY),
         pointer_play_x: Number(playPoint.x.toFixed(2)),
         pointer_play_y: Number(playPoint.y.toFixed(2)),
+        target_play_x: targetPlayPoint ? Number(targetPlayPoint.x.toFixed(2)) : null,
+        target_play_y: targetPlayPoint ? Number(targetPlayPoint.y.toFixed(2)) : null,
+        target_width_px: targetCentre ? Number(targetCentre.rect.width.toFixed(2)) : null,
+        target_height_px: targetCentre ? Number(targetCentre.rect.height.toFixed(2)) : null,
+        touch_delta_x_px: targetDelta ? Number(targetDelta.x.toFixed(2)) : null,
+        touch_delta_y_px: targetDelta ? Number(targetDelta.y.toFixed(2)) : null,
+        play_area_width_px: Number(playRect.width.toFixed(2)),
+        play_area_height_px: Number(playRect.height.toFixed(2)),
         raw_distance_to_target_px: rawDistance == null ? null : Number(rawDistance.toFixed(2)),
         distance_to_target_px: distance == null ? null : Number(distance.toFixed(2)),
+        distance_to_target_play_diagonal: rawDistance == null || !playDiagonal
+          ? null
+          : Number((rawDistance / playDiagonal).toFixed(5)),
         within_target_hit_radius: withinTargetHitRadius,
         selected_to_target_distance_px: selectedToTargetDistance == null ? null : Number(selectedToTargetDistance.toFixed(2)),
         adaptive_hit_radius_px: hitRadius,
@@ -6846,6 +6865,83 @@
     ui.researchBehaviourNote.textContent = scope === 'all-learners'
       ? 'Each point is one session; points are not connected across different learners. Missing timing and touch values remain missing.'
       : 'Rates use final trial outcomes. RT variability requires at least two observed response times; touch distance depends on task geometry and device setup.';
+
+    const spatialRows = sessions.map(session => {
+      const sessionTrials = latestTrialsByQuestion(session.trials || []);
+      const eligible = sessionTrials.filter(trial => (
+        !trial.open_ended_choice
+        && !trial.touch_anywhere_accepted
+        && Number.isFinite(trial.raw_distance_to_target_px)
+        && Number.isFinite(trial.adaptive_hit_radius_px)
+        && trial.adaptive_hit_radius_px > 0
+      ));
+      const bands = { within: 0, near: 0, mid: 0, far: 0 };
+      const directions = { left: 0, right: 0, above: 0, below: 0 };
+      const normalizedDistances = [];
+      let directionObserved = 0;
+      eligible.forEach(trial => {
+        const ratio = trial.raw_distance_to_target_px / trial.adaptive_hit_radius_px;
+        normalizedDistances.push(ratio);
+        if(ratio <= 1) bands.within += 1;
+        else if(ratio <= 2) bands.near += 1;
+        else if(ratio <= 4) bands.mid += 1;
+        else bands.far += 1;
+        if(!Number.isFinite(trial.touch_delta_x_px) || !Number.isFinite(trial.touch_delta_y_px) || ratio <= 1) return;
+        directionObserved += 1;
+        if(Math.abs(trial.touch_delta_x_px) >= Math.abs(trial.touch_delta_y_px)){
+          directions[trial.touch_delta_x_px < 0 ? 'left' : 'right'] += 1;
+        } else {
+          directions[trial.touch_delta_y_px < 0 ? 'above' : 'below'] += 1;
+        }
+      });
+      return {
+        date: researchDateLabel(Number(session.updated_at_wall_ms)),
+        learner: session.learner_alias || session.learner || 'Unknown',
+        trials: sessionTrials.length,
+        observed: eligible.length,
+        direction_observed: directionObserved,
+        ...bands,
+        ...directions,
+        mean_hit_radius_ratio: normalizedDistances.length ? Number(mean(normalizedDistances).toFixed(2)) : null
+      };
+    });
+    const spatialTotals = spatialRows.reduce((totals, row) => {
+      ['within', 'near', 'mid', 'far', 'left', 'right', 'above', 'below'].forEach(key => {
+        totals[key] += row[key];
+      });
+      return totals;
+    }, { within: 0, near: 0, mid: 0, far: 0, left: 0, right: 0, above: 0, below: 0 });
+    drawResearchBars(ui.researchTouchBandChart, [
+      { label: 'Within hit radius', value: spatialTotals.within, color: themeToken('success') },
+      { label: 'Near (1-2 radii)', value: spatialTotals.near, color: themeToken('primary') },
+      { label: 'Mid (2-4 radii)', value: spatialTotals.mid, color: themeToken('warning') },
+      { label: 'Far (>4 radii)', value: spatialTotals.far, color: themeToken('danger') }
+    ], { labelWidth: 155 });
+    drawResearchBars(ui.researchTouchDirectionChart, [
+      { label: 'Left of target', value: spatialTotals.left, color: themeToken('primary') },
+      { label: 'Right of target', value: spatialTotals.right, color: themeToken('secondary', themeToken('primary')) },
+      { label: 'Above target', value: spatialTotals.above, color: themeToken('success') },
+      { label: 'Below target', value: spatialTotals.below, color: themeToken('warning') }
+    ], { labelWidth: 145 });
+    if(spatialRows.length){
+      clearNode(ui.researchTouchSpatialBody);
+      spatialRows.forEach(item => appendResearchRow(ui.researchTouchSpatialBody, [
+        item.date,
+        item.learner,
+        `${item.observed}/${item.trials}`,
+        item.within,
+        item.near,
+        item.mid,
+        item.far,
+        `${item.direction_observed}/${item.observed}`,
+        item.left,
+        item.right,
+        item.above,
+        item.below,
+        item.mean_hit_radius_ratio == null ? null : `${item.mean_hit_radius_ratio} radii`
+      ]));
+    } else renderResearchEmptyRow(ui.researchTouchSpatialBody, 13, 'No sessions in this scope yet.');
+    ui.researchTouchSpatialNote.textContent = 'Distance bands divide raw target-centre distance by that trial’s adaptive hit radius. Direction excludes touches inside the hit radius and requires target geometry from a compatible V1.8 record. This is a descriptive interface measure, not a motor, visual-field, or diagnostic assessment.';
 
     const skillRows = researchSummary.skill_summaries;
     drawResearchBars(ui.researchSkillChart, skillRows.filter(item => item.accuracy_pct != null).map(item => ({

@@ -44,6 +44,10 @@ The response-quality card derives session-level `omission_pct`, `commission_pct`
 
 Current-learner points may be connected in chronological order. All-learner points are deliberately unconnected because records from different learners are not one longitudinal series.
 
+Compatible V1.8 response trials add `target_play_x`, `target_play_y`, `target_width_px`, `target_height_px`, `touch_delta_x_px`, `touch_delta_y_px`, `play_area_width_px`, `play_area_height_px`, and `distance_to_target_play_diagonal`. Values remain null when there is no meaningful target, including open-ended preference choices. The Research spatial view derives hit-radius bands from `raw_distance_to_target_px / adaptive_hit_radius_px` and a dominant outside-radius direction from the signed deltas. Full local session exports retain this geometry for audit. The pseudonymised model-development export excludes raw pointer coordinates, target coordinates, dimensions, and deltas; it currently retains only the existing distance features defined by its privacy manifest.
+
+The spatial view is a description of interaction geometry. Device dimensions, layout, target size, touch scaling, posture, access method, and assistance can all affect it, so it is not a validated motor, visual-field, attention, or diagnostic measure.
+
 ### Research implementation and transfer-observation views
 
 The support-fading table derives per-session response counts, observed support-status counts, independent percentage, prompted/assisted/unknown counts, mean highest prompt level, actual and target dosage minutes, and implementation-fidelity percentage. Independent percentage uses only responses whose support status was explicitly observed; an absent status remains unknown rather than being treated as independent.

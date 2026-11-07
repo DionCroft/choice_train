@@ -36,6 +36,8 @@ All notable changes to ChoiceTrain are listed here.
 - a dedicated Attention Training family profile for sustained, selective-spatial, orienting, and executive performance, including accuracy, independence, omissions, commissions, RT, RT variability, and touch distance
 - current-learner family trajectories with an accessible table and a descriptive percentage-point slope only after three observed sessions; all-learner scope deliberately suppresses slope interpretation
 - response-quality visualisations for per-session omission and commission rates, RT variability, and mean touch distance, with observed-value counts and missing values preserved
+- optional target-centre geometry, target-relative touch deltas, play-area dimensions, and play-diagonal-normalised distance in new compatible V1.8 trial records
+- target-relative touch visualisations using adaptive hit-radius distance bands and outside-radius left/right/above/below counts, with open-ended and touch-anywhere tasks excluded
 - pooled all-learner response-quality points are left unconnected so they cannot be mistaken for one learner's longitudinal trajectory
 - longitudinal support-fading and dosage visualisations for independent responding, prompt/assistance counts, unknown support status, mean prompt level, actual/target minutes, and fidelity
 - prompt-ladder and learner-agency visualisations for highest prompt level, help requests, prompt events, repeats, learner breaks, automatic pauses, early stops, reward onsets, and reward choice

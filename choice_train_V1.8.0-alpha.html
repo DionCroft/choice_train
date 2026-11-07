@@ -1286,6 +1286,26 @@
               </div>
               <div id="researchBehaviourNote" class="compactNote">Missing timing and touch values remain missing. Rates use final trial outcomes in each session.</div>
             </div>
+            <div class="chartCard span2">
+              <h4>Target-relative touch profile</h4>
+              <div class="researchMetricPair">
+                <div>
+                  <div class="tiny">Target distance in adaptive hit-radius bands</div>
+                  <canvas id="researchTouchBandChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Touch counts within, near, mid-distance, and far from the target using adaptive hit-radius bands"></canvas>
+                </div>
+                <div>
+                  <div class="tiny">Direction of touches outside the hit radius</div>
+                  <canvas id="researchTouchDirectionChart" class="researchCanvas" width="360" height="240" role="img" aria-label="Touch counts left, right, above, and below the target centre"></canvas>
+                </div>
+              </div>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Spatial observed</th><th>Within</th><th>Near</th><th>Mid</th><th>Far</th><th>Direction observed</th><th>Left</th><th>Right</th><th>Above</th><th>Below</th><th>Mean distance</th></tr></thead>
+                  <tbody id="researchTouchSpatialBody"></tbody>
+                </table>
+              </div>
+              <div id="researchTouchSpatialNote" class="compactNote">Touch geometry is descriptive interface data, not a motor or diagnostic assessment.</div>
+            </div>
             <div id="researchSkillsSection" class="chartCard span2 researchAnchorTarget">
               <h4>Versioned skill profile</h4>
               <canvas id="researchSkillChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Accuracy by ChoiceTrain skill"></canvas>

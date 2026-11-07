@@ -116,6 +116,13 @@ test('a learner trial exports skill, generator, and descriptive research metadat
     task_kind: 'find-object',
     level: 4
   }));
+  expect(trial.target_play_x).toEqual(expect.any(Number));
+  expect(trial.target_play_y).toEqual(expect.any(Number));
+  expect(trial.touch_delta_x_px).toEqual(expect.any(Number));
+  expect(trial.touch_delta_y_px).toEqual(expect.any(Number));
+  expect(trial.play_area_width_px).toBeGreaterThan(0);
+  expect(trial.play_area_height_px).toBeGreaterThan(0);
+  expect(trial.distance_to_target_play_diagonal).toEqual(expect.any(Number));
 
   const skill = payload.research_summary.skill_summaries.find(item => item.skill_id === 'recognition.named_object');
   expect(skill).toEqual(expect.objectContaining({
@@ -459,6 +466,14 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await expect(page.locator('#researchBehaviourBody')).toContainText('ms');
   await expect(page.locator('#researchBehaviourBody')).toContainText('px');
   await expect(page.locator('#researchBehaviourNote')).toContainText('device setup');
+  await expect(page.locator('#researchTouchBandChart')).toBeVisible();
+  await expect(page.locator('#researchTouchDirectionChart')).toBeVisible();
+  await expect(page.locator('#researchTouchSpatialBody tr')).toHaveCount(1);
+  const spatialCells = page.locator('#researchTouchSpatialBody tr').first().locator('td');
+  await expect(spatialCells.nth(2)).toHaveText('3/3');
+  await expect(spatialCells.nth(3)).toHaveText('3');
+  await expect(spatialCells.nth(12)).toContainText('radii');
+  await expect(page.locator('#researchTouchSpatialNote')).toContainText('not a motor');
 
   await setValue(page, 'researchScopeSelect', 'all-learners');
   await expect(page.locator('#researchBehaviourNote')).toContainText('not connected');
