@@ -228,11 +228,14 @@
       "summary": "The candidate adapts learner and staff workspaces across narrow portrait, short landscape, enlarged text, safe areas, orientation changes, and representative browser profiles.",
       "implementation_evidence": [
         { "path": "choice_train_V1.8.0-alpha.html", "contains": "viewport-fit=cover" },
-        { "path": "choice_train_V1.8.0-alpha.js", "contains": "function buildDeviceReadinessReport()" }
+        { "path": "choice_train_V1.8.0-alpha.js", "contains": "function syncAdaptiveViewportCssMetrics()" },
+        { "path": "docs/V1.8.0_ADAPTIVE_LAYOUT_CONTRACT.md", "contains": "These are layout ranges, not device detection." }
       ],
       "automated_evidence": [
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "six-choice learner Q&A fits a ${viewport.name} with enlarged text" },
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "active learner question relayouts after portrait-to-landscape rotation without changing the task" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "Research cards and wide tables remain contained on a small phone" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "mobile photo editor stays inside the usable viewport" },
         { "path": "tests/choice-train-v180-compat.spec.js", "contains": "V1.8 learner pacing and Q&A layout remain usable in the compatibility profile" }
       ],
       "limitations": ["Physical Windows, iPad, Android, Kindle, browser-zoom, virtual-keyboard, and intended assistive-access checks remain external gates."]

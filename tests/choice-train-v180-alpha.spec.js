@@ -1488,6 +1488,66 @@ test('Research workspace contains wide data tables on a tablet viewport', async 
   expect(['auto', 'scroll']).toContain(layout.tableOverflow);
 });
 
+test('Research cards and wide tables remain contained on a small phone', async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 568 });
+  await gotoAlpha(page);
+  await setValue(page, 'textScale', 1.3);
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+
+  const layout = await page.evaluate(() => {
+    const viewportWidth = document.documentElement.clientWidth;
+    const cards = Array.from(document.querySelectorAll('.researchVisualGrid > .chartCard')).map(node => {
+      const rect = node.getBoundingClientRect();
+      return { left: rect.left, right: rect.right, width: rect.width };
+    });
+    const canvases = Array.from(document.querySelectorAll('.researchVisualGrid .researchCanvas')).map(node => {
+      const rect = node.getBoundingClientRect();
+      const cardRect = node.closest('.chartCard').getBoundingClientRect();
+      return { left: rect.left, right: rect.right, cardLeft: cardRect.left, cardRight: cardRect.right };
+    });
+    const tableWrap = document.querySelector('.researchTableWrap');
+    const tableRect = tableWrap.getBoundingClientRect();
+    const nav = document.querySelector('#researchSectionNav');
+    return {
+      viewportWidth,
+      documentWidth: document.documentElement.scrollWidth,
+      cards,
+      canvases,
+      table: {
+        left: tableRect.left,
+        right: tableRect.right,
+        overflowX: getComputedStyle(tableWrap).overflowX,
+        scrollWidth: tableWrap.scrollWidth,
+        clientWidth: tableWrap.clientWidth
+      },
+      nav: {
+        overflowX: getComputedStyle(nav).overflowX,
+        scrollWidth: nav.scrollWidth,
+        clientWidth: nav.clientWidth
+      }
+    };
+  });
+
+  expect(layout.documentWidth).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.cards.length).toBeGreaterThan(10);
+  layout.cards.forEach(card => {
+    expect(card.left).toBeGreaterThanOrEqual(0);
+    expect(card.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+    expect(card.width).toBeGreaterThan(0);
+  });
+  layout.canvases.forEach(canvas => {
+    expect(canvas.left).toBeGreaterThanOrEqual(canvas.cardLeft - 1);
+    expect(canvas.right).toBeLessThanOrEqual(canvas.cardRight + 1);
+  });
+  expect(['auto', 'scroll']).toContain(layout.table.overflowX);
+  expect(layout.table.left).toBeGreaterThanOrEqual(0);
+  expect(layout.table.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.table.scrollWidth).toBeGreaterThanOrEqual(layout.table.clientWidth);
+  expect(['auto', 'scroll']).toContain(layout.nav.overflowX);
+  expect(layout.nav.scrollWidth).toBeGreaterThan(layout.nav.clientWidth);
+});
+
 test('Research visualises future AI dataset composition without performing a model split', async ({ page }) => {
   await gotoAlpha(page);
   await setCheckbox(page, 'ttsToggle', false);
@@ -3152,9 +3212,12 @@ test('active learner question relayouts after portrait-to-landscape rotation wit
   const promptBefore = await page.locator('#questionText').textContent();
   const targetBefore = await page.locator('#choiceGrid [data-role="correct-target"]').getAttribute('data-id');
   const portrait = await learnerLayoutSnapshot(page);
+  const portraitUsableHeight = await page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-usable-viewport-height')));
+  expect(portraitUsableHeight).toBeCloseTo(844, 0);
 
   await page.setViewportSize({ width: 844, height: 390 });
   await expect.poll(async () => (await learnerLayoutSnapshot(page)).choices[0].height).toBeLessThan(portrait.choices[0].height);
+  await expect.poll(() => page.evaluate(() => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-usable-viewport-height')))).toBeCloseTo(390, 0);
 
   const landscape = await learnerLayoutSnapshot(page);
   expectLearnerLayoutContained(landscape, 4);
@@ -3177,15 +3240,29 @@ test('teacher and admin workspaces remain reachable without horizontal overflow 
   await gotoAlpha(page);
   await setValue(page, 'textScale', 1.3);
 
-  const teacherLayout = await page.evaluate(() => ({
-    documentWidth: document.documentElement.scrollWidth,
-    viewportWidth: document.documentElement.clientWidth,
-    teacherTab: document.querySelector('#teacherPanelTab').getBoundingClientRect(),
-    adminTab: document.querySelector('#adminPanelTab').getBoundingClientRect()
-  }));
+  const teacherLayout = await page.evaluate(() => {
+    const teacherTab = document.querySelector('#teacherPanelTab').getBoundingClientRect();
+    const adminTab = document.querySelector('#adminPanelTab').getBoundingClientRect();
+    const teacherNav = Array.from(document.querySelectorAll('.teacherWorkspaceNav button')).map(node => node.getBoundingClientRect());
+    const formFontSizes = Array.from(document.querySelectorAll('.panel input:not([type="checkbox"]):not([type="radio"]), .panel select, .panel textarea'))
+      .filter(node => node.getClientRects().length)
+      .map(node => parseFloat(getComputedStyle(node).fontSize));
+    return {
+      documentWidth: document.documentElement.scrollWidth,
+      viewportWidth: document.documentElement.clientWidth,
+      teacherTab,
+      adminTab,
+      teacherNav,
+      formFontSizes
+    };
+  });
   expect(teacherLayout.documentWidth).toBeLessThanOrEqual(teacherLayout.viewportWidth + 1);
   expect(teacherLayout.teacherTab.left).toBeGreaterThanOrEqual(0);
   expect(teacherLayout.adminTab.right).toBeLessThanOrEqual(teacherLayout.viewportWidth + 1);
+  expect(Math.abs(teacherLayout.teacherTab.top - teacherLayout.adminTab.top)).toBeLessThanOrEqual(1);
+  expect(teacherLayout.teacherNav).toHaveLength(3);
+  expect(Math.max(...teacherLayout.teacherNav.map(rect => rect.top)) - Math.min(...teacherLayout.teacherNav.map(rect => rect.top))).toBeLessThanOrEqual(1);
+  expect(Math.min(...teacherLayout.formFontSizes)).toBeGreaterThanOrEqual(16);
 
   await page.locator('#adminPanelTab').click();
   await expect(page.locator('#adminNavOverview')).toBeVisible();
@@ -3207,4 +3284,36 @@ test('teacher and admin workspaces remain reachable without horizontal overflow 
     expect(rect.width).toBeGreaterThanOrEqual(44);
     expect(rect.height).toBeGreaterThanOrEqual(44);
   });
+});
+
+test('mobile photo editor stays inside the usable viewport', async ({ page }) => {
+  await page.setViewportSize({ width: 360, height: 640 });
+  await gotoAlpha(page);
+  await page.locator('#teacherNavPersonalise').click();
+  await page.locator('#photoLabel').fill('Viewport test photo');
+  await page.locator('#photoCategory').selectOption({ index: 0 });
+  await page.locator('#photoUpload').setInputFiles({
+    name: 'viewport-test.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" rx="12" fill="#267a4a"/></svg>')
+  });
+  await page.locator('#addPhotoBtn').click();
+  await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(1, { timeout: 15_000 });
+  await page.locator('#photoLibraryList .photoCard').first().getByRole('button', { name: 'Crop / rotate' }).click();
+  await expect(page.locator('#imageEditor')).toBeVisible();
+
+  const layout = await page.evaluate(() => {
+    const overlay = document.querySelector('#imageEditor').getBoundingClientRect();
+    const editor = document.querySelector('#imageEditor .editorPanel').getBoundingClientRect();
+    const close = document.querySelector('#imageEditorClose').getBoundingClientRect();
+    const usableHeight = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--app-usable-viewport-height'));
+    return { overlay, editor, close, usableHeight, viewportWidth: innerWidth, viewportHeight: innerHeight };
+  });
+  expect(layout.usableHeight).toBeCloseTo(layout.viewportHeight, 0);
+  expect(layout.overlay.left).toBeGreaterThanOrEqual(0);
+  expect(layout.overlay.right).toBeLessThanOrEqual(layout.viewportWidth + 1);
+  expect(layout.editor.top).toBeGreaterThanOrEqual(0);
+  expect(layout.editor.bottom).toBeLessThanOrEqual(layout.usableHeight + 1);
+  expect(layout.close.top).toBeGreaterThanOrEqual(layout.editor.top);
+  expect(layout.close.bottom).toBeLessThanOrEqual(layout.editor.bottom + 1);
 });

@@ -1777,6 +1777,14 @@
     };
   }
 
+  function syncAdaptiveViewportCssMetrics(){
+    const viewport = window.visualViewport;
+    const width = Math.max((viewport && viewport.width) || window.innerWidth || 0, 1);
+    const height = Math.max((viewport && viewport.height) || window.innerHeight || 0, 1);
+    document.documentElement.style.setProperty('--app-usable-viewport-width', `${width.toFixed(2)}px`);
+    document.documentElement.style.setProperty('--app-usable-viewport-height', `${height.toFixed(2)}px`);
+  }
+
   function compactLandscapeViewport(viewport=learnerViewportSize()){
     return viewport.width > viewport.height && viewport.height <= 540;
   }
@@ -4766,6 +4774,7 @@
     if(state.runtime.layoutFrame) return;
     state.runtime.layoutFrame = window.requestAnimationFrame(() => {
       state.runtime.layoutFrame = 0;
+      syncAdaptiveViewportCssMetrics();
       resizeCanvas();
       // Relayout the same question without restarting timers or emitting duplicate research markers.
       if(state.viewMode === 'learner' && state.phase === 'choice' && state.currentQuestion){
@@ -13179,6 +13188,7 @@
 
   function initialSetup(){
     const persistedSettings = readJson(SETTINGS_KEY) || LEGACY_SETTINGS_KEYS.map(readJson).find(Boolean) || {};
+    syncAdaptiveViewportCssMetrics();
     applyBuildInfo();
     populateRecommendationTaskOptions();
     loadSettings();
