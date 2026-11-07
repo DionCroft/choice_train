@@ -7,6 +7,7 @@ const assert = require('node:assert/strict');
 const {
   REQUIRED_COMMANDS,
   buildReviewPack,
+  normaliseGitOutput,
   parseArgs,
   renderMarkdown,
   resolveOutputDir
@@ -96,4 +97,10 @@ test('review pack CLI parsing is explicit and safe', () => {
   });
   assert.throws(() => parseArgs(['--output-dir']), /requires a value/);
   assert.throws(() => parseArgs(['--unknown']), /Unknown option/);
+});
+
+test('successful empty Git output remains empty for clean-worktree detection', () => {
+  assert.equal(normaliseGitOutput(''), '');
+  assert.equal(normaliseGitOutput('  \r\n'), '');
+  assert.equal(normaliseGitOutput('feature/v1.8.0-research-personalisation\n'), 'feature/v1.8.0-research-personalisation');
 });

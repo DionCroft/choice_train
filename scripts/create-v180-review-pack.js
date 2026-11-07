@@ -82,12 +82,16 @@ function sha256(relativePath){
   return crypto.createHash('sha256').update(fs.readFileSync(resolveRepositoryFile(relativePath))).digest('hex');
 }
 
+function normaliseGitOutput(output){
+  return String(output).trim();
+}
+
 function git(args, fallback='unknown'){
   try {
-    return execFileSync('git', ['-C', ROOT, ...args], {
+    return normaliseGitOutput(execFileSync('git', ['-C', ROOT, ...args], {
       encoding: 'utf8',
       stdio: ['ignore', 'pipe', 'ignore']
-    }).trim() || fallback;
+    }));
   } catch(_error){
     return fallback;
   }
@@ -279,6 +283,7 @@ module.exports = {
   REPORT_VERSION,
   REQUIRED_COMMANDS,
   buildReviewPack,
+  normaliseGitOutput,
   parseArgs,
   renderMarkdown,
   resolveOutputDir,
