@@ -107,6 +107,11 @@ test('V1.8 teacher and admin navigation remain reachable in the compatibility pr
   await expect(page.locator('#adminNavOverview')).toBeVisible();
   await page.locator('#adminNavResearch').click();
   await expect(page.locator('#researchScopeSelect')).toBeVisible();
+  await page.locator('#adminNavSystem').click();
+  await expect(page.locator('#adminDeviceReadinessSection')).toBeVisible();
+  await page.locator('#refreshDeviceReadinessBtn').click();
+  await expect(page.locator('#deviceReadinessStatus')).toContainText('supporting evidence only');
+  await expect(page.locator('#deviceReadinessTableBody tr')).toHaveCount(14);
 
   const layout = await page.evaluate(() => ({
     viewportWidth: document.documentElement.clientWidth,

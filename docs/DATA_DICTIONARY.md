@@ -316,6 +316,29 @@ The pseudonymised model-development export checks the current profile for every 
 - Clearing site data may remove both.
 - Storage keys retain the established V1.4-compatible names in the alpha to avoid an unnecessary profile migration.
 
+## V1.8 Device Readiness Report
+
+Device readiness report `1.0.0` is a manually downloaded, pupil-data-free browser observation. It supports the physical-device protocol but does not approve a device or access method.
+
+| Field | Meaning |
+|---|---|
+| `report_version` | Closed report contract version, currently `1.0.0` |
+| `generated_at_iso` | Time at which staff refreshed or downloaded the browser observation |
+| `local_only` / `external_transmission` | Fixed boundary values `true` / `false`; ChoiceTrain does not send the report |
+| `contains_pupil_data` | Fixed value `false`; the schema has no pupil, session, response, note, image, or research field |
+| `build` | Candidate version, release label, channel, source file, and stamped source commit |
+| `browser` | Browser user-agent, reported platform, and page protocol |
+| `viewport` | Current usable and inner dimensions, scale, pixel ratio, orientation, angle, and safe-area insets |
+| `input` | Pointer API, reported touch points, coarse-pointer, and hover capability observations |
+| `storage` | Temporary local-storage write result, IndexedDB support/readiness, and active local storage mode |
+| `capabilities` | Speech, voice-count-at-check, fullscreen, dynamic viewport, visual viewport, and clipboard API observations |
+| `accessibility_preferences` | Current reduced-motion, forced-colour, and increased-contrast media-query results |
+| `interface_checks` | Current horizontal containment, visible Admin target height, learner control CSS minimum, and notch-safe viewport setting |
+| `external_review_required` | Physical-device, orientation, zoom/keyboard, intended-access, speech, and workflow checks still required |
+| `interpretation_boundary` | Explicit statement that the report makes no suitability decision |
+
+The user-agent and device characteristics can still identify a school-managed device even though the report contains no pupil data. Review the JSON before sharing it and keep the external validation record outside this public repository.
+
 ## Future LLM Summary
 
 ChoiceTrain prepares local structured summaries with learner level, recent accuracy, recent reaction time, support used, preferred content, suggested next session, and context notes. It also offers the narrower pseudonymised export described above. No summary is sent to an LLM or external service, and no model is trained in the application. Any future use requires consent or another appropriate authority, safeguarding, information-governance, security, bias evaluation, purpose limitation, and human-review controls.

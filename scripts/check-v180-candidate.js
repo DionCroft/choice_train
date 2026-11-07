@@ -17,7 +17,8 @@ const EXPECTED_CONTRACTS = Object.freeze({
   humanObservationContext: '1.0.0',
   recommendation: '1.5.0',
   privacyExport: '1.3.0',
-  dataQuality: '1.0.0'
+  dataQuality: '1.0.0',
+  deviceReadinessReport: '1.0.0'
 });
 
 const failures = [];
@@ -101,14 +102,16 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
   assert(new RegExp(`const RECOMMENDATION_VERSION = ['"]${EXPECTED_CONTRACTS.recommendation.replaceAll('.', '\\.')}['"];`).test(source), 'recommendation version drifted');
   assert(new RegExp(`const PRIVACY_EXPORT_VERSION = ['"]${EXPECTED_CONTRACTS.privacyExport.replaceAll('.', '\\.')}['"];`).test(source), 'privacy export version drifted');
   assert(new RegExp(`const DATA_QUALITY_SCHEMA_VERSION = ['"]${EXPECTED_CONTRACTS.dataQuality.replaceAll('.', '\\.')}['"];`).test(source), 'data-quality schema version drifted');
+  assert(new RegExp(`const DEVICE_READINESS_REPORT_VERSION = ['"]${EXPECTED_CONTRACTS.deviceReadinessReport.replaceAll('.', '\\.')}['"];`).test(source), 'device-readiness report version drifted');
 });
 
-check('machine-readable research contracts are present and parseable', () => {
+check('machine-readable candidate contracts are present and parseable', () => {
   [
     'schemas/choice-train-trial-v8.schema.json',
     'schemas/choice-train-research-summary-v2.2.schema.json',
     'schemas/choice-train-data-quality-v1.schema.json',
-    'schemas/choice-train-model-dataset-v1.schema.json'
+    'schemas/choice-train-model-dataset-v1.schema.json',
+    'schemas/choice-train-device-readiness-v1.schema.json'
   ].forEach((file) => {
     const schema = JSON.parse(read(file));
     assert(schema.$schema === 'https://json-schema.org/draft/2020-12/schema', `${file} is not JSON Schema 2020-12`);

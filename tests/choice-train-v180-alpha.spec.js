@@ -6,6 +6,7 @@ const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.s
 const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v2.2.schema.json', 'utf8'));
 const DATA_QUALITY_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-data-quality-v1.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
+const DEVICE_READINESS_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-device-readiness-v1.schema.json', 'utf8'));
 
 function expectCoreSchema(value, schema, path='payload') {
   expect(value, `${path} must be an object`).toBeTruthy();
@@ -241,6 +242,41 @@ test('V1.8 alpha is versioned without changing the stable entry point', async ({
   const index = fs.readFileSync('index.html', 'utf8');
   expect(index).toContain('choice_train_V1.7.0.js');
   expect(index).not.toContain('choice_train_V1.8.0-alpha.js');
+});
+
+test('System exports a versioned pupil-data-free device readiness report', async ({ page }) => {
+  await page.setViewportSize({ width: 568, height: 320 });
+  await gotoAlpha(page);
+  await page.locator('#newPupilName').fill('Private Device Test Learner');
+  await page.locator('#addPupil').click();
+  await page.locator('#pupilAlias').fill('PRIVATE-ALIAS-MUST-NOT-EXPORT');
+
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavSystem').click();
+  await expect(page.locator('#adminDeviceReadinessSection')).toBeVisible();
+  await page.locator('#refreshDeviceReadinessBtn').click();
+  await expect(page.locator('#deviceReadinessStatus')).toContainText('supporting evidence only');
+  await expect(page.locator('#deviceReadinessTableBody tr')).toHaveCount(14);
+  await expect(page.locator('#deviceViewportValue')).toContainText('568 x 320');
+
+  const downloadPromise = page.waitForEvent('download');
+  await page.locator('#downloadDeviceReadinessBtn').click();
+  const download = await downloadPromise;
+  expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_DeviceReadiness_\d{4}-\d{2}-\d{2}_\d{2}-\d{2}-\d{2}\.json$/);
+  const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
+  expectCoreSchema(payload, DEVICE_READINESS_SCHEMA, 'deviceReadiness');
+  expect(payload.report_version).toBe('1.0.0');
+  expect(payload.viewport.width).toBe(568);
+  expect(payload.viewport.height).toBe(320);
+  expect(payload.interface_checks.viewport_fit_cover).toBe(true);
+  expect(payload.interface_checks.horizontal_overflow_free).toBe(true);
+  expect(payload.interface_checks.admin_navigation_min_target_px).toBeGreaterThanOrEqual(44);
+  expect(payload.interface_checks.learner_control_min_height_css_px).toBeGreaterThanOrEqual(44);
+  expect(payload.external_review_required.length).toBeGreaterThan(0);
+  const exportedText = JSON.stringify(payload);
+  expect(exportedText).not.toContain('Private Device Test Learner');
+  expect(exportedText).not.toContain('PRIVATE-ALIAS-MUST-NOT-EXPORT');
+  expect(Object.keys(payload)).not.toEqual(expect.arrayContaining(['learner', 'pupil', 'session', 'context_notes']));
 });
 
 test('V1.8 alpha loads without making external runtime requests', async ({ page }) => {

@@ -24,6 +24,8 @@ Alpha feedback sounds are generated on the device with the Web Audio API. Choice
 
 The repository's repeatable visual-audit script uses synthetic/default pupil data. Its generated screenshots and bounds manifest are written under the ignored `test-results/` directory and are not committed or uploaded by the application. Staff must not substitute identifiable pupil profiles when creating development screenshots or attach pupil data to public issues.
 
+The V1.8 Device readiness report is a separate pupil-data-free support artifact. It contains build metadata, the browser user-agent and platform, current viewport/orientation/safe-area values, reported pointer/touch and storage capabilities, selected accessibility media preferences, and current interface measurements. Its closed schema has no pupil, session, response, note, image, or research fields, and ChoiceTrain does not upload or automatically retain it. A user-agent and device configuration can still identify a managed school device, so staff should review the file and store or share it only through the school's approved validation process.
+
 ## School Responsibilities
 
 Schools should define an appropriate lawful basis, consent process, retention period, device-access policy, and export-storage process before using identifiable pupil data. Use aliases where possible and avoid unnecessary diagnostic or sensitive detail in context notes.

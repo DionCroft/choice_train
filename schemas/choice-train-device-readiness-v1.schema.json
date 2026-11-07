@@ -1,0 +1,168 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-device-readiness-v1.schema.json",
+  "title": "ChoiceTrain device readiness report 1.0.0",
+  "description": "Pupil-data-free browser observations that support, but do not replace, physical device and accessibility review.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "report_version",
+    "generated_at_iso",
+    "local_only",
+    "external_transmission",
+    "contains_pupil_data",
+    "build",
+    "browser",
+    "viewport",
+    "input",
+    "storage",
+    "capabilities",
+    "accessibility_preferences",
+    "interface_checks",
+    "external_review_required",
+    "interpretation_boundary"
+  ],
+  "properties": {
+    "report_version": { "const": "1.0.0" },
+    "generated_at_iso": { "type": "string", "format": "date-time" },
+    "local_only": { "const": true },
+    "external_transmission": { "const": false },
+    "contains_pupil_data": { "const": false },
+    "build": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["version", "release_label", "channel", "based_on_commit", "source_file"],
+      "properties": {
+        "version": { "type": "string" },
+        "release_label": { "type": "string" },
+        "channel": { "type": "string" },
+        "based_on_commit": { "type": "string" },
+        "source_file": { "type": "string" }
+      }
+    },
+    "browser": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["user_agent", "platform", "protocol"],
+      "properties": {
+        "user_agent": { "type": "string" },
+        "platform": { "type": "string" },
+        "protocol": { "type": "string" }
+      }
+    },
+    "viewport": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "width",
+        "height",
+        "scale",
+        "inner_width",
+        "inner_height",
+        "device_pixel_ratio",
+        "orientation",
+        "orientation_angle_degrees",
+        "safe_area_insets"
+      ],
+      "properties": {
+        "width": { "type": "integer", "minimum": 0 },
+        "height": { "type": "integer", "minimum": 0 },
+        "scale": { "type": "number", "minimum": 0 },
+        "inner_width": { "type": "integer", "minimum": 0 },
+        "inner_height": { "type": "integer", "minimum": 0 },
+        "device_pixel_ratio": { "type": "number", "minimum": 0 },
+        "orientation": { "type": "string" },
+        "orientation_angle_degrees": {
+          "oneOf": [
+            { "type": "number" },
+            { "type": "null" }
+          ]
+        },
+        "safe_area_insets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["top_px", "right_px", "bottom_px", "left_px"],
+          "properties": {
+            "top_px": { "type": "number", "minimum": 0 },
+            "right_px": { "type": "number", "minimum": 0 },
+            "bottom_px": { "type": "number", "minimum": 0 },
+            "left_px": { "type": "number", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "input": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["pointer_events_api", "max_touch_points", "coarse_pointer_reported", "hover_reported"],
+      "properties": {
+        "pointer_events_api": { "type": "boolean" },
+        "max_touch_points": { "type": "integer", "minimum": 0 },
+        "coarse_pointer_reported": { "type": "boolean" },
+        "hover_reported": { "type": "boolean" }
+      }
+    },
+    "storage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["local_storage_writable", "indexed_db_api_available", "indexed_db_ready", "indexed_db_in_use", "active_mode"],
+      "properties": {
+        "local_storage_writable": { "type": "boolean" },
+        "indexed_db_api_available": { "type": "boolean" },
+        "indexed_db_ready": { "type": "boolean" },
+        "indexed_db_in_use": { "type": "boolean" },
+        "active_mode": { "enum": ["IndexedDB", "Local storage fallback", "Unavailable"] }
+      }
+    },
+    "capabilities": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["speech_synthesis_api", "speech_voice_count_at_check", "fullscreen_api", "dynamic_viewport_units", "visual_viewport_api", "clipboard_api"],
+      "properties": {
+        "speech_synthesis_api": { "type": "boolean" },
+        "speech_voice_count_at_check": { "type": "integer", "minimum": 0 },
+        "fullscreen_api": { "type": "boolean" },
+        "dynamic_viewport_units": { "type": "boolean" },
+        "visual_viewport_api": { "type": "boolean" },
+        "clipboard_api": { "type": "boolean" }
+      }
+    },
+    "accessibility_preferences": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reduced_motion", "forced_colours", "prefers_more_contrast"],
+      "properties": {
+        "reduced_motion": { "type": "boolean" },
+        "forced_colours": { "type": "boolean" },
+        "prefers_more_contrast": { "type": "boolean" }
+      }
+    },
+    "interface_checks": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["horizontal_overflow_free", "admin_navigation_min_target_px", "learner_control_min_height_css_px", "viewport_fit_cover"],
+      "properties": {
+        "horizontal_overflow_free": { "type": "boolean" },
+        "admin_navigation_min_target_px": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "type": "null" }
+          ]
+        },
+        "learner_control_min_height_css_px": {
+          "oneOf": [
+            { "type": "number", "minimum": 0 },
+            { "type": "null" }
+          ]
+        },
+        "viewport_fit_cover": { "const": true }
+      }
+    },
+    "external_review_required": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string" }
+    },
+    "interpretation_boundary": { "type": "string", "minLength": 1 }
+  }
+}

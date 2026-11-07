@@ -227,6 +227,8 @@ ChoiceTrain is browser-first and is intended to adapt to desktop computers, Wind
 
 Before classroom use on a new device, test both portrait and landscape, split-screen if staff use it, the pupil's intended answer count, text size, touch or access method, speech, Help/Break/Stop controls, and the press-and-hold teacher return. Also open a text field to check the on-screen keyboard does not block the action the teacher needs next. Browser simulation cannot reproduce every physical screen, browser toolbar, keyboard, switch, zoom, speech, performance, or touch behavior, so record checks on the actual school devices. The V1.8 improvements remain experimental until that release is explicitly approved and promoted; the GitHub Pages link continues to run stable V1.7.0.
 
+In the V1.8 development build, staff can open `Admin & research` > `System` > `Device readiness check`. Select `Refresh check` after changing orientation, browser zoom, split-screen size, or opening the on-screen keyboard. Select `Download device report` to create a versioned JSON observation that can support the school's external device record. It includes browser and display capability information but no pupil, session, context-note, photograph, or response data. Review the file before sharing because a user-agent string and device characteristics can still identify a school device. The report is supporting evidence only and must not be treated as a pass, accessibility approval, or substitute for testing with the learner's intended hardware and access method.
+
 ---
 
 ## 4. Teacher Panel and Admin Panel

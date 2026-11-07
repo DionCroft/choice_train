@@ -166,3 +166,16 @@ test('model-development schema locks privacy and human-oversight invariants', ()
   ['source_session_id', 'observed_date', 'classroom_transfer_notes', 'context_notes']
     .forEach(field => assert.equal(Object.prototype.hasOwnProperty.call(observation.properties, field), false));
 });
+
+test('device-readiness schema locks the pupil-data-free physical-review boundary', () => {
+  const contract = schema('choice-train-device-readiness-v1.schema.json');
+  assert.equal(contract.$schema, 'https://json-schema.org/draft/2020-12/schema');
+  assert.equal(contract.properties.report_version.const, runtimeConstant('DEVICE_READINESS_REPORT_VERSION'));
+  assert.equal(contract.properties.local_only.const, true);
+  assert.equal(contract.properties.external_transmission.const, false);
+  assert.equal(contract.properties.contains_pupil_data.const, false);
+  assert.equal(contract.properties.interface_checks.properties.viewport_fit_cover.const, true);
+  assert.equal(contract.additionalProperties, false);
+  ['learner', 'pupil', 'session', 'context_notes', 'research_participant_id']
+    .forEach(field => assert.equal(Object.prototype.hasOwnProperty.call(contract.properties, field), false));
+});

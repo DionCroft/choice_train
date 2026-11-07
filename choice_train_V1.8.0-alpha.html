@@ -2047,6 +2047,28 @@
           </div>
         </div>
 
+        <div id="adminDeviceReadinessSection" class="section adminAnchor" data-admin-pages="system" style="padding-top:14px">
+          <div class="sub">Device readiness check</div>
+          <div class="helperText">Creates a pupil-data-free snapshot of this browser's current viewport, input, storage, speech, accessibility preferences, and interface measurements. It supports physical-device review but cannot approve a device or replace a staff accessibility check.</div>
+          <div class="aboutGrid" aria-live="polite">
+            <div class="dashCard"><div class="k">Usable viewport</div><div class="v" id="deviceViewportValue">Checking...</div></div>
+            <div class="dashCard"><div class="k">Orientation</div><div class="v" id="deviceOrientationValue">Checking...</div></div>
+            <div class="dashCard"><div class="k">Input reported</div><div class="v" id="deviceInputValue">Checking...</div></div>
+            <div class="dashCard"><div class="k">Local storage mode</div><div class="v" id="deviceStorageValue">Checking...</div></div>
+          </div>
+          <div class="tableWrap" style="margin-top:12px">
+            <table>
+              <thead><tr><th>Area</th><th>Observation</th><th>Current value</th><th>What it means</th></tr></thead>
+              <tbody id="deviceReadinessTableBody"></tbody>
+            </table>
+          </div>
+          <div id="deviceReadinessStatus" class="compactNote" role="status">Open System or select Refresh to measure this browser. No pupil or session data is included.</div>
+          <div class="aboutActions">
+            <button id="refreshDeviceReadinessBtn" type="button">Refresh device check</button>
+            <button id="downloadDeviceReadinessBtn" class="ghostBtn" type="button">Download device report</button>
+          </div>
+        </div>
+
         <div id="adminBuildSection" class="section adminAnchor" data-admin-pages="system" style="padding-top:14px">
           <div class="sub">About / Build Info</div>
           <div class="aboutGrid">

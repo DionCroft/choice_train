@@ -45,6 +45,7 @@
   const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.2.0';
   const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
   const PRIVACY_EXPORT_VERSION = '1.3.0';
+  const DEVICE_READINESS_REPORT_VERSION = '1.0.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 4;
   const MAX_IMPORT_FILES = 100;
@@ -538,7 +539,8 @@
       trailFrame: 0,
       layoutFrame: 0,
       currentTouchPoint: null,
-      questionRandom: null
+      questionRandom: null,
+      deviceReadinessReport: null
     },
     eeg: {
       markers: []
@@ -2116,6 +2118,9 @@
     if(nextPage === 'overview') refreshDashboard(true);
     if(nextPage === 'research') renderResearchWorkspace();
     if(nextPage === 'sessions') refreshHistoryManager();
+    if(nextPage === 'system') window.requestAnimationFrame(() => refreshDeviceReadinessReport().catch(() => {
+      if(ui.deviceReadinessStatus) ui.deviceReadinessStatus.textContent = 'The browser check could not be completed. Retry or record this limitation during physical-device review.';
+    }));
     const target = targets[nextPage];
     if(options.scroll && target){
       const behavior = options.behavior || (currentMotionPreference() === 'reduced' ? 'auto' : 'smooth');
@@ -2288,6 +2293,230 @@
     });
     refreshDashboard(true);
     flash('try', meta.label);
+  }
+
+  function mediaQueryMatches(query){
+    try {
+      return typeof window.matchMedia === 'function' && window.matchMedia(query).matches;
+    } catch(_err){
+      return false;
+    }
+  }
+
+  function localStorageIsWritable(){
+    const key = `choice_train_device_check_${Math.random().toString(36).slice(2)}`;
+    try {
+      localStorage.setItem(key, '1');
+      localStorage.removeItem(key);
+      return true;
+    } catch(_err){
+      try { localStorage.removeItem(key); } catch(_cleanupError) {}
+      return false;
+    }
+  }
+
+  function safeAreaInsets(){
+    const probe = document.createElement('div');
+    probe.setAttribute('aria-hidden', 'true');
+    probe.style.cssText = [
+      'position:fixed',
+      'visibility:hidden',
+      'pointer-events:none',
+      'padding-top:env(safe-area-inset-top, 0px)',
+      'padding-right:env(safe-area-inset-right, 0px)',
+      'padding-bottom:env(safe-area-inset-bottom, 0px)',
+      'padding-left:env(safe-area-inset-left, 0px)'
+    ].join(';');
+    document.body.appendChild(probe);
+    const style = window.getComputedStyle(probe);
+    const value = name => Number.parseFloat(style.getPropertyValue(name)) || 0;
+    const result = {
+      top_px: value('padding-top'),
+      right_px: value('padding-right'),
+      bottom_px: value('padding-bottom'),
+      left_px: value('padding-left')
+    };
+    probe.remove();
+    return result;
+  }
+
+  function minimumVisibleControlHeight(selector){
+    const heights = Array.from(document.querySelectorAll(selector))
+      .filter(node => {
+        const rect = node.getBoundingClientRect();
+        return rect.width > 0 && rect.height > 0 && window.getComputedStyle(node).visibility !== 'hidden';
+      })
+      .map(node => node.getBoundingClientRect().height)
+      .filter(Number.isFinite);
+    return heights.length ? Number(Math.min(...heights).toFixed(1)) : null;
+  }
+
+  function configuredControlMinHeight(node){
+    if(!node) return null;
+    const value = Number.parseFloat(window.getComputedStyle(node).minHeight);
+    return Number.isFinite(value) ? Number(value.toFixed(1)) : null;
+  }
+
+  function deviceOrientationSnapshot(viewport){
+    const orientation = window.screen && window.screen.orientation;
+    const type = orientation && orientation.type
+      ? orientation.type
+      : viewport.width > viewport.height ? 'landscape' : 'portrait';
+    const legacyAngle = typeof window.orientation === 'number' ? window.orientation : null;
+    const angle = orientation && Number.isFinite(orientation.angle) ? orientation.angle : legacyAngle;
+    return { type, angle_degrees: Number.isFinite(angle) ? angle : null };
+  }
+
+  async function buildDeviceReadinessReport(){
+    const viewportApi = window.visualViewport;
+    const viewport = {
+      width: Math.round((viewportApi && viewportApi.width) || window.innerWidth || document.documentElement.clientWidth || 0),
+      height: Math.round((viewportApi && viewportApi.height) || window.innerHeight || document.documentElement.clientHeight || 0),
+      scale: Number(((viewportApi && viewportApi.scale) || 1).toFixed(2)),
+      inner_width: Math.round(window.innerWidth || 0),
+      inner_height: Math.round(window.innerHeight || 0),
+      device_pixel_ratio: Number((window.devicePixelRatio || 1).toFixed(2))
+    };
+    const orientation = deviceOrientationSnapshot(viewport);
+    const localStorageWritable = localStorageIsWritable();
+    let indexedDbReady = false;
+    try {
+      indexedDbReady = !!(await openDb());
+    } catch(_err){
+      indexedDbReady = false;
+    }
+    const viewportMeta = document.querySelector('meta[name="viewport"]');
+    const speechSupported = 'speechSynthesis' in window && 'SpeechSynthesisUtterance' in window;
+    const voices = speechSupported && typeof window.speechSynthesis.getVoices === 'function'
+      ? window.speechSynthesis.getVoices()
+      : [];
+    const userAgentData = navigator.userAgentData || {};
+    const report = {
+      report_version: DEVICE_READINESS_REPORT_VERSION,
+      generated_at_iso: new Date().toISOString(),
+      local_only: true,
+      external_transmission: false,
+      contains_pupil_data: false,
+      build: {
+        version: APP_BUILD.version,
+        release_label: APP_BUILD.release_label,
+        channel: APP_BUILD.channel,
+        based_on_commit: APP_BUILD.based_on_commit,
+        source_file: APP_BUILD.source_file
+      },
+      browser: {
+        user_agent: String(navigator.userAgent || ''),
+        platform: String(userAgentData.platform || navigator.platform || 'not-reported'),
+        protocol: String(location.protocol || '').replace(':', '') || 'not-reported'
+      },
+      viewport: {
+        ...viewport,
+        orientation: orientation.type,
+        orientation_angle_degrees: orientation.angle_degrees,
+        safe_area_insets: safeAreaInsets()
+      },
+      input: {
+        pointer_events_api: 'PointerEvent' in window,
+        max_touch_points: Math.max(0, Number(navigator.maxTouchPoints) || 0),
+        coarse_pointer_reported: mediaQueryMatches('(pointer: coarse)'),
+        hover_reported: mediaQueryMatches('(hover: hover)')
+      },
+      storage: {
+        local_storage_writable: localStorageWritable,
+        indexed_db_api_available: 'indexedDB' in window,
+        indexed_db_ready: indexedDbReady,
+        indexed_db_in_use: state.storage.useIndexedDb === true,
+        active_mode: state.storage.useIndexedDb ? 'IndexedDB' : localStorageWritable ? 'Local storage fallback' : 'Unavailable'
+      },
+      capabilities: {
+        speech_synthesis_api: speechSupported,
+        speech_voice_count_at_check: voices && Number.isFinite(Number(voices.length))
+          ? Math.max(0, Number(voices.length))
+          : 0,
+        fullscreen_api: isFullscreenSupported(),
+        dynamic_viewport_units: !!(window.CSS && CSS.supports && CSS.supports('height', '100dvh')),
+        visual_viewport_api: 'visualViewport' in window,
+        clipboard_api: !!(navigator.clipboard && navigator.clipboard.writeText)
+      },
+      accessibility_preferences: {
+        reduced_motion: mediaQueryMatches('(prefers-reduced-motion: reduce)'),
+        forced_colours: mediaQueryMatches('(forced-colors: active)'),
+        prefers_more_contrast: mediaQueryMatches('(prefers-contrast: more)')
+      },
+      interface_checks: {
+        horizontal_overflow_free: document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1,
+        admin_navigation_min_target_px: minimumVisibleControlHeight('.adminWorkspaceNav button'),
+        learner_control_min_height_css_px: configuredControlMinHeight(ui.learnerHelpBtn),
+        viewport_fit_cover: !!(viewportMeta && /(?:^|,)\s*viewport-fit\s*=\s*cover(?:\s*,|$)/i.test(viewportMeta.content))
+      },
+      external_review_required: [
+        'physical device and browser',
+        'portrait and landscape',
+        'browser zoom and on-screen keyboard',
+        'intended touch, keyboard, switch, AAC, and assistive access',
+        'speech quality and classroom workflow'
+      ],
+      interpretation_boundary: 'Browser observations only. This report contains no pupil or session data, makes no suitability decision, and cannot replace physical-device, accessibility, safeguarding, governance, or staff review.'
+    };
+    state.runtime.deviceReadinessReport = report;
+    return report;
+  }
+
+  function deviceReadinessRows(report){
+    const yesNo = value => value ? 'Yes' : 'No';
+    const pointerSummary = report.input.max_touch_points > 0
+      ? `${report.input.max_touch_points} touch point(s) reported`
+      : report.input.pointer_events_api ? 'Pointer API; no touch points reported' : 'Legacy mouse/touch events';
+    return [
+      ['Display', 'Usable viewport', `${report.viewport.width} x ${report.viewport.height} CSS px`, 'Current usable browser area; it can change with rotation, browser chrome, zoom, or a keyboard.'],
+      ['Display', 'Orientation', report.viewport.orientation, 'Browser-reported orientation at the time of the check.'],
+      ['Display', 'Scale and pixel ratio', `${report.viewport.scale} scale; ${report.viewport.device_pixel_ratio} DPR`, 'Describes browser scaling and display density, not physical screen size.'],
+      ['Display', 'Safe-area insets', `${report.viewport.safe_area_insets.top_px}/${report.viewport.safe_area_insets.right_px}/${report.viewport.safe_area_insets.bottom_px}/${report.viewport.safe_area_insets.left_px} px`, 'Top/right/bottom/left browser safe-area values reported in this view.'],
+      ['Input', 'Pointer and touch', pointerSummary, 'Capability report only; test the learner\'s intended access method physically.'],
+      ['Storage', 'Local storage write', yesNo(report.storage.local_storage_writable), 'A temporary non-pupil test value was written and removed.'],
+      ['Storage', 'IndexedDB', report.storage.indexed_db_ready ? 'Available' : 'Unavailable; fallback required', 'ChoiceTrain uses IndexedDB for larger local assets and session history where available.'],
+      ['Audio', 'Speech synthesis', report.capabilities.speech_synthesis_api ? `Available; ${report.capabilities.speech_voice_count_at_check} voice(s) currently listed` : 'Unavailable', 'Voice availability and quality still require a manual speech check.'],
+      ['Access', 'Reduced motion requested', yesNo(report.accessibility_preferences.reduced_motion), 'Reflects the current browser or operating-system media preference.'],
+      ['Access', 'Forced colours active', yesNo(report.accessibility_preferences.forced_colours), 'Does not detect screen readers, switches, AAC, or individual access needs.'],
+      ['Interface', 'Horizontal containment', report.interface_checks.horizontal_overflow_free ? 'No page overflow observed' : 'Page overflow observed', 'Checks the current System view only.'],
+      ['Interface', 'Admin navigation target', report.interface_checks.admin_navigation_min_target_px == null ? 'Not measurable' : `${report.interface_checks.admin_navigation_min_target_px} px minimum`, 'Current visible Admin navigation height.'],
+      ['Interface', 'Learner control CSS minimum', report.interface_checks.learner_control_min_height_css_px == null ? 'Not measurable' : `${report.interface_checks.learner_control_min_height_css_px} px`, 'Configured Help control minimum; complete learner tasks still require physical review.'],
+      ['Interface', 'Notch-safe viewport', yesNo(report.interface_checks.viewport_fit_cover), 'Confirms the candidate requests safe-area-aware viewport layout.']
+    ];
+  }
+
+  async function refreshDeviceReadinessReport(){
+    if(!ui.deviceReadinessTableBody) return null;
+    if(ui.deviceReadinessStatus) ui.deviceReadinessStatus.textContent = 'Checking this browser locally...';
+    const report = await buildDeviceReadinessReport();
+    if(ui.deviceViewportValue) ui.deviceViewportValue.textContent = `${report.viewport.width} x ${report.viewport.height} CSS px`;
+    if(ui.deviceOrientationValue) ui.deviceOrientationValue.textContent = report.viewport.orientation;
+    if(ui.deviceInputValue) ui.deviceInputValue.textContent = report.input.max_touch_points > 0
+      ? `Touch (${report.input.max_touch_points})`
+      : report.input.pointer_events_api ? 'Pointer / mouse' : 'Legacy input';
+    if(ui.deviceStorageValue) ui.deviceStorageValue.textContent = report.storage.active_mode;
+    ui.deviceReadinessTableBody.textContent = '';
+    deviceReadinessRows(report).forEach(values => {
+      const row = document.createElement('tr');
+      values.forEach(value => {
+        const cell = document.createElement('td');
+        cell.textContent = value;
+        row.appendChild(cell);
+      });
+      ui.deviceReadinessTableBody.appendChild(row);
+    });
+    if(ui.deviceReadinessStatus){
+      ui.deviceReadinessStatus.textContent = `Checked ${new Date(report.generated_at_iso).toLocaleString()}. This is supporting evidence only; no pupil or session data was read into the report.`;
+    }
+    return report;
+  }
+
+  async function downloadDeviceReadinessReport(){
+    const report = await refreshDeviceReadinessReport();
+    if(!report) return;
+    const filename = `ChoiceTrain_DeviceReadiness_${localTimestampForFile()}.json`;
+    triggerBlobDownload(new Blob([JSON.stringify(report, null, 2)], { type: 'application/json' }), filename);
+    flash('good', 'Device report downloaded');
   }
 
   function applyBuildInfo(){
@@ -4541,6 +4770,9 @@
       // Relayout the same question without restarting timers or emitting duplicate research markers.
       if(state.viewMode === 'learner' && state.phase === 'choice' && state.currentQuestion){
         renderChoiceScreen(state.currentQuestion);
+      }
+      if(state.viewMode !== 'learner' && state.panelView === 'admin' && state.adminPage === 'system'){
+        refreshDeviceReadinessReport().catch(() => {});
       }
     });
   }
@@ -12649,6 +12881,12 @@
         flash('good', 'URL copied');
       }
     });
+    bindAction(ui.refreshDeviceReadinessBtn, () => refreshDeviceReadinessReport().catch(() => {
+      if(ui.deviceReadinessStatus) ui.deviceReadinessStatus.textContent = 'The browser check could not be completed. Retry or record this limitation during physical-device review.';
+    }));
+    bindAction(ui.downloadDeviceReadinessBtn, () => downloadDeviceReadinessReport().catch(() => {
+      if(ui.deviceReadinessStatus) ui.deviceReadinessStatus.textContent = 'The device report could not be created. Retry or record this limitation during physical-device review.';
+    }));
     bindAction(ui.applyPreferencesBtn, applyLearnerPreferences);
     bindAction(ui.logPreferenceCheckBtn, logPreferenceCheck);
     bindAction(ui.addPhotoBtn, addPhotoToLibrary);
