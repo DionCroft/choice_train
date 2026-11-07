@@ -18,8 +18,9 @@ The alpha retains raw trial records and adds recomputable, versioned planning fi
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `practice_status_version` | string | Version of the transparent skill-state rules |
-| `recommendation_version` | string | Version of the deterministic proposal, review, and explicit application rules; current alpha value `1.4.0` |
-| `privacy_export_version` | string | Version of the governance-gated model-development export; current alpha value `1.2.0` |
+| `recommendation_version` | string | Version of the deterministic proposal, review, and explicit application rules; current alpha value `1.5.0` |
+| `human_observation_context.version` | string | Version of the controlled practitioner-observation snapshot; current alpha value `1.0.0` |
+| `privacy_export_version` | string | Version of the governance-gated model-development export; current alpha value `1.3.0` |
 | `retention_planning` | object | Versioned planning interval, comparison minimum, due/comparison rules, and interpretation boundary frozen into new sessions |
 | `local_recommendation_summary.practice_states` | array | Per-skill opportunity, recency, accuracy, independence, trend, retention, and support summaries |
 | `practice_status` | enum | `not-scored`, `insufficient-sample`, `needs-support`, `developing`, or `consistent-current-sample` |
@@ -86,7 +87,7 @@ The Research demand view derives per-session mean displayed option count, mean d
 
 ### Research workspace summary export
 
-`Download scope summary` creates local JSON with `export_schema_version: 2.0.0` for the current Research scope. It contains derived `coverage_by_session`, `data_quality`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `retention_planning`, `category_skill_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `model_dataset_composition`, `session_context`, `eeg_readiness`, `recommendation_application_summary`, and `teacher_decisions`. Version 2.0 adds proposed/final category-focus fields and the number of linked sessions that used a reviewed focus. Retention and category-skill rows use day-level dates and omit exact wall-clock timestamps. Missing values remain missing rather than being converted to zero.
+`Download scope summary` creates local JSON with `export_schema_version: 2.1.0` for the current Research scope. It contains derived `coverage_by_session`, `data_quality`, `session_performance`, `session_timing`, `session_demands`, `fixed_conditions`, `skill_summaries`, `practice_states`, `retention_planning`, `category_skill_states`, `attention_families`, `support_summary`, `task_exposure`, `category_exposure`, `category_matching`, `category_group_completion`, `category_exclusion`, `attribute_selection`, `category_lesson_coverage`, `model_dataset_composition`, `session_context`, `eeg_readiness`, `recommendation_application_summary`, and `teacher_decisions`. Version 2.1 adds the closed `human_observation_context` to teacher decisions while retaining the category-focus fields and linked-session count from 2.0. Retention and category-skill rows use day-level dates and omit exact wall-clock timestamps. Missing values remain missing rather than being converted to zero.
 
 `model_dataset_composition` version 1.0.0 is an aggregate descriptive profile for future governed model-development planning. It records participant/session depth bands, longitudinal representation, skill and research-condition exposure, outcome and support-label counts, teacher-review counts, and current local governance eligibility. It excludes learner aliases and states that development, validation, and held-out evaluation must use participant-separated groups. `automatic_split_performed` and `random_trial_split_allowed` are both `false`. This profile does not determine dataset sufficiency, fairness, lawful use, model validity, teaching effectiveness, transfer, or neural change.
 
@@ -106,7 +107,9 @@ The summary includes configured learner aliases and day-level session dates. Its
 
 The prompt/agency view groups final trials by `highest_prompt_level` and counts `help_requested`, `prompt_applied`, `question_repeat`, learner and automatic `break_onset`, `learner_stop_requested`, and `reward_onset` records by session. Reward onsets come from the browser marker stream; other flow events come from the session event log. Counts depend on enabled controls, session opportunities, and practitioner practice. They are not deficit, motivation, or regulation scores.
 
-The teacher-observation view displays the session-start 1-5 attention and independence ratings and counts recorded maintenance/generalisation statuses. `not-run` and missing statuses are excluded from status bars but remain visible in the table. These are practitioner-entered observations, not validated task scores or evidence of transfer. Current-learner points may be connected by session date; all-learner points are unconnected.
+The teacher-observation view displays session-start 1-5 attention and independence ratings only when `teacher_ratings_recorded` is explicitly true, and counts recorded maintenance/generalisation statuses. The visible 3/5 controls are placeholders, not data; unconfirmed values are stored as `null`. `not-run` and missing statuses are excluded from status bars but remain visible in the table. These are practitioner-entered observations, not validated task scores or evidence of transfer. Current-learner points may be connected by session date; all-learner points are unconnected.
+
+`human_observation_context` version 1.0.0 contains `observation_available`, the explicit ratings-recorded flag and confirmed ratings, controlled maintenance/generalisation states, `transfer_note_recorded`, `observed_field_count`, and `automatic_decision_influence: false`. Full local recommendation audits may also retain the source session and day for traceability. Research and privacy-minimised summaries use the closed controlled subset and omit the free-text transfer note. This context is for teacher review and later governed analysis; it is not used to rank the current deterministic recommendation.
 
 ### Research content-breadth and preference views
 
@@ -272,7 +275,7 @@ The fixed-condition Research rows report date, condition ID, research condition,
 
 ## V1.8 Pseudonymised Research / Model-Development Export
 
-This separate JSON uses `export_schema_version: 1.2.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
+This separate JSON uses `export_schema_version: 1.3.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
 
 - random participant codes and relative session order/spacing
 - build, schema, skill-graph, and generator versions

@@ -1,0 +1,91 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-research-summary-v2.1.schema.json",
+  "title": "ChoiceTrain Research workspace summary core contract v2.1",
+  "type": "object",
+  "required": [
+    "export_schema_version",
+    "scope",
+    "session_count",
+    "final_trial_count",
+    "privacy_manifest",
+    "skill_summaries",
+    "attention_families",
+    "retention_planning",
+    "category_skill_states",
+    "category_matching",
+    "category_group_completion",
+    "category_exclusion",
+    "attribute_selection",
+    "category_lesson_coverage",
+    "data_quality",
+    "model_dataset_composition",
+    "recommendation_application_summary",
+    "teacher_decisions",
+    "interpretation_boundary"
+  ],
+  "properties": {
+    "export_schema_version": { "const": "2.1.0" },
+    "scope": { "enum": ["current-session", "current-learner", "all-learners"] },
+    "session_count": { "type": "integer", "minimum": 0 },
+    "final_trial_count": { "type": "integer", "minimum": 0 },
+    "privacy_manifest": { "type": "object" },
+    "skill_summaries": { "type": "array", "items": { "type": "object" } },
+    "attention_families": { "type": "array", "items": { "type": "object" } },
+    "retention_planning": { "$ref": "choice-train-research-summary-v2.0.schema.json#/properties/retention_planning" },
+    "category_skill_states": { "$ref": "choice-train-research-summary-v2.0.schema.json#/properties/category_skill_states" },
+    "category_matching": { "type": "array", "items": { "type": "object" } },
+    "category_group_completion": { "type": "array", "items": { "type": "object" } },
+    "category_exclusion": { "type": "array", "items": { "type": "object" } },
+    "attribute_selection": { "type": "array", "items": { "type": "object" } },
+    "category_lesson_coverage": { "type": "array", "items": { "type": "object" } },
+    "data_quality": { "$ref": "choice-train-data-quality-v1.schema.json" },
+    "model_dataset_composition": { "$ref": "choice-train-research-summary-v2.0.schema.json#/properties/model_dataset_composition" },
+    "recommendation_application_summary": { "$ref": "choice-train-research-summary-v2.0.schema.json#/properties/recommendation_application_summary" },
+    "teacher_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "learner_alias", "recommendation_id", "decision", "proposed_action", "skill_id", "proposed_category_focus_id", "proposed_category_focus_label", "final_task_kind", "final_level", "final_category_focus_id", "final_category_focus_label", "human_observation_context", "applied_session_count"],
+        "properties": {
+          "date": { "type": ["string", "null"], "pattern": "^(\\d{4}-\\d{2}-\\d{2})$" },
+          "learner_alias": { "type": "string" },
+          "recommendation_id": { "type": "string" },
+          "decision": { "enum": ["approved", "adjusted", "declined", "deferred"] },
+          "proposed_action": { "type": ["string", "null"] },
+          "skill_id": { "type": ["string", "null"] },
+          "proposed_category_focus_id": { "type": ["string", "null"] },
+          "proposed_category_focus_label": { "type": ["string", "null"] },
+          "final_task_kind": { "type": ["string", "null"] },
+          "final_level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+          "final_category_focus_id": { "type": ["string", "null"] },
+          "final_category_focus_label": { "type": ["string", "null"] },
+          "human_observation_context": { "$ref": "#/$defs/privacySafeHumanObservationContext" },
+          "applied_session_count": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "interpretation_boundary": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "privacySafeHumanObservationContext": {
+      "type": "object",
+      "required": ["version", "observation_available", "teacher_ratings_recorded", "teacher_attention_rating", "teacher_independence_rating", "maintenance_status", "generalisation_status", "transfer_note_recorded", "observed_field_count", "automatic_decision_influence"],
+      "properties": {
+        "version": { "const": "1.0.0" },
+        "observation_available": { "type": "boolean" },
+        "teacher_ratings_recorded": { "type": "boolean" },
+        "teacher_attention_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "teacher_independence_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "maintenance_status": { "enum": ["not-run", "emerging", "maintained", "regressed"] },
+        "generalisation_status": { "enum": ["not-run", "emerging", "generalised", "not-generalised"] },
+        "transfer_note_recorded": { "type": "boolean" },
+        "observed_field_count": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "automatic_decision_influence": { "const": false }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

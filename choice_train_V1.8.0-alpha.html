@@ -1015,6 +1015,11 @@
               <label for="teacherIndependenceRating">Teacher independence rating (1-5)</label>
               <input id="teacherIndependenceRating" type="number" min="1" max="5" step="1" value="3" />
             </div>
+            <div class="governanceUseGroup">
+              <span class="fieldLabel">Teacher ratings status</span>
+              <label class="toggle"><input id="teacherRatingsRecorded" type="checkbox" /> Ratings deliberately recorded for this observation</label>
+              <div class="helperText">Leave this off when the displayed 3/5 values are only placeholders. Research charts and exports use the ratings only after this is selected.</div>
+            </div>
             <div>
               <label for="eegParticipation">EEG study status</label>
               <select id="eegParticipation">
@@ -1489,6 +1494,7 @@
             <div class="chartCard span2 recommendationReviewCard">
               <h4>Teacher-reviewed next-session planning</h4>
               <div id="researchRecommendationSummary" class="recommendationProposal">Run a session to create a local planning proposal.</div>
+              <div id="researchRecommendationObservation" class="compactNote">No explicit practitioner outcome observation is available yet.</div>
               <ul id="researchRecommendationRationale" class="helperList recommendationRationale"></ul>
               <div class="recommendationReviewGrid">
                 <div>
@@ -1540,7 +1546,7 @@
               <canvas id="researchRecommendationUseChart" class="researchCanvas" width="760" height="190" role="img" aria-label="Approved recommendation plans and explicitly linked sessions"></canvas>
               <div class="tableWrap researchTableWrap">
                 <table>
-                  <thead><tr><th>Date</th><th>Learner</th><th>Proposed action</th><th>Skill</th><th>Decision</th><th>Final task</th><th>Final level</th><th>Category focus</th><th>Linked sessions</th><th>Reviewer note</th></tr></thead>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Proposed action</th><th>Skill</th><th>Decision</th><th>Final task</th><th>Final level</th><th>Category focus</th><th>Observation context</th><th>Linked sessions</th><th>Reviewer note</th></tr></thead>
                   <tbody id="researchRecommendationBody"></tbody>
                 </table>
               </div>

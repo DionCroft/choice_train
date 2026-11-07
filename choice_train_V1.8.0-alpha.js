@@ -38,12 +38,13 @@
   const PRACTICE_STATUS_VERSION = '1.1.0';
   const CATEGORY_SKILL_STATE_VERSION = '1.0.0';
   const RETENTION_PLANNING_VERSION = '1.0.0';
-  const RECOMMENDATION_VERSION = '1.4.0';
+  const HUMAN_OBSERVATION_CONTEXT_VERSION = '1.0.0';
+  const RECOMMENDATION_VERSION = '1.5.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.0.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.1.0';
   const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
-  const PRIVACY_EXPORT_VERSION = '1.2.0';
+  const PRIVACY_EXPORT_VERSION = '1.3.0';
   const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
   const PHOTO_SCHEMA_VERSION = 3;
   const MAX_IMPORT_FILES = 100;
@@ -374,6 +375,7 @@
     communicationMode: 'spoken',
     motorAccessMode: 'direct-touch',
     adaptiveFunctioningBand: 'not-set',
+    teacherRatingsRecorded: false,
     teacherAttentionRating: 3,
     teacherIndependenceRating: 3,
     eegParticipation: 'not-enrolled',
@@ -4683,12 +4685,18 @@
   }
 
   function learnerBaselineSnapshot(){
+    const teacherRatingsRecorded = !!(ui.teacherRatingsRecorded && ui.teacherRatingsRecorded.checked);
     return {
       communication_mode: ui.communicationMode.value,
       motor_access_mode: ui.motorAccessMode.value,
       adaptive_functioning_band: ui.adaptiveFunctioningBand.value,
-      teacher_attention_rating: safeNumber(ui.teacherAttentionRating.value, 3),
-      teacher_independence_rating: safeNumber(ui.teacherIndependenceRating.value, 3),
+      teacher_ratings_recorded: teacherRatingsRecorded,
+      teacher_attention_rating: teacherRatingsRecorded
+        ? clamp(safeNumber(ui.teacherAttentionRating.value, 3), 1, 5)
+        : null,
+      teacher_independence_rating: teacherRatingsRecorded
+        ? clamp(safeNumber(ui.teacherIndependenceRating.value, 3), 1, 5)
+        : null,
       eeg_participation: ui.eegParticipation.value,
       data_governance: dataGovernanceSnapshot(),
       aac_preference: ui.aacPreference.value,
@@ -6741,6 +6749,100 @@
     };
   }
 
+  const HUMAN_OBSERVATION_STATUSES = Object.freeze({
+    maintenance: Object.freeze(['not-run', 'emerging', 'maintained', 'regressed']),
+    generalisation: Object.freeze(['not-run', 'emerging', 'generalised', 'not-generalised'])
+  });
+
+  function controlledHumanObservationStatus(value, family){
+    const normalized = String(value || '').trim().toLowerCase();
+    return HUMAN_OBSERVATION_STATUSES[family].includes(normalized) ? normalized : 'not-run';
+  }
+
+  function humanObservationContextFromSession(session){
+    const source = session && typeof session === 'object' ? session : {};
+    const trials = latestTrialsByQuestion(Array.isArray(source.trials) ? source.trials : []);
+    const trial = trials.find(item => item.learner_baseline || item.session_context) || {};
+    const profileBaseline = source.learner_snapshot && source.learner_snapshot.baseline
+      ? source.learner_snapshot.baseline
+      : {};
+    const baseline = { ...profileBaseline, ...(trial.learner_baseline || {}) };
+    const sessionContext = trial.session_context || {};
+    const teacherRatingsRecorded = baseline.teacherRatingsRecorded === true
+      || baseline.teacher_ratings_recorded === true;
+    const rawAttention = baseline.teacher_attention_rating != null
+      ? Number(baseline.teacher_attention_rating)
+      : Number(baseline.teacherAttentionRating);
+    const rawIndependence = baseline.teacher_independence_rating != null
+      ? Number(baseline.teacher_independence_rating)
+      : Number(baseline.teacherIndependenceRating);
+    const attentionRating = teacherRatingsRecorded && Number.isFinite(rawAttention)
+      ? clamp(Math.round(rawAttention), 1, 5)
+      : null;
+    const independenceRating = teacherRatingsRecorded && Number.isFinite(rawIndependence)
+      ? clamp(Math.round(rawIndependence), 1, 5)
+      : null;
+    const maintenanceStatus = controlledHumanObservationStatus(
+      sessionContext.maintenance_status || baseline.maintenanceStatus || baseline.maintenance_status,
+      'maintenance'
+    );
+    const generalisationStatus = controlledHumanObservationStatus(
+      sessionContext.generalisation_status || baseline.generalisationStatus || baseline.generalisation_status,
+      'generalisation'
+    );
+    const transferNote = String(
+      source.classroom_transfer_notes
+      || sessionContext.classroom_transfer_notes
+      || baseline.classroomTransferNotes
+      || baseline.classroom_transfer_notes
+      || ''
+    ).trim();
+    const observedFieldCount = [attentionRating, independenceRating].filter(Number.isFinite).length
+      + (maintenanceStatus === 'not-run' ? 0 : 1)
+      + (generalisationStatus === 'not-run' ? 0 : 1)
+      + (transferNote ? 1 : 0);
+    const observationAvailable = observedFieldCount > 0;
+    return {
+      version: HUMAN_OBSERVATION_CONTEXT_VERSION,
+      source: observationAvailable ? 'latest-session' : 'not-observed',
+      observation_available: observationAvailable,
+      observed_date: observationAvailable ? researchDateLabel(Number(sessionObservedAt(source))) : null,
+      source_session_id: observationAvailable && source.session_id ? source.session_id : null,
+      teacher_ratings_recorded: teacherRatingsRecorded && Number.isFinite(attentionRating) && Number.isFinite(independenceRating),
+      teacher_attention_rating: attentionRating,
+      teacher_independence_rating: independenceRating,
+      maintenance_status: maintenanceStatus,
+      generalisation_status: generalisationStatus,
+      transfer_note_recorded: !!transferNote,
+      observed_field_count: observedFieldCount,
+      automatic_decision_influence: false,
+      interpretation_boundary: 'Human-recorded context for teacher review only. It does not alter the deterministic recommendation ranking or establish transfer, causation, diagnosis, or neural change.'
+    };
+  }
+
+  function humanObservationContextForSessions(sessions){
+    const ordered = (Array.isArray(sessions) ? sessions : [])
+      .slice()
+      .sort((a, b) => Number(sessionObservedAt(b) || 0) - Number(sessionObservedAt(a) || 0));
+    for(let index = 0; index < ordered.length; index += 1){
+      const context = humanObservationContextFromSession(ordered[index]);
+      if(context.observation_available) return context;
+    }
+    return humanObservationContextFromSession(null);
+  }
+
+  function humanObservationContextLabel(context){
+    if(!context || !context.observation_available) return 'No explicit outcome observation';
+    const parts = [];
+    if(context.teacher_ratings_recorded){
+      parts.push(`ratings ${context.teacher_attention_rating}/5 attention, ${context.teacher_independence_rating}/5 independence`);
+    }
+    if(context.maintenance_status !== 'not-run') parts.push(`maintenance ${context.maintenance_status.replace(/-/g, ' ')}`);
+    if(context.generalisation_status !== 'not-run') parts.push(`generalisation ${context.generalisation_status.replace(/-/g, ' ')}`);
+    if(context.transfer_note_recorded) parts.push('transfer note recorded');
+    return parts.join('; ') || 'No explicit outcome observation';
+  }
+
   function recommendationForSessions(sessions, learnerAlias=currentPupilAlias(), generatedAtWallMs=wallMs()){
     const usableSessions = Array.isArray(sessions) ? sessions : [];
     const configuredGapDays = retentionGapDays();
@@ -6802,6 +6904,7 @@
       generatedAtWallMs,
       action
     );
+    const humanObservationContext = humanObservationContextForSessions(usableSessions);
     if(recommendedCategoryFocus){
       rationaleCodes.push('CATEGORY_SKILL_FOCUS');
       const evidence = recommendedCategoryFocus.evidence;
@@ -6811,7 +6914,13 @@
     const idSeed = [
       RECOMMENDATION_VERSION, learnerAlias, sessionIds.join(','), action,
       selected ? selected.skill_id : 'baseline', recommendedTask, recommendedLevel,
-      recommendedCategoryFocus ? recommendedCategoryFocus.category_id : 'no-category-focus', configuredGapDays
+      recommendedCategoryFocus ? recommendedCategoryFocus.category_id : 'no-category-focus', configuredGapDays,
+      humanObservationContext.teacher_ratings_recorded,
+      humanObservationContext.teacher_attention_rating,
+      humanObservationContext.teacher_independence_rating,
+      humanObservationContext.maintenance_status,
+      humanObservationContext.generalisation_status,
+      humanObservationContext.transfer_note_recorded
     ].join('|');
     return {
       recommendation_id: `rec-${hashStringToSeed(idSeed).toString(16).padStart(8, '0')}`,
@@ -6843,6 +6952,7 @@
         retention_due_status: selected.retention_due_status,
         retention_threshold_days: selected.retention_threshold_days
       } : null,
+      human_observation_context: humanObservationContext,
       review_required: true,
       external_transmission: false,
       interpretation_boundary: 'Planning proposal only. A teacher must review it; it is not a diagnostic, mastery, transfer, or neural-plasticity conclusion.'
@@ -7219,6 +7329,7 @@
       communicationMode: ui.communicationMode.value,
       motorAccessMode: ui.motorAccessMode.value,
       adaptiveFunctioningBand: ui.adaptiveFunctioningBand.value,
+      teacherRatingsRecorded: !!(ui.teacherRatingsRecorded && ui.teacherRatingsRecorded.checked),
       teacherAttentionRating: safeNumber(ui.teacherAttentionRating.value, 3),
       teacherIndependenceRating: safeNumber(ui.teacherIndependenceRating.value, 3),
       eegParticipation: ui.eegParticipation.value,
@@ -7318,6 +7429,9 @@
     ui.communicationMode.value = baseline.communicationMode || baseline.communication_mode || SESSION_CONTEXT_DEFAULTS.communicationMode;
     ui.motorAccessMode.value = baseline.motorAccessMode || baseline.motor_access_mode || SESSION_CONTEXT_DEFAULTS.motorAccessMode;
     ui.adaptiveFunctioningBand.value = baseline.adaptiveFunctioningBand || baseline.adaptive_functioning_band || SESSION_CONTEXT_DEFAULTS.adaptiveFunctioningBand;
+    if(ui.teacherRatingsRecorded){
+      ui.teacherRatingsRecorded.checked = baseline.teacherRatingsRecorded === true || baseline.teacher_ratings_recorded === true;
+    }
     ui.teacherAttentionRating.value = baseline.teacherAttentionRating || baseline.teacher_attention_rating || SESSION_CONTEXT_DEFAULTS.teacherAttentionRating;
     ui.teacherIndependenceRating.value = baseline.teacherIndependenceRating || baseline.teacher_independence_rating || SESSION_CONTEXT_DEFAULTS.teacherIndependenceRating;
     ui.eegParticipation.value = baseline.eegParticipation || baseline.eeg_participation || SESSION_CONTEXT_DEFAULTS.eegParticipation;
@@ -8354,6 +8468,12 @@
       ? ` One-session category focus: ${proposal.recommended_category_focus.category_label}.`
       : ' No category focus is proposed.';
     ui.researchRecommendationSummary.textContent = `${proposal.action_label}: ${proposal.skill_label}. Suggested task: ${taskText}, Level ${proposal.recommended_level}.${categoryText} Support direction: ${proposal.support_direction_label}. Teacher review is required.`;
+    if(ui.researchRecommendationObservation){
+      const observation = proposal.human_observation_context;
+      ui.researchRecommendationObservation.textContent = observation && observation.observation_available
+        ? `Latest explicitly recorded context: ${humanObservationContextLabel(observation)}. This context is shown for teacher review and was not used to rank or select the proposal.`
+        : 'No explicit maintenance, generalisation, transfer, or confirmed teacher-rating observation is available. Placeholder rating values are not treated as data.';
+    }
     clearNode(ui.researchRecommendationRationale);
     proposal.rationale.forEach(text => {
       const item = document.createElement('li');
@@ -8420,10 +8540,11 @@
         review.final_plan && review.final_plan.task_label,
         review.final_plan && review.final_plan.level,
         review.final_plan && review.final_plan.category_focus && review.final_plan.category_focus.category_label,
+        humanObservationContextLabel(review.proposal && review.proposal.human_observation_context),
         applicationsByReview.get(review.review_id) || 0,
         review.note || 'No note'
       ]));
-    } else renderResearchEmptyRow(ui.researchRecommendationBody, 10, 'No teacher recommendation reviews in this scope yet.');
+    } else renderResearchEmptyRow(ui.researchRecommendationBody, 11, 'No teacher recommendation reviews in this scope yet.');
   }
 
   function stageApprovedRecommendationPlan(){
@@ -8539,7 +8660,8 @@
         recommended_category_focus: proposal.recommended_category_focus ? clonePlain(proposal.recommended_category_focus) : null,
         support_direction: proposal.support_direction,
         rationale_codes: proposal.rationale_codes.slice(),
-        source_session_ids: proposal.source_session_ids.slice()
+        source_session_ids: proposal.source_session_ids.slice(),
+        human_observation_context: clonePlain(proposal.human_observation_context)
       },
       final_plan: accepted ? {
         task_kind: finalTask,
@@ -8660,18 +8782,13 @@
       ? Array(markerSet.expected).fill(false).map((_, index) => index < markerSet.complete).concat(protocolChecks)
       : [];
 
-    const attentionRating = Number.isFinite(profileBaseline.teacherAttentionRating)
-      ? profileBaseline.teacherAttentionRating
-      : profileBaseline.teacher_attention_rating;
-    const independenceRating = Number.isFinite(profileBaseline.teacherIndependenceRating)
-      ? profileBaseline.teacherIndependenceRating
-      : profileBaseline.teacher_independence_rating;
+    const humanObservation = humanObservationContextFromSession(session);
     const transferChecks = [
-      Number.isFinite(attentionRating),
-      Number.isFinite(independenceRating),
-      isRecordedResearchValue(profileBaseline.maintenanceStatus || context.maintenance_status),
-      isRecordedResearchValue(profileBaseline.generalisationStatus || context.generalisation_status),
-      isRecordedResearchValue(session.classroom_transfer_notes || profileBaseline.classroomTransferNotes)
+      Number.isFinite(humanObservation.teacher_attention_rating),
+      Number.isFinite(humanObservation.teacher_independence_rating),
+      humanObservation.maintenance_status !== 'not-run',
+      humanObservation.generalisation_status !== 'not-run',
+      humanObservation.transfer_note_recorded
     ];
 
     return {
@@ -10692,22 +10809,14 @@
 
     const transferRows = sessions.map(session => {
       const baseline = session.learner_snapshot && session.learner_snapshot.baseline ? session.learner_snapshot.baseline : {};
-      const sessionTrials = latestTrialsByQuestion(session.trials || []);
-      const context = sessionTrials.find(trial => trial.session_context && typeof trial.session_context === 'object');
-      const sessionContext = context ? context.session_context : {};
-      const attentionRating = Number.isFinite(baseline.teacherAttentionRating)
-        ? baseline.teacherAttentionRating
-        : (Number.isFinite(baseline.teacher_attention_rating) ? baseline.teacher_attention_rating : null);
-      const independenceRating = Number.isFinite(baseline.teacherIndependenceRating)
-        ? baseline.teacherIndependenceRating
-        : (Number.isFinite(baseline.teacher_independence_rating) ? baseline.teacher_independence_rating : null);
+      const observation = humanObservationContextFromSession(session);
       return {
         date: researchDateLabel(Number(session.updated_at_wall_ms)),
         learner: session.learner_alias || session.learner || 'Unknown',
-        attention_rating: attentionRating,
-        independence_rating: independenceRating,
-        maintenance: baseline.maintenanceStatus || sessionContext.maintenance_status || 'not-recorded',
-        generalisation: baseline.generalisationStatus || sessionContext.generalisation_status || 'not-recorded',
+        attention_rating: observation.teacher_attention_rating,
+        independence_rating: observation.teacher_independence_rating,
+        maintenance: observation.maintenance_status,
+        generalisation: observation.generalisation_status,
         transfer: session.classroom_transfer_notes || baseline.classroomTransferNotes || '',
         context: !!String(session.context_notes || baseline.contextNotes || '').trim()
       };
@@ -11545,6 +11654,7 @@
       const trial = trials.find(item => item.session_context || item.learner_baseline) || {};
       const baseline = (session.learner_snapshot && session.learner_snapshot.baseline) || trial.learner_baseline || {};
       const sessionContext = trial.session_context || {};
+      const humanObservation = humanObservationContextFromSession(session);
       return {
         date: researchDateLabel(Number(session.updated_at_wall_ms)),
         learner: session.learner_alias || session.learner || 'Unknown',
@@ -11552,10 +11662,11 @@
         sensory_state: sessionContext.sensory_state || baseline.sensoryState || null,
         sleep_quality: baseline.sleepQuality || baseline.sleep_quality || null,
         breaks_used: Number.isFinite(sessionContext.breaks_used) ? sessionContext.breaks_used : baseline.breakCount,
-        maintenance_status: sessionContext.maintenance_status || baseline.maintenanceStatus || null,
-        generalisation_status: sessionContext.generalisation_status || baseline.generalisationStatus || null,
-        teacher_attention_rating: baseline.teacherAttentionRating || baseline.teacher_attention_rating || null,
-        teacher_independence_rating: baseline.teacherIndependenceRating || baseline.teacher_independence_rating || null,
+        maintenance_status: humanObservation.maintenance_status,
+        generalisation_status: humanObservation.generalisation_status,
+        teacher_ratings_recorded: humanObservation.teacher_ratings_recorded,
+        teacher_attention_rating: humanObservation.teacher_attention_rating,
+        teacher_independence_rating: humanObservation.teacher_independence_rating,
         dosage_minutes_actual: session.fidelity && Number.isFinite(session.fidelity.dosage_minutes_actual) ? session.fidelity.dosage_minutes_actual : null,
         dosage_minutes_target: session.fidelity && Number.isFinite(session.fidelity.dosage_minutes_target) ? session.fidelity.dosage_minutes_target : null,
         fidelity_score_pct: session.fidelity && Number.isFinite(session.fidelity.score_pct) ? session.fidelity.score_pct : null
@@ -11597,6 +11708,9 @@
       final_category_focus_label: review.final_plan && review.final_plan.category_focus
         ? review.final_plan.category_focus.category_label
         : null,
+      human_observation_context: privacySafeHumanObservationContext(
+        review.proposal && review.proposal.human_observation_context
+      ),
       applied_session_count: applicationsByReview.get(review.review_id) || 0
     }));
 
@@ -11886,6 +12000,36 @@
     };
   }
 
+  function privacySafeHumanObservationContext(value){
+    const context = value && typeof value === 'object'
+      ? value
+      : humanObservationContextFromSession(null);
+    const rawAttention = Number(context.teacher_attention_rating);
+    const rawIndependence = Number(context.teacher_independence_rating);
+    const ratingsRecorded = context.teacher_ratings_recorded === true
+      && Number.isFinite(rawAttention)
+      && Number.isFinite(rawIndependence);
+    const maintenanceStatus = controlledHumanObservationStatus(context.maintenance_status, 'maintenance');
+    const generalisationStatus = controlledHumanObservationStatus(context.generalisation_status, 'generalisation');
+    const transferNoteRecorded = context.transfer_note_recorded === true;
+    const observedFieldCount = (ratingsRecorded ? 2 : 0)
+      + (maintenanceStatus === 'not-run' ? 0 : 1)
+      + (generalisationStatus === 'not-run' ? 0 : 1)
+      + (transferNoteRecorded ? 1 : 0);
+    return {
+      version: HUMAN_OBSERVATION_CONTEXT_VERSION,
+      observation_available: observedFieldCount > 0,
+      teacher_ratings_recorded: ratingsRecorded,
+      teacher_attention_rating: ratingsRecorded ? clamp(Math.round(rawAttention), 1, 5) : null,
+      teacher_independence_rating: ratingsRecorded ? clamp(Math.round(rawIndependence), 1, 5) : null,
+      maintenance_status: maintenanceStatus,
+      generalisation_status: generalisationStatus,
+      transfer_note_recorded: transferNoteRecorded,
+      observed_field_count: observedFieldCount,
+      automatic_decision_influence: false
+    };
+  }
+
   function privacySafeReviews(participantByLearner, sessions=[]){
     const rows = [];
     const allowedDecisions = ['approved', 'adjusted', 'declined', 'deferred'];
@@ -11913,7 +12057,8 @@
             recommended_level: review.proposal.recommended_level || null,
             recommended_category_focus: privacySafeCategoryFocus(review.proposal.recommended_category_focus),
             support_direction: review.proposal.support_direction || null,
-            rationale_codes: Array.isArray(review.proposal.rationale_codes) ? review.proposal.rationale_codes.slice() : []
+            rationale_codes: Array.isArray(review.proposal.rationale_codes) ? review.proposal.rationale_codes.slice() : [],
+            human_observation_context: privacySafeHumanObservationContext(review.proposal.human_observation_context)
           } : null,
           final_plan: accepted && review.final_plan ? {
             task_kind: review.final_plan.task_kind || null,
@@ -12030,6 +12175,7 @@
           session_task_mode: summary.task_kind || null,
           retention_planning: privacySafeRetentionPlanning(session),
           recommendation_application: privacySafeRecommendationApplication(session),
+          human_observation_context: privacySafeHumanObservationContext(humanObservationContextFromSession(session)),
           context_note_recorded: !!String(session.context_notes || '').trim(),
           student_friendly_mode: session.student_friendly_mode !== false,
           theme_used: session.theme_used || null,
@@ -12407,7 +12553,7 @@
       'faceName', 'contextNotes', 'rewardChoice',
       'themeChoice', 'fontChoice', 'textScale', 'motionPreference', 'feedbackSoundMode', 'celebrationIntensity',
       'communicationSupportChoice', 'preSessionPreference',
-      'communicationMode', 'motorAccessMode', 'adaptiveFunctioningBand', 'teacherAttentionRating',
+      'communicationMode', 'motorAccessMode', 'adaptiveFunctioningBand', 'teacherRatingsRecorded', 'teacherAttentionRating',
       'teacherIndependenceRating', 'eegParticipation', 'dataUseStatus', 'researchAnalysisApproved',
       'eegLinkageApproved', 'modelDevelopmentApproved', 'governanceReference', 'governanceReviewDate',
       'aacPreference', 'staffMember', 'fatigueLevel', 'sensoryState',

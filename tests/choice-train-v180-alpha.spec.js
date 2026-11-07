@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 
 const APP_PATH = '/choice_train_V1.8.0-alpha.html';
 const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.schema.json', 'utf8'));
-const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v2.0.schema.json', 'utf8'));
+const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v2.1.schema.json', 'utf8'));
 const DATA_QUALITY_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-data-quality-v1.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
 
@@ -670,7 +670,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.0.0');
+  expect(researchPayload.export_schema_version).toBe('2.1.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.trials, 0)).toBe(8);
@@ -748,7 +748,7 @@ test('Complete the group uses two distinct cues and one same-category answer acr
   await expect(page.locator('#researchGroupCategoryNote')).toContainText('multiple examples');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('2.0.0');
+  expect(researchPayload.export_schema_version).toBe('2.1.0');
   expect(researchPayload.category_group_completion).toHaveLength(4);
   expect(researchPayload.category_group_completion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -816,7 +816,7 @@ test('Find the different one keeps exactly one outside-category target and visua
   await expect(page.locator('#researchExclusionCategoryNote')).toContainText('not a pupil outcome');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('2.0.0');
+  expect(researchPayload.export_schema_version).toBe('2.1.0');
   expect(researchPayload.category_exclusion).toHaveLength(4);
   expect(researchPayload.category_exclusion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -946,7 +946,7 @@ test('Find by colour uses teacher-declared metadata with deterministic one-answe
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.0.0');
+  expect(researchPayload.export_schema_version).toBe('2.1.0');
   expect(researchPayload.attribute_selection).toHaveLength(1);
   expect(researchPayload.attribute_selection.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.find_attribute_trials, 0)).toBe(1);
@@ -1217,7 +1217,7 @@ test('Research visualises future AI dataset composition without performing a mod
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.0.0');
+  expect(researchPayload.export_schema_version).toBe('2.1.0');
   expect(researchPayload.model_dataset_composition).toEqual(expect.objectContaining({
     profile_version: '1.0.0',
     participant_count: 2,
@@ -1386,7 +1386,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('2.0.0');
+  expect(researchPayload.export_schema_version).toBe('2.1.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);
@@ -1465,6 +1465,7 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
   await setValue(page, 'sessionMax', 2);
   await setValue(page, 'teacherAttentionRating', 4);
   await setValue(page, 'teacherIndependenceRating', 2);
+  await setCheckbox(page, 'teacherRatingsRecorded', true);
   await setValue(page, 'maintenanceStatus', 'maintained');
   await setValue(page, 'generalisationStatus', 'generalised');
   await setValue(page, 'fatigueLevel', 'fatigued');
@@ -1540,9 +1541,38 @@ test('Research visualises support fading, dosage, and teacher-rated transfer obs
   await expect(page.locator('#beginFlow')).toBeVisible();
   await expect(page.locator('#teacherAttentionRating')).toHaveValue('4');
   await expect(page.locator('#teacherIndependenceRating')).toHaveValue('2');
+  await expect(page.locator('#teacherRatingsRecorded')).toBeChecked();
   await expect(page.locator('#communicationMode')).toHaveValue('aac');
   await expect(page.locator('#motorAccessMode')).toHaveValue('supported-touch');
   await expect(page.locator('#aacPreference')).toHaveValue('low-tech');
+});
+
+test('placeholder teacher ratings remain unobserved until a practitioner confirms them', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+
+  await expect(page.locator('#teacherAttentionRating')).toHaveValue('3');
+  await expect(page.locator('#teacherIndependenceRating')).toHaveValue('3');
+  await expect(page.locator('#teacherRatingsRecorded')).not.toBeChecked();
+  const session = await completeSessionAndExport(page, 1);
+  expect(session.trials[0].learner_baseline).toEqual(expect.objectContaining({
+    teacher_ratings_recorded: false,
+    teacher_attention_rating: null,
+    teacher_independence_rating: null
+  }));
+
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await expect(page.locator('#researchTransferBody')).not.toContainText('3/5');
+  await expect(page.locator('#researchRecommendationObservation')).toContainText('No explicit maintenance');
+  await expect(page.locator('#researchRecommendationObservation')).toContainText('Placeholder rating values are not treated as data');
 });
 
 test('Research visualises prompt-ladder use and learner-agency events without deficit labels', async ({ page }) => {
@@ -1607,6 +1637,12 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
   await setCheckbox(page, 'autoAdvance', true);
   await setValue(page, 'startLevel', 4);
   await setValue(page, 'sessionMax', 1);
+  await setCheckbox(page, 'teacherRatingsRecorded', true);
+  await setValue(page, 'teacherAttentionRating', 4);
+  await setValue(page, 'teacherIndependenceRating', 2);
+  await setValue(page, 'maintenanceStatus', 'maintained');
+  await setValue(page, 'generalisationStatus', 'emerging');
+  await setValue(page, 'classroomTransferNotes', 'Observed in a separate classroom activity.');
 
   await page.locator('#quickStartSessionBtn').click();
   await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
@@ -1619,6 +1655,8 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
 
   await expect(page.locator('#researchPracticeBody')).toContainText('More observations needed');
   await expect(page.locator('#researchRecommendationSummary')).toContainText('Continue focused practice');
+  await expect(page.locator('#researchRecommendationObservation')).toContainText('4/5 attention');
+  await expect(page.locator('#researchRecommendationObservation')).toContainText('not used to rank or select');
   await setValue(page, 'recommendationDecision', 'adjusted');
   await setValue(page, 'recommendationOverrideTask', 'find-category');
   await setValue(page, 'recommendationOverrideLevel', 5);
@@ -1654,6 +1692,22 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
   await expect(page.locator('#researchRecommendationBody')).toContainText('Use familiar animal photos');
   await expect(page.locator('#researchRecommendationBody')).toContainText('Wait for a second classroom observation');
 
+  const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
+  expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
+  expect(researchPayload.export_schema_version).toBe('2.1.0');
+  expect(researchPayload.teacher_decisions[0].human_observation_context).toEqual({
+    version: '1.0.0',
+    observation_available: true,
+    teacher_ratings_recorded: true,
+    teacher_attention_rating: 4,
+    teacher_independence_rating: 2,
+    maintenance_status: 'maintained',
+    generalisation_status: 'emerging',
+    transfer_note_recorded: true,
+    observed_field_count: 5,
+    automatic_decision_influence: false
+  });
+
   const payload = await downloadJsonAfter(page, () => page.locator('#adminExportSessionBtn').evaluate(node => node.click()));
   const reviews = payload.learner_profile.reviews.slice(-2);
   const adjustedReview = reviews[0];
@@ -1661,6 +1715,16 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
   expect(adjustedReview).toEqual(expect.objectContaining({
     decision: 'adjusted',
     note: 'Use familiar animal photos and review after two short sessions.'
+  }));
+  expect(adjustedReview.proposal.human_observation_context).toEqual(expect.objectContaining({
+    observation_available: true,
+    teacher_ratings_recorded: true,
+    teacher_attention_rating: 4,
+    teacher_independence_rating: 2,
+    maintenance_status: 'maintained',
+    generalisation_status: 'emerging',
+    transfer_note_recorded: true,
+    automatic_decision_influence: false
   }));
   expect(adjustedReview.final_plan).toEqual(expect.objectContaining({ task_kind: 'find-category', level: 5, category_focus: null }));
   expect(deferredReview).toEqual(expect.objectContaining({
@@ -1670,7 +1734,7 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
     final_plan: null
   }));
   expect(payload.practice_status_version).toBe('1.1.0');
-  expect(payload.recommendation_version).toBe('1.4.0');
+  expect(payload.recommendation_version).toBe('1.5.0');
   expect(payload.local_recommendation_summary.external_transmission).toBe(false);
 });
 
@@ -1715,7 +1779,7 @@ test('an approved recommendation is explicitly staged, linked to one session, an
     application_schema_version: '1.1.0',
     application_status: 'applied-as-reviewed',
     application_method: 'teacher-explicit',
-    recommendation_version: '1.4.0',
+    recommendation_version: '1.5.0',
     review_decision: 'adjusted',
     task_kind: 'find-object',
     level: 5,
@@ -1730,7 +1794,7 @@ test('an approved recommendation is explicitly staged, linked to one session, an
   expect(payload.trials[0]).toEqual(expect.objectContaining({
     recommendation_id: application.recommendation_id,
     recommendation_review_id: application.review_id,
-    recommendation_version: '1.4.0',
+    recommendation_version: '1.5.0',
     recommendation_review_decision: 'adjusted',
     recommendation_application_status: 'applied-as-reviewed'
   }));
@@ -1745,7 +1809,7 @@ test('an approved recommendation is explicitly staged, linked to one session, an
   await expect(page.locator('#researchRecommendationPendingCount')).toHaveText('0');
   await expect(page.locator('#researchRecommendationUseChart')).toBeVisible();
   const reviewRow = page.locator('#researchRecommendationBody tr').filter({ hasText: 'Use the reviewed task and level' });
-  await expect(reviewRow.locator('td').nth(8)).toHaveText('1');
+  await expect(reviewRow.locator('td').nth(9)).toHaveText('1');
 });
 
 test('current-learner research does not merge pupils that share an export alias', async ({ page }) => {
@@ -1961,7 +2025,7 @@ test('Research visualises versioned category-by-skill learner state without pool
 
   const research = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(research, RESEARCH_SCHEMA);
-  expect(research.export_schema_version).toBe('2.0.0');
+  expect(research.export_schema_version).toBe('2.1.0');
   expect(research.category_skill_states).toEqual(expect.objectContaining({
     version: '1.0.0',
     scope_mode: 'single-learner',
@@ -2003,7 +2067,7 @@ test('Research visualises versioned category-by-skill learner state without pool
   const focusedSession = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
   expect(focusedSession.recommendation_application).toEqual(expect.objectContaining({
     application_schema_version: '1.1.0',
-    recommendation_version: '1.4.0',
+    recommendation_version: '1.5.0',
     application_method: 'teacher-explicit',
     category_focus: expect.objectContaining({
       category_id: 'animals',
@@ -2028,7 +2092,7 @@ test('Research visualises versioned category-by-skill learner state without pool
   await expect(page.locator('#researchRecommendationCategoryFocusCount')).toHaveText('1');
   const focusedReviewRow = page.locator('#researchRecommendationBody tr').filter({ hasText: 'Use the observed animal category' });
   await expect(focusedReviewRow.locator('td').nth(7)).toHaveText('Animals');
-  await expect(focusedReviewRow.locator('td').nth(8)).toHaveText('1');
+  await expect(focusedReviewRow.locator('td').nth(9)).toHaveText('1');
   const focusedResearch = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(focusedResearch, RESEARCH_SCHEMA);
   expect(focusedResearch.recommendation_application_summary.category_focused_session_count).toBe(1);
@@ -2274,6 +2338,12 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   await setCheckbox(page, 'autoAdvance', true);
   await setValue(page, 'pupilAlias', 'Secret Learner Alias');
   await setValue(page, 'contextNotes', 'SECRET-CONTEXT tired after named appointment');
+  await setCheckbox(page, 'teacherRatingsRecorded', true);
+  await setValue(page, 'teacherAttentionRating', 5);
+  await setValue(page, 'teacherIndependenceRating', 2);
+  await setValue(page, 'maintenanceStatus', 'maintained');
+  await setValue(page, 'generalisationStatus', 'generalised');
+  await setValue(page, 'classroomTransferNotes', 'SECRET-TRANSFER named classroom observation');
   await setValue(page, 'eegClockNotes', 'SECRET-CLOCK device operator detail');
   await setValue(page, 'studyProtocolId', 'CT-PRIVATE-PILOT');
   await setValue(page, 'studyVisitId', 'private-visit-label');
@@ -2329,7 +2399,21 @@ test('pseudonymised AI research export excludes direct identifiers and free text
             category_label: 'SECRET-CATEGORY-LABEL'
           },
           support_direction: 'maintain',
-          rationale_codes: ['LEGACY_SAMPLE']
+          rationale_codes: ['LEGACY_SAMPLE'],
+          human_observation_context: {
+            version: '1.0.0',
+            observation_available: true,
+            teacher_ratings_recorded: true,
+            teacher_attention_rating: 5,
+            teacher_independence_rating: 2,
+            maintenance_status: 'maintained',
+            generalisation_status: 'generalised',
+            transfer_note_recorded: true,
+            observed_field_count: 5,
+            automatic_decision_influence: false,
+            source_session_id: 'SECRET-SOURCE-SESSION-ID',
+            observed_date: '2027-06-01'
+          }
         },
         final_plan: {
           task_kind: 'cpat-executive',
@@ -2444,7 +2528,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
 
   expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_Pseudonymised_\d{4}-\d{2}-\d{2}_\d{4}_research-dataset\.json$/);
   expect(payload.privacy_status).toBe('pseudonymised-not-anonymous');
-  expect(payload.export_schema_version).toBe('1.2.0');
+  expect(payload.export_schema_version).toBe('1.3.0');
   expect(payload.governance).toEqual(expect.objectContaining({
     consent_or_other_authority_status: 'recorded-separately-local-declaration',
     participant_profiles_checked: 1,
@@ -2479,6 +2563,18 @@ test('pseudonymised AI research export excludes direct identifiers and free text
     version: '1.0.0',
     configured_gap_days: 21,
     minimum_scored_opportunities_per_observation: 3
+  });
+  expect(payload.sessions[0].human_observation_context).toEqual({
+    version: '1.0.0',
+    observation_available: true,
+    teacher_ratings_recorded: true,
+    teacher_attention_rating: 5,
+    teacher_independence_rating: 2,
+    maintenance_status: 'maintained',
+    generalisation_status: 'generalised',
+    transfer_note_recorded: true,
+    observed_field_count: 5,
+    automatic_decision_influence: false
   });
   expect(payload.sessions[0].trials[0].skill_ids).toContain('recognition.named_object');
   expect(payload.sessions[0].trials[0].coverage_strategy).toBe('balanced-before-repeat');
@@ -2519,6 +2615,18 @@ test('pseudonymised AI research export excludes direct identifiers and free text
       }
     })
   }));
+  expect(deferredDecision.proposal.human_observation_context).toEqual({
+    version: '1.0.0',
+    observation_available: true,
+    teacher_ratings_recorded: true,
+    teacher_attention_rating: 5,
+    teacher_independence_rating: 2,
+    maintenance_status: 'maintained',
+    generalisation_status: 'generalised',
+    transfer_note_recorded: true,
+    observed_field_count: 5,
+    automatic_decision_influence: false
+  });
   expect(Object.keys(payload.sessions[0].eeg_marker_diagnostics).sort()).toEqual([
     'version',
     'ordered_trials',
@@ -2540,6 +2648,8 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   expect(exportedText).not.toContain('Secret Learner Alias');
   expect(exportedText).not.toContain('SECRET-CONTEXT');
   expect(exportedText).not.toContain('SECRET-CLOCK');
+  expect(exportedText).not.toContain('SECRET-TRANSFER');
+  expect(exportedText).not.toContain('SECRET-SOURCE-SESSION-ID');
   expect(exportedText).not.toContain('CT-PRIVATE-PILOT');
   expect(exportedText).not.toContain('private-visit-label');
   expect(exportedText).not.toContain('Private device serial');

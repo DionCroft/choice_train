@@ -6,7 +6,7 @@
   "required": ["app", "export_schema_version", "purpose", "privacy_status", "governance", "privacy_manifest", "participant_count", "session_count", "sessions", "teacher_decisions", "interpretation_boundary"],
   "properties": {
     "app": { "const": "ChoiceTrain for ShowMe" },
-    "export_schema_version": { "const": "1.2.0" },
+    "export_schema_version": { "const": "1.3.0" },
     "purpose": { "type": "string", "minLength": 1 },
     "privacy_status": { "const": "pseudonymised-not-anonymous" },
     "governance": {
@@ -45,7 +45,7 @@
       "type": "array",
       "items": {
         "type": "object",
-        "required": ["eeg_marker_diagnostics", "retention_planning"],
+        "required": ["eeg_marker_diagnostics", "retention_planning", "human_observation_context"],
         "properties": {
           "eeg_marker_diagnostics": { "$ref": "#/$defs/privacySafeMarkerDiagnostics" },
           "retention_planning": {
@@ -59,7 +59,8 @@
               { "$ref": "#/$defs/privacySafeRecommendationApplication" },
               { "type": "null" }
             ]
-          }
+          },
+          "human_observation_context": { "$ref": "#/$defs/privacySafeHumanObservationContext" }
         },
         "additionalProperties": true
       }
@@ -134,7 +135,7 @@
     },
     "privacySafeRecommendationProposal": {
       "type": "object",
-      "required": ["action", "skill_id", "recommended_task_kind", "recommended_level", "recommended_category_focus", "support_direction", "rationale_codes"],
+      "required": ["action", "skill_id", "recommended_task_kind", "recommended_level", "recommended_category_focus", "support_direction", "rationale_codes", "human_observation_context"],
       "properties": {
         "action": { "type": ["string", "null"] },
         "skill_id": { "type": ["string", "null"] },
@@ -147,7 +148,8 @@
           ]
         },
         "support_direction": { "type": ["string", "null"] },
-        "rationale_codes": { "type": "array", "items": { "type": "string" } }
+        "rationale_codes": { "type": "array", "items": { "type": "string" } },
+        "human_observation_context": { "$ref": "#/$defs/privacySafeHumanObservationContext" }
       },
       "additionalProperties": false
     },
@@ -199,6 +201,23 @@
       "properties": {
         "category_code": { "type": "string", "minLength": 1 },
         "category_origin": { "enum": ["built-in", "teacher-created-or-legacy"] }
+      },
+      "additionalProperties": false
+    },
+    "privacySafeHumanObservationContext": {
+      "type": "object",
+      "required": ["version", "observation_available", "teacher_ratings_recorded", "teacher_attention_rating", "teacher_independence_rating", "maintenance_status", "generalisation_status", "transfer_note_recorded", "observed_field_count", "automatic_decision_influence"],
+      "properties": {
+        "version": { "const": "1.0.0" },
+        "observation_available": { "type": "boolean" },
+        "teacher_ratings_recorded": { "type": "boolean" },
+        "teacher_attention_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "teacher_independence_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "maintenance_status": { "enum": ["not-run", "emerging", "maintained", "regressed"] },
+        "generalisation_status": { "enum": ["not-run", "emerging", "generalised", "not-generalised"] },
+        "transfer_note_recorded": { "type": "boolean" },
+        "observed_field_count": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "automatic_decision_influence": { "const": false }
       },
       "additionalProperties": false
     }
