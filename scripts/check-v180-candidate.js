@@ -13,7 +13,8 @@ const EXPECTED_CONTRACTS = Object.freeze({
   photoSchema: '4',
   skillGraph: '1.4.0',
   generator: '1.7.0',
-  researchWorkspaceExport: '2.2.0',
+  researchWorkspaceExport: '2.3.0',
+  deliveryContext: '1.0.0',
   categorySkillState: '1.0.0',
   humanObservationContext: '1.0.0',
   recommendation: '1.5.0',
@@ -98,6 +99,7 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
   assert(new RegExp(`const SKILL_GRAPH_VERSION = ['"]${EXPECTED_CONTRACTS.skillGraph.replaceAll('.', '\\.')}['"];`).test(source), 'skill graph version drifted');
   assert(new RegExp(`const GENERATOR_VERSION = ['"]${EXPECTED_CONTRACTS.generator.replaceAll('.', '\\.')}['"];`).test(source), 'generator version drifted');
   assert(new RegExp(`const RESEARCH_WORKSPACE_EXPORT_VERSION = ['"]${EXPECTED_CONTRACTS.researchWorkspaceExport.replaceAll('.', '\\.')}['"];`).test(source), 'research export version drifted');
+  assert(new RegExp(`const DELIVERY_CONTEXT_VERSION = ['"]${EXPECTED_CONTRACTS.deliveryContext.replaceAll('.', '\\.')}['"];`).test(source), 'delivery-context version drifted');
   assert(new RegExp(`const CATEGORY_SKILL_STATE_VERSION = ['"]${EXPECTED_CONTRACTS.categorySkillState.replaceAll('.', '\\.')}['"];`).test(source), 'category-skill state version drifted');
   assert(new RegExp(`const HUMAN_OBSERVATION_CONTEXT_VERSION = ['"]${EXPECTED_CONTRACTS.humanObservationContext.replaceAll('.', '\\.')}['"];`).test(source), 'human-observation context version drifted');
   assert(new RegExp(`const RECOMMENDATION_VERSION = ['"]${EXPECTED_CONTRACTS.recommendation.replaceAll('.', '\\.')}['"];`).test(source), 'recommendation version drifted');
@@ -109,7 +111,7 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
 check('machine-readable candidate contracts are present and parseable', () => {
   [
     'schemas/choice-train-trial-v8.schema.json',
-    'schemas/choice-train-research-summary-v2.2.schema.json',
+    'schemas/choice-train-research-summary-v2.3.schema.json',
     'schemas/choice-train-data-quality-v1.schema.json',
     'schemas/choice-train-model-dataset-v1.schema.json',
     'schemas/choice-train-device-readiness-v1.schema.json'

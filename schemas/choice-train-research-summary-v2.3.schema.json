@@ -1,0 +1,145 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://dioncroft.github.io/choice_train/schemas/choice-train-research-summary-v2.3.schema.json",
+  "title": "ChoiceTrain Research workspace summary core contract v2.3",
+  "type": "object",
+  "required": [
+    "export_schema_version",
+    "scope",
+    "session_count",
+    "final_trial_count",
+    "privacy_manifest",
+    "delivery_contexts",
+    "skill_summaries",
+    "attention_families",
+    "retention_planning",
+    "category_skill_states",
+    "discrimination_selection",
+    "category_matching",
+    "category_group_completion",
+    "category_exclusion",
+    "attribute_selection",
+    "category_lesson_coverage",
+    "data_quality",
+    "model_dataset_composition",
+    "recommendation_application_summary",
+    "teacher_decisions",
+    "interpretation_boundary"
+  ],
+  "properties": {
+    "export_schema_version": { "const": "2.3.0" },
+    "scope": { "enum": ["current-session", "current-learner", "all-learners"] },
+    "session_count": { "type": "integer", "minimum": 0 },
+    "final_trial_count": { "type": "integer", "minimum": 0 },
+    "privacy_manifest": { "type": "object" },
+    "delivery_contexts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "learner", "context_observed", "start_width_css_px", "start_height_css_px", "viewport_width_band", "start_orientation", "end_width_css_px", "end_height_css_px", "end_orientation", "pointer_capability", "touch_capability_reported", "fullscreen_at_start", "observed_pointer_types", "usable_viewport_changed"],
+        "properties": {
+          "date": { "type": ["string", "null"], "pattern": "^(\\d{4}-\\d{2}-\\d{2})$" },
+          "learner": { "type": "string" },
+          "context_observed": { "type": "boolean" },
+          "start_width_css_px": { "type": ["integer", "null"], "minimum": 1 },
+          "start_height_css_px": { "type": ["integer", "null"], "minimum": 1 },
+          "viewport_width_band": { "enum": ["compact", "narrow", "standard", "wide", "not-recorded"] },
+          "start_orientation": { "enum": ["portrait", "landscape", "square", "not-recorded"] },
+          "end_width_css_px": { "type": ["integer", "null"], "minimum": 1 },
+          "end_height_css_px": { "type": ["integer", "null"], "minimum": 1 },
+          "end_orientation": { "enum": ["portrait", "landscape", "square", "not-recorded"] },
+          "pointer_capability": { "enum": ["coarse", "fine", "mixed", "not-reported", "not-recorded"] },
+          "touch_capability_reported": { "type": ["boolean", "null"] },
+          "fullscreen_at_start": { "type": ["boolean", "null"] },
+          "observed_pointer_types": {
+            "type": "array",
+            "uniqueItems": true,
+            "items": { "enum": ["mouse", "touch", "pen", "unknown"] }
+          },
+          "usable_viewport_changed": { "type": ["boolean", "null"] }
+        },
+        "additionalProperties": false
+      }
+    },
+    "skill_summaries": { "type": "array", "items": { "type": "object" } },
+    "attention_families": { "type": "array", "items": { "type": "object" } },
+    "retention_planning": { "$ref": "choice-train-research-summary-v2.0.schema.json#/properties/retention_planning" },
+    "category_skill_states": { "$ref": "choice-train-research-summary-v2.0.schema.json#/properties/category_skill_states" },
+    "discrimination_selection": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["contrast", "contrast_label", "trials", "distinct_targets", "distinct_displayed_items", "personalised_trials", "accuracy_pct", "independent_success_pct", "omissions", "median_reaction_time_ms", "generator_integrity_observed", "generator_integrity_valid", "generator_integrity_pct"],
+        "properties": {
+          "contrast": { "enum": ["teacher-declared-set", "within-category", "cross-category", "not-recorded"] },
+          "contrast_label": { "type": "string", "minLength": 1 },
+          "trials": { "type": "integer", "minimum": 0 },
+          "distinct_targets": { "type": "integer", "minimum": 0 },
+          "distinct_displayed_items": { "type": "integer", "minimum": 0 },
+          "personalised_trials": { "type": "integer", "minimum": 0 },
+          "accuracy_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "independent_success_pct": { "type": "integer", "minimum": 0, "maximum": 100 },
+          "omissions": { "type": "integer", "minimum": 0 },
+          "median_reaction_time_ms": { "type": ["integer", "null"], "minimum": 0 },
+          "generator_integrity_observed": { "type": "integer", "minimum": 0 },
+          "generator_integrity_valid": { "type": "integer", "minimum": 0 },
+          "generator_integrity_pct": { "type": ["integer", "null"], "minimum": 0, "maximum": 100 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "category_matching": { "type": "array", "items": { "type": "object" } },
+    "category_group_completion": { "type": "array", "items": { "type": "object" } },
+    "category_exclusion": { "type": "array", "items": { "type": "object" } },
+    "attribute_selection": { "type": "array", "items": { "type": "object" } },
+    "category_lesson_coverage": { "type": "array", "items": { "type": "object" } },
+    "data_quality": { "$ref": "choice-train-data-quality-v1.schema.json" },
+    "model_dataset_composition": { "$ref": "choice-train-research-summary-v2.0.schema.json#/properties/model_dataset_composition" },
+    "recommendation_application_summary": { "$ref": "choice-train-research-summary-v2.0.schema.json#/properties/recommendation_application_summary" },
+    "teacher_decisions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["date", "learner_alias", "recommendation_id", "decision", "proposed_action", "skill_id", "proposed_category_focus_id", "proposed_category_focus_label", "final_task_kind", "final_level", "final_category_focus_id", "final_category_focus_label", "human_observation_context", "applied_session_count"],
+        "properties": {
+          "date": { "type": ["string", "null"], "pattern": "^(\\d{4}-\\d{2}-\\d{2})$" },
+          "learner_alias": { "type": "string" },
+          "recommendation_id": { "type": "string" },
+          "decision": { "enum": ["approved", "adjusted", "declined", "deferred"] },
+          "proposed_action": { "type": ["string", "null"] },
+          "skill_id": { "type": ["string", "null"] },
+          "proposed_category_focus_id": { "type": ["string", "null"] },
+          "proposed_category_focus_label": { "type": ["string", "null"] },
+          "final_task_kind": { "type": ["string", "null"] },
+          "final_level": { "type": ["integer", "null"], "minimum": 1, "maximum": 10 },
+          "final_category_focus_id": { "type": ["string", "null"] },
+          "final_category_focus_label": { "type": ["string", "null"] },
+          "human_observation_context": { "$ref": "#/$defs/privacySafeHumanObservationContext" },
+          "applied_session_count": { "type": "integer", "minimum": 0 }
+        },
+        "additionalProperties": false
+      }
+    },
+    "interpretation_boundary": { "type": "string", "minLength": 1 }
+  },
+  "$defs": {
+    "privacySafeHumanObservationContext": {
+      "type": "object",
+      "required": ["version", "observation_available", "teacher_ratings_recorded", "teacher_attention_rating", "teacher_independence_rating", "maintenance_status", "generalisation_status", "transfer_note_recorded", "observed_field_count", "automatic_decision_influence"],
+      "properties": {
+        "version": { "const": "1.0.0" },
+        "observation_available": { "type": "boolean" },
+        "teacher_ratings_recorded": { "type": "boolean" },
+        "teacher_attention_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "teacher_independence_rating": { "type": ["integer", "null"], "minimum": 1, "maximum": 5 },
+        "maintenance_status": { "enum": ["not-run", "emerging", "maintained", "regressed"] },
+        "generalisation_status": { "enum": ["not-run", "emerging", "generalised", "not-generalised"] },
+        "transfer_note_recorded": { "type": "boolean" },
+        "observed_field_count": { "type": "integer", "minimum": 0, "maximum": 5 },
+        "automatic_decision_influence": { "const": false }
+      },
+      "additionalProperties": false
+    }
+  },
+  "additionalProperties": true
+}

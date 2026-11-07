@@ -1416,6 +1416,23 @@
               <div id="researchDemandNote" class="compactNote">These are delivered task and interface demands. Pixel values depend on device and layout and are not measures of learner ability.</div>
             </div>
             <div class="chartCard span2">
+              <h4>Browser area and access delivery context</h4>
+              <div class="dashboard compactDashboard">
+                <div class="dashCard"><div class="k">Context recorded</div><div class="v" id="researchDeliveryCoverage">0/0</div></div>
+                <div class="dashCard"><div class="k">Touch-capable sessions</div><div class="v" id="researchTouchCapabilitySessions">0</div></div>
+                <div class="dashCard"><div class="k">Viewport changed</div><div class="v" id="researchViewportChangedSessions">0</div></div>
+                <div class="dashCard"><div class="k">Multiple input types observed</div><div class="v" id="researchMixedInputSessions">0</div></div>
+              </div>
+              <canvas id="researchDeliveryContextChart" class="researchCanvas" width="760" height="260" role="img" aria-label="Session counts by usable viewport width band and pointer capability"></canvas>
+              <div class="tableWrap researchTableWrap">
+                <table>
+                  <thead><tr><th>Date</th><th>Learner</th><th>Start browser area</th><th>Width band</th><th>Start orientation</th><th>End browser area</th><th>End orientation</th><th>Pointer capability</th><th>Touch reported</th><th>Observed input</th><th>Viewport changed</th></tr></thead>
+                  <tbody id="researchDeliveryContextBody"></tbody>
+                </table>
+              </div>
+              <div id="researchDeliveryContextNote" class="compactNote">Browser area and access method are delivery covariates, not learner traits. No user-agent, platform identifier, device identifier, or device-pixel ratio is stored with the session.</div>
+            </div>
+            <div class="chartCard span2">
               <h4>Target-relative touch profile</h4>
               <div class="researchMetricPair">
                 <div>

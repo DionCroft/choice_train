@@ -88,6 +88,13 @@ test('V1.8 learner pacing and Q&A layout remain usable in the compatibility prof
 
   await page.locator('#choiceGrid [data-role="correct-target"]').first().click();
   await expect(page.locator('#screenSummary.active')).toBeVisible();
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await expect(page.locator('#researchDeliveryCoverage')).toHaveText('1/1');
+  await expect(page.locator('#researchDeliveryContextChart')).toBeVisible();
+  await expect(page.locator('#researchDeliveryContextBody')).toContainText('CSS px');
   expect(runtimeErrors).toEqual([]);
   expect(externalRequests).toEqual([]);
 });

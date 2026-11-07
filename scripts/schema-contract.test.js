@@ -36,12 +36,16 @@ test('trial schema versions and enums match the V1.8 runtime', () => {
   assert.equal(contract.properties.discrimination_set_applied.type, 'boolean');
 });
 
-test('Research summary schema matches its runtime export version and discrimination/category/AI sections', () => {
-  const contract = schema('choice-train-research-summary-v2.2.schema.json');
+test('Research summary schema matches its runtime export version and delivery/discrimination/category/AI sections', () => {
+  const contract = schema('choice-train-research-summary-v2.3.schema.json');
   const previousContract = schema('choice-train-research-summary-v2.0.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('RESEARCH_WORKSPACE_EXPORT_VERSION'));
-  ['retention_planning', 'category_skill_states', 'discrimination_selection', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition', 'recommendation_application_summary', 'teacher_decisions']
+  ['delivery_contexts', 'retention_planning', 'category_skill_states', 'discrimination_selection', 'category_matching', 'category_group_completion', 'category_exclusion', 'attribute_selection', 'category_lesson_coverage', 'data_quality', 'model_dataset_composition', 'recommendation_application_summary', 'teacher_decisions']
     .forEach(field => assert.ok(contract.required.includes(field), `${field} must be required`));
+  const delivery = contract.properties.delivery_contexts.items;
+  assert.equal(delivery.additionalProperties, false);
+  assert.deepEqual(new Set(delivery.properties.viewport_width_band.enum), new Set(['compact', 'narrow', 'standard', 'wide', 'not-recorded']));
+  assert.deepEqual(new Set(delivery.properties.observed_pointer_types.items.enum), new Set(['mouse', 'touch', 'pen', 'unknown']));
   assert.deepEqual(
     new Set(contract.properties.discrimination_selection.items.properties.contrast.enum),
     new Set(['teacher-declared-set', 'within-category', 'cross-category', 'not-recorded'])

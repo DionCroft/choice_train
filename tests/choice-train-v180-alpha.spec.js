@@ -3,7 +3,7 @@ const { test, expect } = require('@playwright/test');
 
 const APP_PATH = '/choice_train_V1.8.0-alpha.html';
 const TRIAL_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-trial-v8.schema.json', 'utf8'));
-const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v2.2.schema.json', 'utf8'));
+const RESEARCH_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-research-summary-v2.3.schema.json', 'utf8'));
 const DATA_QUALITY_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-data-quality-v1.schema.json', 'utf8'));
 const MODEL_DATASET_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-model-dataset-v1.schema.json', 'utf8'));
 const DEVICE_READINESS_SCHEMA = JSON.parse(fs.readFileSync('schemas/choice-train-device-readiness-v1.schema.json', 'utf8'));
@@ -886,7 +886,7 @@ test('Match category uses a distinct cue and same-category target with reproduci
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.2.0');
+  expect(researchPayload.export_schema_version).toBe('2.3.0');
   expect(researchPayload.category_matching).toHaveLength(2);
   expect(researchPayload.category_matching.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.trials, 0)).toBe(8);
@@ -964,7 +964,7 @@ test('Complete the group uses two distinct cues and one same-category answer acr
   await expect(page.locator('#researchGroupCategoryNote')).toContainText('multiple examples');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('2.2.0');
+  expect(researchPayload.export_schema_version).toBe('2.3.0');
   expect(researchPayload.category_group_completion).toHaveLength(4);
   expect(researchPayload.category_group_completion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -1032,7 +1032,7 @@ test('Find the different one keeps exactly one outside-category target and visua
   await expect(page.locator('#researchExclusionCategoryNote')).toContainText('not a pupil outcome');
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
-  expect(researchPayload.export_schema_version).toBe('2.2.0');
+  expect(researchPayload.export_schema_version).toBe('2.3.0');
   expect(researchPayload.category_exclusion).toHaveLength(4);
   expect(researchPayload.category_exclusion.every(row => row.generator_integrity_pct === 100)).toBe(true);
 });
@@ -1162,7 +1162,7 @@ test('Find by colour uses teacher-declared metadata with deterministic one-answe
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.2.0');
+  expect(researchPayload.export_schema_version).toBe('2.3.0');
   expect(researchPayload.attribute_selection).toHaveLength(1);
   expect(researchPayload.attribute_selection.every(row => row.generator_integrity_pct === 100)).toBe(true);
   expect(researchPayload.category_lesson_coverage.reduce((sum, row) => sum + row.find_attribute_trials, 0)).toBe(1);
@@ -1602,7 +1602,7 @@ test('Research visualises future AI dataset composition without performing a mod
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.2.0');
+  expect(researchPayload.export_schema_version).toBe('2.3.0');
   expect(researchPayload.model_dataset_composition).toEqual(expect.objectContaining({
     profile_version: '1.0.0',
     participant_count: 2,
@@ -1720,7 +1720,26 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await setValue(page, 'startLevel', 4);
   await setValue(page, 'sessionMax', 3);
 
-  await completeSessionAndExport(page, 3);
+  const sessionPayload = await completeSessionAndExport(page, 3);
+  expect(sessionPayload.delivery_context).toEqual(expect.objectContaining({
+    schema_version: '1.0.0',
+    observed_pointer_types: expect.arrayContaining(['mouse']),
+    usable_viewport_changed: false,
+    raw_user_agent_included: false,
+    platform_identifier_included: false,
+    device_identifier_included: false,
+    device_pixel_ratio_included: false
+  }));
+  expect(sessionPayload.delivery_context.start).toEqual(expect.objectContaining({
+    stage: 'session-start',
+    usable_viewport_width_css_px: expect.any(Number),
+    usable_viewport_height_css_px: expect.any(Number),
+    viewport_width_band: expect.stringMatching(/^(compact|narrow|standard|wide)$/),
+    orientation: expect.stringMatching(/^(portrait|landscape|square)$/)
+  }));
+  expect(sessionPayload.delivery_context.end).toEqual(expect.objectContaining({ stage: 'session-end' }));
+  expect(sessionPayload.delivery_context).not.toHaveProperty('user_agent');
+  expect(sessionPayload.delivery_context.start).not.toHaveProperty('device_pixel_ratio');
   await page.locator('#teacherExitHold').focus();
   await page.locator('#teacherExitHold').press('Enter');
   await page.locator('#adminPanelTab').click();
@@ -1757,6 +1776,13 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await expect(page.locator('#researchDemandBody')).toContainText('px');
   await expect(page.locator('#researchDemandBody')).toContainText('6s');
   await expect(page.locator('#researchDemandNote')).toContainText('device and layout');
+  await expect(page.locator('#researchDeliveryContextChart')).toBeVisible();
+  await expect(page.locator('#researchDeliveryCoverage')).toHaveText('1/1');
+  await expect(page.locator('#researchViewportChangedSessions')).toHaveText('0');
+  await expect(page.locator('#researchDeliveryContextBody tr')).toHaveCount(1);
+  await expect(page.locator('#researchDeliveryContextBody')).toContainText('CSS px');
+  await expect(page.locator('#researchDeliveryContextBody')).toContainText('mouse');
+  await expect(page.locator('#researchDeliveryContextNote')).toContainText('do not explain');
   await expect(page.locator('#researchTouchBandChart')).toBeVisible();
   await expect(page.locator('#researchTouchDirectionChart')).toBeVisible();
   await expect(page.locator('#researchTouchSpatialBody tr')).toHaveCount(1);
@@ -1771,12 +1797,18 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   const researchDownload = await researchDownloadPromise;
   expect(researchDownload.suggestedFilename()).toMatch(/^ChoiceTrain_Research_.+_summary\.json$/);
   const researchPayload = JSON.parse(fs.readFileSync(await researchDownload.path(), 'utf8'));
-  expect(researchPayload.export_schema_version).toBe('2.2.0');
+  expect(researchPayload.export_schema_version).toBe('2.3.0');
   expect(researchPayload.scope).toBe('current-learner');
   expect(researchPayload.session_count).toBe(1);
   expect(researchPayload.final_trial_count).toBe(3);
   expect(researchPayload.session_timing).toHaveLength(1);
   expect(researchPayload.session_demands).toHaveLength(1);
+  expect(researchPayload.delivery_contexts).toHaveLength(1);
+  expect(researchPayload.delivery_contexts[0]).toEqual(expect.objectContaining({
+    context_observed: true,
+    observed_pointer_types: expect.arrayContaining(['mouse']),
+    usable_viewport_changed: false
+  }));
   expect(researchPayload.session_demands[0]).toEqual(expect.objectContaining({
     trials: 3,
     distractor_trials: 3,
@@ -1800,6 +1832,7 @@ test('Research visualises error, timing-consistency, and touch trends with obser
   await expect(page.locator('#researchBehaviourNote')).toContainText('not connected');
   await expect(page.locator('#researchSessionTimingNote')).toContainText('not connected');
   await expect(page.locator('#researchDemandNote')).toContainText('not connected');
+  await expect(page.locator('#researchDeliveryContextNote')).toContainText('pooled across learners');
 
   await page.reload();
   await expect(page.locator('#beginFlow')).toBeVisible();
@@ -2079,7 +2112,7 @@ test('teacher-reviewed recommendations persist locally and export an audit recor
 
   const researchPayload = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(researchPayload, RESEARCH_SCHEMA, 'research_summary');
-  expect(researchPayload.export_schema_version).toBe('2.2.0');
+  expect(researchPayload.export_schema_version).toBe('2.3.0');
   expect(researchPayload.teacher_decisions[0].human_observation_context).toEqual({
     version: '1.0.0',
     observation_available: true,
@@ -2410,7 +2443,7 @@ test('Research visualises versioned category-by-skill learner state without pool
 
   const research = await downloadJsonAfter(page, () => page.locator('#exportResearchSummaryBtn').click());
   expectCoreSchema(research, RESEARCH_SCHEMA);
-  expect(research.export_schema_version).toBe('2.2.0');
+  expect(research.export_schema_version).toBe('2.3.0');
   expect(research.category_skill_states).toEqual(expect.objectContaining({
     version: '1.0.0',
     scope_mode: 'single-learner',

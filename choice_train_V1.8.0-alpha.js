@@ -42,7 +42,8 @@
   const RECOMMENDATION_VERSION = '1.5.0';
   const EEG_PROTOCOL_VERSION = '1.1.0';
   const FIXED_CONDITION_SCHEMA_VERSION = '1.0.0';
-  const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.2.0';
+  const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.3.0';
+  const DELIVERY_CONTEXT_VERSION = '1.0.0';
   const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
   const PRIVACY_EXPORT_VERSION = '1.3.0';
   const DEVICE_READINESS_REPORT_VERSION = '1.0.0';
@@ -1774,6 +1775,76 @@
     return {
       width: Math.max((viewport && viewport.width) || window.innerWidth || 0, 280),
       height: Math.max((viewport && viewport.height) || window.innerHeight || 0, 240)
+    };
+  }
+
+  function viewportWidthBand(width){
+    if(width < 480) return 'compact';
+    if(width < 768) return 'narrow';
+    if(width < 1200) return 'standard';
+    return 'wide';
+  }
+
+  function viewportOrientation(viewport){
+    if(Math.abs(viewport.width - viewport.height) < 2) return 'square';
+    return viewport.width > viewport.height ? 'landscape' : 'portrait';
+  }
+
+  function pointerCapability(){
+    if(typeof window.matchMedia !== 'function') return 'not-reported';
+    const coarse = window.matchMedia('(any-pointer: coarse)').matches;
+    const fine = window.matchMedia('(any-pointer: fine)').matches;
+    if(coarse && fine) return 'mixed';
+    if(coarse) return 'coarse';
+    if(fine) return 'fine';
+    return 'not-reported';
+  }
+
+  function deliveryContextCapture(stage){
+    const viewport = learnerViewportSize();
+    const width = Math.round(viewport.width);
+    const height = Math.round(viewport.height);
+    return {
+      stage,
+      usable_viewport_width_css_px: width,
+      usable_viewport_height_css_px: height,
+      viewport_width_band: viewportWidthBand(width),
+      orientation: viewportOrientation(viewport),
+      pointer_capability: pointerCapability(),
+      touch_capability_reported: Number(navigator.maxTouchPoints || 0) > 0,
+      fullscreen_active: !!document.fullscreenElement
+    };
+  }
+
+  function observedSessionPointerTypes(events=state.logs){
+    const allowed = new Set(['mouse', 'touch', 'pen', 'unknown']);
+    return Array.from(new Set((Array.isArray(events) ? events : [])
+      .filter(event => event && /^pointer_(down|up)$/.test(event.type))
+      .map(event => allowed.has(event.pointer_type) ? event.pointer_type : 'unknown'))).sort();
+  }
+
+  function buildSessionDeliveryContext(snapshot=state.sessionSnapshot, events=state.logs){
+    const start = snapshot && snapshot.delivery_context_start
+      ? clonePlain(snapshot.delivery_context_start)
+      : null;
+    const end = snapshot && snapshot.delivery_context_end
+      ? clonePlain(snapshot.delivery_context_end)
+      : null;
+    const usableViewportChanged = start && end
+      ? start.usable_viewport_width_css_px !== end.usable_viewport_width_css_px
+        || start.usable_viewport_height_css_px !== end.usable_viewport_height_css_px
+        || start.orientation !== end.orientation
+      : null;
+    return {
+      schema_version: DELIVERY_CONTEXT_VERSION,
+      start,
+      end,
+      observed_pointer_types: observedSessionPointerTypes(events),
+      usable_viewport_changed: usableViewportChanged,
+      raw_user_agent_included: false,
+      platform_identifier_included: false,
+      device_identifier_included: false,
+      device_pixel_ratio_included: false
     };
   }
 
@@ -7551,6 +7622,7 @@
       settings: snapshot ? clonePlain(snapshot.settings) : settingsSnapshot(),
       learner_snapshot: snapshot ? clonePlain(snapshot.learner_profile) : currentLearnerRecord(),
       session_timing: currentSessionTimingSnapshot(),
+      delivery_context: buildSessionDeliveryContext(snapshot, state.logs),
       summary,
       research_summary: researchSummaryForTrials(state.trials),
       fidelity: fidelitySnapshot(),
@@ -8224,6 +8296,42 @@
         ? session.settings.useTwoStage
         : null,
       demand_observed: optionCounts.length > 0 || distractorCounts.length > 0 || targetSides.length > 0 || hitRadii.length > 0 || responseWindows.length > 0
+    };
+  }
+
+  function sessionDeliveryContextResearchRow(session){
+    const context = session && session.delivery_context && typeof session.delivery_context === 'object'
+      ? session.delivery_context
+      : {};
+    const start = context.start && typeof context.start === 'object' ? context.start : {};
+    const end = context.end && typeof context.end === 'object' ? context.end : {};
+    const observedPointerTypes = Array.isArray(context.observed_pointer_types)
+      ? context.observed_pointer_types.filter(value => ['mouse', 'touch', 'pen', 'unknown'].includes(value))
+      : [];
+    const contextObserved = Number.isFinite(start.usable_viewport_width_css_px)
+      && Number.isFinite(start.usable_viewport_height_css_px);
+    return {
+      date: researchDateLabel(Number(session && session.updated_at_wall_ms)),
+      learner: session && (session.learner_alias || session.learner) || 'Unknown',
+      context_observed: contextObserved,
+      start_width_css_px: contextObserved ? start.usable_viewport_width_css_px : null,
+      start_height_css_px: contextObserved ? start.usable_viewport_height_css_px : null,
+      viewport_width_band: contextObserved ? start.viewport_width_band || 'not-recorded' : 'not-recorded',
+      start_orientation: contextObserved ? start.orientation || 'not-recorded' : 'not-recorded',
+      end_width_css_px: Number.isFinite(end.usable_viewport_width_css_px) ? end.usable_viewport_width_css_px : null,
+      end_height_css_px: Number.isFinite(end.usable_viewport_height_css_px) ? end.usable_viewport_height_css_px : null,
+      end_orientation: end.orientation || 'not-recorded',
+      pointer_capability: contextObserved ? start.pointer_capability || 'not-reported' : 'not-recorded',
+      touch_capability_reported: contextObserved && typeof start.touch_capability_reported === 'boolean'
+        ? start.touch_capability_reported
+        : null,
+      fullscreen_at_start: contextObserved && typeof start.fullscreen_active === 'boolean'
+        ? start.fullscreen_active
+        : null,
+      observed_pointer_types: observedPointerTypes,
+      usable_viewport_changed: typeof context.usable_viewport_changed === 'boolean'
+        ? context.usable_viewport_changed
+        : null
     };
   }
 
@@ -10201,6 +10309,45 @@
       ? 'Points are not connected across learners. These are delivered task and interface demands, not measures of learner ability.'
       : 'Interpret performance alongside changes in options, distractors, target size, hit radius, response window, and prompt staging. Pixel values depend on device and layout.';
 
+    const deliveryRows = sessions.map(sessionDeliveryContextResearchRow);
+    const observedDeliveryRows = deliveryRows.filter(row => row.context_observed);
+    ui.researchDeliveryCoverage.textContent = `${observedDeliveryRows.length}/${deliveryRows.length}`;
+    ui.researchTouchCapabilitySessions.textContent = String(observedDeliveryRows.filter(row => row.touch_capability_reported === true).length);
+    ui.researchViewportChangedSessions.textContent = String(observedDeliveryRows.filter(row => row.usable_viewport_changed === true).length);
+    ui.researchMixedInputSessions.textContent = String(observedDeliveryRows.filter(row => row.observed_pointer_types.length > 1).length);
+    const deliveryCounts = new Map();
+    observedDeliveryRows.forEach(row => {
+      const labels = [
+        `Viewport: ${String(row.viewport_width_band).replace(/-/g, ' ')}`,
+        `Pointer: ${String(row.pointer_capability).replace(/-/g, ' ')}`
+      ];
+      labels.forEach(label => deliveryCounts.set(label, (deliveryCounts.get(label) || 0) + 1));
+    });
+    drawResearchBars(ui.researchDeliveryContextChart, Array.from(deliveryCounts.entries()).map(([label, value]) => ({
+      label,
+      value,
+      color: label.startsWith('Viewport:') ? themeToken('primary') : themeToken('secondary', themeToken('success'))
+    })), { labelWidth: 185 });
+    if(deliveryRows.length){
+      clearNode(ui.researchDeliveryContextBody);
+      deliveryRows.forEach(row => appendResearchRow(ui.researchDeliveryContextBody, [
+        row.date,
+        row.learner,
+        row.start_width_css_px == null ? null : `${row.start_width_css_px} x ${row.start_height_css_px} CSS px`,
+        row.viewport_width_band,
+        row.start_orientation,
+        row.end_width_css_px == null ? null : `${row.end_width_css_px} x ${row.end_height_css_px} CSS px`,
+        row.end_orientation,
+        row.pointer_capability,
+        row.touch_capability_reported == null ? null : row.touch_capability_reported ? 'Yes' : 'No',
+        row.observed_pointer_types.length ? row.observed_pointer_types.join(', ') : 'Not observed',
+        row.usable_viewport_changed == null ? null : row.usable_viewport_changed ? 'Yes' : 'No'
+      ]));
+    } else renderResearchEmptyRow(ui.researchDeliveryContextBody, 11, 'No sessions in this scope yet.');
+    ui.researchDeliveryContextNote.textContent = scope === 'all-learners'
+      ? 'Delivery contexts are pooled across learners and must not be interpreted as learner traits. No raw browser or device identifier is stored with a session.'
+      : 'Review outcome changes alongside browser area, orientation, and observed input changes. These covariates do not explain a performance difference by themselves.';
+
     const spatialRows = sessions.map(session => {
       const sessionTrials = latestTrialsByQuestion(session.trials || []);
       const eligible = sessionTrials.filter(trial => (
@@ -11654,6 +11801,9 @@
     state.phase = 'complete';
     state.sessionEndMs = wallMs();
     state.sessionEndReason = reason;
+    if(state.sessionSnapshot){
+      state.sessionSnapshot.delivery_context_end = deliveryContextCapture('session-end');
+    }
     const summary = analyticsSummary();
     const advanced = shouldAdvanceLevel(summary);
     if(advanced){
@@ -11820,7 +11970,9 @@
       data_governance: clonePlain(dataGovernanceSnapshot()),
       retention_planning: clonePlain(retentionPlanningSnapshot()),
       recommendation_application: recommendationApplication ? clonePlain(recommendationApplication) : null,
-      study_protocol: clonePlain(studyProtocolSnapshot(currentResearchParticipantId()))
+      study_protocol: clonePlain(studyProtocolSnapshot(currentResearchParticipantId())),
+      delivery_context_start: deliveryContextCapture('session-start'),
+      delivery_context_end: null
     };
     state.stagedRecommendation = null;
     renderStagedRecommendationNotice();
@@ -11921,6 +12073,7 @@
       pupil: sessionPupilName(),
       pupil_alias: sessionPupilAlias(),
       session_timing: currentSessionTimingSnapshot(),
+      delivery_context: buildSessionDeliveryContext(snapshot, state.logs),
       session_overview: {
         pupil_alias: sessionPupilAlias(),
         exported_date: schoolTimestampParts().date,
@@ -12015,6 +12168,7 @@
       study_protocol: state.sessionSnapshot && state.sessionSnapshot.study_protocol
         ? clonePlain(state.sessionSnapshot.study_protocol)
         : studyProtocolSnapshot(currentResearchParticipantId()),
+      delivery_context: buildSessionDeliveryContext(state.sessionSnapshot, state.logs),
       sensory_preferences: state.sessionSnapshot ? clonePlain(state.sessionSnapshot.sensory_preferences) : sensoryPreferenceSnapshot(),
       data_governance: state.sessionSnapshot && state.sessionSnapshot.data_governance
         ? clonePlain(state.sessionSnapshot.data_governance)
@@ -12223,6 +12377,7 @@
       session_performance: sessionPerformance,
       session_timing: sessions.map(sessionTimingResearchRow),
       session_demands: sessions.map(sessionDemandResearchRow),
+      delivery_contexts: sessions.map(sessionDeliveryContextResearchRow),
       fixed_conditions: sessions.map(fixedConditionResearchRow),
       skill_summaries: summary.skill_summaries.map(item => ({
         skill_id: item.skill_id,
