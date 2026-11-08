@@ -20,7 +20,7 @@ The alpha retains raw trial records and adds recomputable, versioned planning fi
 | `practice_status_version` | string | Version of the transparent skill-state rules |
 | `recommendation_version` | string | Version of the deterministic proposal, review, and explicit application rules; current alpha value `1.5.0` |
 | `human_observation_context.version` | string | Version of the controlled practitioner-observation snapshot; current alpha value `1.0.0` |
-| `privacy_export_version` | string | Version of the governance-gated model-development export; current alpha value `1.3.0` |
+| `privacy_export_version` | string | Version of the governance-gated model-development export; current alpha value `1.4.0` |
 | `retention_planning` | object | Versioned planning interval, comparison minimum, due/comparison rules, and interpretation boundary frozen into new sessions |
 | `local_recommendation_summary.practice_states` | array | Per-skill opportunity, recency, accuracy, independence, trend, retention, and support summaries |
 | `practice_status` | enum | `not-scored`, `insufficient-sample`, `needs-support`, `developing`, or `consistent-current-sample` |
@@ -285,7 +285,7 @@ The fixed-condition Research rows report date, condition ID, research condition,
 
 ## V1.8 Pseudonymised Research / Model-Development Export
 
-This separate JSON uses `export_schema_version: 1.3.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
+This separate JSON uses `export_schema_version: 1.4.0` and `privacy_status: pseudonymised-not-anonymous`. Its `privacy_manifest` is machine-readable and records the excluded data classes. It contains:
 
 - random participant codes and relative session order/spacing
 - build, schema, skill-graph, and generator versions
@@ -312,7 +312,9 @@ Full pupil/session records use governance schema `1.0.0`:
 | `data_governance.approved_uses.eeg_linkage` | Local declaration for linking session and EEG records |
 | `data_governance.approved_uses.model_development` | Local declaration for model-development use |
 | `data_governance.governance_reference` | Internal reference to evidence held outside ChoiceTrain; must not contain a pupil name |
-| `data_governance.review_date` | Local review/expiry date supplied by the governing team |
+| `data_governance.review_date` | Next local review date supplied by the governing team |
+| `data_governance.review_status` | Derived `current`, `due-today`, `missing`, `invalid`, `overdue`, or `not-applicable` lifecycle state |
+| `data_governance.review_current` | `true` only when recorded authority has a valid review date that is today or in the future |
 | `data_governance.authority_evidence_stored_in_choice_train` | Always `false` in V1.8 alpha |
 
 The pseudonymised model-development export checks the current profile for every pupil in scope. It requires `recorded-separately` plus `model_development: true`; all other statuses block the export. The pseudonymised payload records aggregate gate results but excludes governance references, review dates, and authority evidence.

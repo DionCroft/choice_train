@@ -52,6 +52,12 @@ function populationStandardDeviation(values) {
   return Math.sqrt(values.reduce((sum, value) => sum + Math.pow(value - average, 2), 0) / values.length);
 }
 
+function isoDateYearsFromNow(years) {
+  const date = new Date();
+  date.setFullYear(date.getFullYear() + years);
+  return date.toISOString().slice(0, 10);
+}
+
 function independentlyDerivedSessionRow(payload) {
   const trials = finalTrialRecords(payload.trials);
   const scored = trials.filter(trial => trial.scored_response !== false);
@@ -1219,6 +1225,7 @@ test('Discriminate object uses configured categories and a reproducible two-opti
 
 test('teacher-declared discrimination sets are reproducible, visualised, and privacy minimised', async ({ page }) => {
   test.slow();
+  const governanceReviewDate = isoDateYearsFromNow(5);
   await gotoAlpha(page);
   await setCheckbox(page, 'ttsToggle', false);
   await setCheckbox(page, 'useTwoStage', false);
@@ -1230,7 +1237,7 @@ test('teacher-declared discrimination sets are reproducible, visualised, and pri
   await setCheckbox(page, 'researchAnalysisApproved', true);
   await setCheckbox(page, 'modelDevelopmentApproved', true);
   await setValue(page, 'governanceReference', 'TEST-APPROVAL-SET');
-  await setValue(page, 'governanceReviewDate', '2027-06-01');
+  await setValue(page, 'governanceReviewDate', governanceReviewDate);
   await page.locator('#teacherNavPersonalise').click();
 
   const privateSetName = 'Near matching classroom animals';
@@ -2839,7 +2846,104 @@ test('model-development export is denied by default without a recorded authority
   await expect(page.locator('#aiExportGovernanceStatus')).toContainText('blocked');
 });
 
+test('model-development export fails closed when the recorded authority review is overdue', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+  await completeSessionAndExport(page, 1);
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavResearch').click();
+  await setValue(page, 'dataUseStatus', 'recorded-separately');
+  await setCheckbox(page, 'modelDevelopmentApproved', true);
+  let downloadCount = 0;
+  page.on('download', () => { downloadCount += 1; });
+  await expect(page.locator('#dataGovernanceLifecycleStatus')).toContainText('review date is missing');
+  await page.locator('#adminExportAiDatasetBtn').evaluate(node => node.click());
+  await page.waitForTimeout(250);
+  expect(downloadCount).toBe(0);
+
+  await setValue(page, 'governanceReviewDate', '2000-01-01');
+  await expect(page.locator('#dataGovernanceLifecycleStatus')).toContainText('overdue');
+  await page.locator('#adminExportAiDatasetBtn').evaluate(node => node.click());
+  await page.waitForTimeout(250);
+  expect(downloadCount).toBe(0);
+  await expect(page.locator('#aiExportGovernanceStatus')).toContainText('overdue');
+});
+
+test('Admin can delete one pupil profile, owned photos, and matching local history without deleting another pupil', async ({ page }) => {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', true);
+  await setValue(page, 'startLevel', 4);
+  await setValue(page, 'sessionMax', 1);
+  await page.locator('#teacherNavPersonalise').click();
+  await page.locator('#photoLabel').fill('Delete pupil photo');
+  await page.locator('#photoCategory').selectOption('people');
+  await page.locator('#photoUpload').setInputFiles({
+    name: 'delete-pupil-photo.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#267a4a"/></svg>')
+  });
+  await page.locator('#addPhotoBtn').click();
+  await expect(page.locator('#photoLibraryList')).toContainText('Delete pupil photo');
+  await page.locator('#teacherNavToday').click();
+  await completeSessionAndExport(page, 1);
+  await page.locator('#teacherExitHold').focus();
+  await page.locator('#teacherExitHold').press('Enter');
+  await page.locator('#newPupilName').fill('Keep Pupil');
+  await page.locator('#addPupil').click();
+  await expect(page.locator('#pupilSelect')).toHaveValue('Keep Pupil');
+  await page.locator('#pupilSelect').selectOption('Pupil A');
+  await page.locator('#adminPanelTab').click();
+  await page.locator('#adminNavLearners').click();
+
+  page.once('dialog', dialog => dialog.accept());
+  await page.locator('#deleteCurrentPupilDataBtn').click();
+  await expect(page.locator('#pupilDataDeletionStatus')).toContainText("Pupil A's local profile");
+  await expect(page.locator('#pupilSelect')).toHaveValue('Keep Pupil');
+
+  const stored = await page.evaluate(async () => {
+    const learners = JSON.parse(localStorage.getItem('choice_train_learners_v140') || '{}');
+    const db = await new Promise((resolve, reject) => {
+      const request = indexedDB.open('choice_train_runtime_v2', 2);
+      request.onsuccess = () => resolve(request.result);
+      request.onerror = () => reject(request.error);
+    });
+    const tx = db.transaction(['sessions', 'assets'], 'readonly');
+    const sessionRequest = tx.objectStore('sessions').getAll();
+    const assetRequest = tx.objectStore('assets').get('profile:customImages');
+    const sessions = await new Promise((resolve, reject) => {
+      sessionRequest.onsuccess = () => resolve(sessionRequest.result || []);
+      sessionRequest.onerror = () => reject(sessionRequest.error);
+    });
+    const assets = await new Promise((resolve, reject) => {
+      assetRequest.onsuccess = () => resolve(assetRequest.result && assetRequest.result.value || []);
+      assetRequest.onerror = () => reject(assetRequest.error);
+    });
+    await new Promise((resolve, reject) => {
+      tx.oncomplete = resolve;
+      tx.onerror = () => reject(tx.error);
+      tx.onabort = () => reject(tx.error);
+    });
+    db.close();
+    return { learners, sessions, assets };
+  });
+  expect(stored.learners).not.toHaveProperty('Pupil A');
+  expect(stored.learners).toHaveProperty('Keep Pupil');
+  expect(stored.sessions.some(session => session.learner === 'Pupil A')).toBe(false);
+  expect(stored.assets.some(photo => photo.learner === 'Pupil A')).toBe(false);
+});
+
 test('pseudonymised AI research export excludes direct identifiers and free text', async ({ page }) => {
+  const governanceReviewDate = isoDateYearsFromNow(5);
   await gotoAlpha(page);
   await setCheckbox(page, 'ttsToggle', false);
   await setCheckbox(page, 'useTwoStage', false);
@@ -2861,7 +2965,7 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   await setCheckbox(page, 'researchAnalysisApproved', true);
   await setCheckbox(page, 'modelDevelopmentApproved', true);
   await setValue(page, 'governanceReference', 'SECRET-GOVERNANCE-REFERENCE');
-  await setValue(page, 'governanceReviewDate', '2027-06-01');
+  await setValue(page, 'governanceReviewDate', governanceReviewDate);
   await setValue(page, 'retentionGapDays', 21);
   await setValue(page, 'startLevel', 4);
   await setValue(page, 'sessionMax', 1);
@@ -2871,10 +2975,12 @@ test('pseudonymised AI research export excludes direct identifiers and free text
   await expect(page.locator('#screenSummary.active')).toBeVisible();
   const sessionPayload = await downloadJsonAfter(page, () => page.locator('#summaryExport').click());
   expect(sessionPayload.data_governance).toEqual(expect.objectContaining({
-    governance_schema_version: '1.0.0',
+    governance_schema_version: '1.1.0',
     status: 'recorded-separately',
     governance_reference: 'SECRET-GOVERNANCE-REFERENCE',
-    review_date: '2027-06-01',
+    review_date: governanceReviewDate,
+    review_status: 'current',
+    review_current: true,
     approved_uses: expect.objectContaining({
       research_analysis: true,
       model_development: true
@@ -3037,11 +3143,12 @@ test('pseudonymised AI research export excludes direct identifiers and free text
 
   expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_Pseudonymised_\d{4}-\d{2}-\d{2}_\d{4}_research-dataset\.json$/);
   expect(payload.privacy_status).toBe('pseudonymised-not-anonymous');
-  expect(payload.export_schema_version).toBe('1.3.0');
+  expect(payload.export_schema_version).toBe('1.4.0');
   expect(payload.governance).toEqual(expect.objectContaining({
     consent_or_other_authority_status: 'recorded-separately-local-declaration',
     participant_profiles_checked: 1,
     all_participants_model_development_use_approved: true,
+    all_participant_authority_reviews_current: true,
     authority_evidence_included: false,
     human_review_required: true,
     automated_decision_making_enabled: false,

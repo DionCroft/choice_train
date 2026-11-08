@@ -1070,6 +1070,7 @@
               <label class="toggle"><input id="modelDevelopmentApproved" type="checkbox" /> Pseudonymised model development</label>
               <div class="helperText">Select only uses covered by the separately held school/research authority. These choices do not grant authority by themselves.</div>
             </div>
+            <div id="dataGovernanceLifecycleStatus" class="compactNote invalid" role="status">No research or model-development authority is recorded in ChoiceTrain for this pupil.</div>
             <div>
               <label for="staffMember">Staff member</label>
               <input id="staffMember" type="text" placeholder="Teacher / TA / therapist" />
@@ -1146,6 +1147,12 @@
           </div>
           <label for="classroomTransferNotes" style="margin-top:8px">Classroom transfer / outcome notes</label>
           <textarea id="classroomTransferNotes" placeholder="Teacher-rated attention, work completion, classroom transfer, confidence, reading, writing, maths, or independence observations..."></textarea>
+          <div class="section" style="margin-top:14px">
+            <div class="sub">Local pupil data</div>
+            <div class="helperText">Deletes the selected pupil profile, their personalised photos, and their matching session history from this browser only. Export any records the school must retain first. Downloaded files, browser backups, and copies held elsewhere are not deleted.</div>
+            <button id="deleteCurrentPupilDataBtn" class="dangerBtn" type="button">Delete selected pupil data</button>
+            <div id="pupilDataDeletionStatus" class="compactNote" role="status" aria-live="polite">No local pupil deletion has been requested.</div>
+          </div>
         </div>
 
         <div id="adminEegSection" class="section adminAnchor" data-admin-pages="eeg" style="padding-top:14px">

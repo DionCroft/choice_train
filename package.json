@@ -5,7 +5,7 @@
   "scripts": {
     "test:release": "node --test scripts/stamp-build.test.js",
     "test:promotion": "node --test scripts/check-v180-promotion.test.js && node scripts/check-v180-promotion.js --structure-check",
-    "test:schema": "node --test scripts/schema-contract.test.js",
+    "test:schema": "node --test scripts/schema-contract.test.js scripts/data-governance-contract.test.js",
     "test:coverage": "node --test scripts/check-v180-coverage.test.js && node scripts/check-v180-coverage.js",
     "test:review-pack": "node --test scripts/create-v180-review-pack.test.js",
     "build:review-pack:v180": "node scripts/create-v180-review-pack.js",

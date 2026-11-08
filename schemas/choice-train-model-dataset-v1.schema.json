@@ -6,13 +6,18 @@
   "required": ["app", "export_schema_version", "purpose", "privacy_status", "governance", "privacy_manifest", "participant_count", "session_count", "sessions", "teacher_decisions", "interpretation_boundary"],
   "properties": {
     "app": { "const": "ChoiceTrain for ShowMe" },
-    "export_schema_version": { "const": "1.3.0" },
+    "export_schema_version": { "const": "1.4.0" },
     "purpose": { "type": "string", "minLength": 1 },
     "privacy_status": { "const": "pseudonymised-not-anonymous" },
     "governance": {
       "type": "object",
-      "required": ["human_review_required", "automated_decision_making_enabled", "model_training_performed_by_application"],
+      "required": ["consent_or_other_authority_status", "participant_profiles_checked", "all_participants_model_development_use_approved", "all_participant_authority_reviews_current", "authority_evidence_included", "human_review_required", "automated_decision_making_enabled", "model_training_performed_by_application"],
       "properties": {
+        "consent_or_other_authority_status": { "const": "recorded-separately-local-declaration" },
+        "participant_profiles_checked": { "type": "integer", "minimum": 1 },
+        "all_participants_model_development_use_approved": { "const": true },
+        "all_participant_authority_reviews_current": { "const": true },
+        "authority_evidence_included": { "const": false },
         "human_review_required": { "const": true },
         "automated_decision_making_enabled": { "const": false },
         "model_training_performed_by_application": { "const": false }

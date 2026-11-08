@@ -18,7 +18,8 @@ const EXPECTED_CONTRACTS = Object.freeze({
   categorySkillState: '1.0.0',
   humanObservationContext: '1.0.0',
   recommendation: '1.5.0',
-  privacyExport: '1.3.0',
+  governance: '1.1.0',
+  privacyExport: '1.4.0',
   dataQuality: '1.0.0',
   deviceReadinessReport: '1.0.0',
   eegConformanceFixture: '1.0.0'
@@ -104,6 +105,7 @@ check('runtime contract versions match the reviewed V1.8 schemas', () => {
   assert(new RegExp(`const CATEGORY_SKILL_STATE_VERSION = ['"]${EXPECTED_CONTRACTS.categorySkillState.replaceAll('.', '\\.')}['"];`).test(source), 'category-skill state version drifted');
   assert(new RegExp(`const HUMAN_OBSERVATION_CONTEXT_VERSION = ['"]${EXPECTED_CONTRACTS.humanObservationContext.replaceAll('.', '\\.')}['"];`).test(source), 'human-observation context version drifted');
   assert(new RegExp(`const RECOMMENDATION_VERSION = ['"]${EXPECTED_CONTRACTS.recommendation.replaceAll('.', '\\.')}['"];`).test(source), 'recommendation version drifted');
+  assert(new RegExp(`const GOVERNANCE_SCHEMA_VERSION = ['"]${EXPECTED_CONTRACTS.governance.replaceAll('.', '\\.')}['"];`).test(source), 'governance schema version drifted');
   assert(new RegExp(`const PRIVACY_EXPORT_VERSION = ['"]${EXPECTED_CONTRACTS.privacyExport.replaceAll('.', '\\.')}['"];`).test(source), 'privacy export version drifted');
   assert(new RegExp(`const DATA_QUALITY_SCHEMA_VERSION = ['"]${EXPECTED_CONTRACTS.dataQuality.replaceAll('.', '\\.')}['"];`).test(source), 'data-quality schema version drifted');
   assert(new RegExp(`const DEVICE_READINESS_REPORT_VERSION = ['"]${EXPECTED_CONTRACTS.deviceReadinessReport.replaceAll('.', '\\.')}['"];`).test(source), 'device-readiness report version drifted');
@@ -123,6 +125,23 @@ check('machine-readable candidate contracts are present and parseable', () => {
     assert(schema.$schema === 'https://json-schema.org/draft/2020-12/schema', `${file} is not JSON Schema 2020-12`);
     assert(schema.type === 'object', `${file} does not define an object contract`);
   });
+});
+
+check('machine-readable data inventory preserves the local-only governance boundary', () => {
+  const inventory = JSON.parse(read('governance/data-inventory-v1.json'));
+  assert(inventory.inventory_version === '1.0.0', 'data inventory version drifted');
+  assert(inventory.runtime_boundaries && inventory.runtime_boundaries.local_first === true,
+    'data inventory must declare the local-first boundary');
+  assert(inventory.runtime_boundaries.automatic_external_transmission === false,
+    'data inventory must reject automatic external transmission');
+  assert(inventory.runtime_boundaries.cloud_llm_calls === false,
+    'data inventory must reject cloud LLM calls');
+  assert(inventory.contracts && inventory.contracts.governance_declaration === EXPECTED_CONTRACTS.governance,
+    'data inventory governance contract drifted');
+  assert(inventory.contracts.model_dataset === EXPECTED_CONTRACTS.privacyExport,
+    'data inventory model-dataset contract drifted');
+  assert(Array.isArray(inventory.repository_prohibited_content) && inventory.repository_prohibited_content.length > 0,
+    'data inventory repository prohibition list is missing');
 });
 
 check('promotion evidence record has the complete pupil-data-free structure', () => {
@@ -181,9 +200,16 @@ check('promotion and external validation boundaries remain documented', () => {
   const plan = read('docs/V1.8.0_RESEARCH_PERSONALISATION_PLAN.md');
   const validation = read('docs/V1.8.0_EXTERNAL_VALIDATION_PROTOCOL.md');
   const readiness = read('docs/V1.8.0_RELEASE_READINESS.md');
+  const ethicsScope = read('docs/ETHICS_AND_RESEARCH_SCOPE.md');
+  const governancePlan = read('docs/DATA_GOVERNANCE_PLAN.md');
+  const dataFlow = read('docs/DATA_FLOW_MAP.md');
   assert(/product owner explicitly approves promotion/i.test(plan), 'explicit promotion approval gate is missing');
   assert(/true LSL or hardware-trigger integration/i.test(plan), 'hardware synchronisation boundary is missing');
-  assert(/school\/legal\/ethics approval/i.test(plan), 'school, legal, and ethics boundary is missing');
+  assert(/full ethics approval for the currently approved ChoiceTrain research/i.test(ethicsScope), 'confirmed university ethics scope is missing');
+  assert(/EEG acquisition or EEG-linked analysis[\s\S]*Not currently planned/i.test(ethicsScope), 'inactive EEG scope is missing');
+  assert(/approval document[\s\S]*not stored in this public repository/i.test(ethicsScope), 'external ethics-evidence boundary is missing');
+  assert(/ChoiceTrain is local-first/i.test(governancePlan), 'operational data-governance boundary is missing');
+  assert(/No arrow from the browser runtime to a remote research service exists/i.test(dataFlow), 'technical no-transmission boundary is missing');
   assert(/V1\.8\.0_PROMOTION_EVIDENCE\.json/.test(plan), 'machine-readable promotion evidence record is missing from the plan');
   assert(/automated WebKit\/Chromium compatibility smoke suite/i.test(validation), 'automated compatibility evidence boundary is missing');
   assert(/keep pupil information[\s\S]*out of this repository/i.test(validation), 'external validation pupil-data boundary is missing');
@@ -192,7 +218,7 @@ check('promotion and external validation boundaries remain documented', () => {
 
 console.log('');
 console.log(`Automated V1.8 candidate checks: ${passed} passed, ${failures.length} failed.`);
-console.log('Not automated: school usability, safeguarding, legal/ethics approval, physical-device testing, and measured EEG hardware latency.');
+console.log('Not automated: school usability, safeguarding, approval-document scope verification, information governance, physical-device testing, and measured EEG hardware latency.');
 console.log('A passing result prepares a review candidate; it does not approve or perform promotion.');
 
 if (failures.length) process.exitCode = 1;

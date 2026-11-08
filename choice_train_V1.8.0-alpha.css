@@ -392,6 +392,17 @@ body.teacher-page-results .teacherSection[data-teacher-view]:not([data-teacher-v
   background: var(--shell-primary-hover);
 }
 
+.panel button.dangerBtn {
+  color: var(--shell-danger);
+  background: var(--shell-danger-soft);
+  border-color: var(--shell-danger);
+}
+
+.panel button.dangerBtn:hover {
+  color: var(--shell-on-primary);
+  background: var(--shell-danger);
+}
+
 .panel input[type="text"],
 .panel input[type="number"],
 .panel input[type="file"],

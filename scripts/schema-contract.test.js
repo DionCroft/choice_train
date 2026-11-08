@@ -130,6 +130,11 @@ test('model-development schema locks privacy and human-oversight invariants', ()
   const contract = schema('choice-train-model-dataset-v1.schema.json');
   assert.equal(contract.properties.export_schema_version.const, runtimeConstant('PRIVACY_EXPORT_VERSION'));
   assert.equal(contract.properties.privacy_status.const, 'pseudonymised-not-anonymous');
+  assert.equal(contract.properties.governance.properties.consent_or_other_authority_status.const, 'recorded-separately-local-declaration');
+  assert.equal(contract.properties.governance.properties.participant_profiles_checked.minimum, 1);
+  assert.equal(contract.properties.governance.properties.all_participants_model_development_use_approved.const, true);
+  assert.equal(contract.properties.governance.properties.all_participant_authority_reviews_current.const, true);
+  assert.equal(contract.properties.governance.properties.authority_evidence_included.const, false);
   assert.equal(contract.properties.governance.properties.human_review_required.const, true);
   assert.equal(contract.properties.governance.properties.automated_decision_making_enabled.const, false);
   assert.equal(contract.properties.governance.properties.model_training_performed_by_application.const, false);

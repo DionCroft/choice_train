@@ -1,0 +1,203 @@
+{
+  "inventory_version": "1.0.0",
+  "application": "ChoiceTrain for ShowMe",
+  "candidate_version": "1.8.0-alpha",
+  "contracts": {
+    "data_schema": 8,
+    "governance_declaration": "1.1.0",
+    "model_dataset": "1.4.0",
+    "research_summary": "2.3.0"
+  },
+  "runtime_boundaries": {
+    "local_first": true,
+    "automatic_external_transmission": false,
+    "cloud_llm_calls": false,
+    "model_training_performed": false,
+    "eeg_hardware_transport_implemented": false,
+    "pupil_data_allowed_in_repository": false
+  },
+  "storage": [
+    {
+      "id": "settings",
+      "technology": "localStorage",
+      "identifier": "choice_train_settings_v140",
+      "contents": ["device defaults", "session settings", "presentation preferences"],
+      "may_contain_personal_data": true
+    },
+    {
+      "id": "learner_profiles",
+      "technology": "localStorage",
+      "identifier": "choice_train_learners_v140",
+      "contents": ["pupil name and alias", "profile and access settings", "governance declarations", "recommendation reviews"],
+      "may_contain_personal_data": true
+    },
+    {
+      "id": "fixed_conditions",
+      "technology": "localStorage",
+      "identifier": "choice_train_fixed_conditions_v180",
+      "contents": ["non-identifying condition manifests"],
+      "may_contain_personal_data": false
+    },
+    {
+      "id": "session_fallback",
+      "technology": "localStorage",
+      "identifier": "choice_train_sessions_fallback_v130",
+      "contents": ["bounded session history when IndexedDB is unavailable"],
+      "may_contain_personal_data": true
+    },
+    {
+      "id": "sessions",
+      "technology": "IndexedDB",
+      "identifier": "choice_train_runtime_v2/sessions",
+      "contents": ["session snapshots", "trials", "events", "browser markers", "context", "derived summaries"],
+      "may_contain_personal_data": true
+    },
+    {
+      "id": "assets",
+      "technology": "IndexedDB",
+      "identifier": "choice_train_runtime_v2/assets",
+      "contents": ["personalised photos", "labels", "categories", "edit metadata"],
+      "may_contain_personal_data": true
+    },
+    {
+      "id": "runtime_meta",
+      "technology": "IndexedDB",
+      "identifier": "choice_train_runtime_v2/meta",
+      "contents": ["migration metadata"],
+      "may_contain_personal_data": false
+    }
+  ],
+  "data_classes": [
+    {
+      "id": "pupil_profile",
+      "classification": "personal",
+      "purpose": "personalised classroom delivery and approved research context",
+      "minimisation": "use aliases where practical and avoid unnecessary diagnostic detail"
+    },
+    {
+      "id": "personalised_photo",
+      "classification": "personal-possibly-identifying",
+      "purpose": "familiar and personalised lesson content",
+      "minimisation": "store locally, compress before storage, and exclude image bytes from ordinary/model exports"
+    },
+    {
+      "id": "context_note",
+      "classification": "personal-free-text",
+      "purpose": "interpret daily classroom delivery context",
+      "minimisation": "brief factual classroom observations only"
+    },
+    {
+      "id": "behavioural_trial",
+      "classification": "personal-behavioural",
+      "purpose": "teaching review and approved research analysis",
+      "minimisation": "purpose-specific exports and pseudonymous codes for future governed model review"
+    },
+    {
+      "id": "timing_and_touch",
+      "classification": "personal-behavioural-detailed",
+      "purpose": "interaction and approved research analysis",
+      "minimisation": "exclude exact timestamps and raw coordinates from the model-development export"
+    },
+    {
+      "id": "teacher_observation",
+      "classification": "personal-observational",
+      "purpose": "human interpretation, transfer context, and planning",
+      "minimisation": "controlled fields where possible and explicit confirmation for ratings"
+    },
+    {
+      "id": "browser_event_marker",
+      "classification": "personal-research-event",
+      "purpose": "protocol development and future approved alignment",
+      "minimisation": "relative offsets in model export; no claim of EEG synchronisation"
+    },
+    {
+      "id": "governance_declaration",
+      "classification": "administrative",
+      "purpose": "fail-closed purpose and review control",
+      "minimisation": "non-identifying reference only; evidence held externally"
+    }
+  ],
+  "exports": [
+    {
+      "id": "session_json",
+      "user_initiated": true,
+      "automatic_transmission": false,
+      "direct_identifiers_possible": true,
+      "free_text_possible": true,
+      "image_bytes_included": false,
+      "purpose_gate": "authorised school or research workflow"
+    },
+    {
+      "id": "stored_history_json",
+      "user_initiated": true,
+      "automatic_transmission": false,
+      "direct_identifiers_possible": true,
+      "free_text_possible": true,
+      "image_bytes_included": false,
+      "purpose_gate": "authorised local backup or review"
+    },
+    {
+      "id": "eeg_research_json_tsv",
+      "user_initiated": true,
+      "automatic_transmission": false,
+      "direct_identifiers_possible": true,
+      "free_text_possible": true,
+      "image_bytes_included": false,
+      "purpose_gate": "future separately approved EEG or current approved research workflow"
+    },
+    {
+      "id": "research_scope_summary",
+      "user_initiated": true,
+      "automatic_transmission": false,
+      "direct_identifiers_possible": true,
+      "free_text_possible": false,
+      "image_bytes_included": false,
+      "purpose_gate": "authorised descriptive analysis"
+    },
+    {
+      "id": "model_development_json",
+      "user_initiated": true,
+      "automatic_transmission": false,
+      "direct_identifiers_possible": false,
+      "free_text_possible": false,
+      "image_bytes_included": false,
+      "purpose_gate": "every represented profile has current separately recorded model-development authority"
+    },
+    {
+      "id": "device_readiness_json",
+      "user_initiated": true,
+      "automatic_transmission": false,
+      "direct_identifiers_possible": false,
+      "free_text_possible": false,
+      "image_bytes_included": false,
+      "purpose_gate": "physical-device validation"
+    },
+    {
+      "id": "eeg_conformance_fixture",
+      "user_initiated": true,
+      "automatic_transmission": false,
+      "direct_identifiers_possible": false,
+      "free_text_possible": false,
+      "image_bytes_included": false,
+      "purpose_gate": "pupil-free parser development"
+    }
+  ],
+  "local_deletion": {
+    "selected_pupil_profile": true,
+    "selected_pupil_owned_photos": true,
+    "selected_pupil_matching_session_history": true,
+    "other_pupils_preserved": true,
+    "downloaded_or_external_copies_deleted": false
+  },
+  "repository_prohibited_content": [
+    "real pupil names or aliases",
+    "real pupil photographs",
+    "real pupil session exports",
+    "real pupil context or transfer notes",
+    "consent or authority evidence",
+    "safeguarding records",
+    "EEG recordings",
+    "participant-code mappings",
+    "school credentials"
+  ]
+}

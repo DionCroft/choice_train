@@ -46,9 +46,9 @@
   const RESEARCH_WORKSPACE_EXPORT_VERSION = '2.3.0';
   const DELIVERY_CONTEXT_VERSION = '1.0.0';
   const MODEL_DATASET_PROFILE_VERSION = '1.0.0';
-  const PRIVACY_EXPORT_VERSION = '1.3.0';
+  const PRIVACY_EXPORT_VERSION = '1.4.0';
   const DEVICE_READINESS_REPORT_VERSION = '1.0.0';
-  const GOVERNANCE_SCHEMA_VERSION = '1.0.0';
+  const GOVERNANCE_SCHEMA_VERSION = '1.1.0';
   const PHOTO_SCHEMA_VERSION = 4;
   const MAX_IMPORT_FILES = 100;
   const MAX_IMAGE_FILE_BYTES = 12 * 1024 * 1024;
@@ -1091,24 +1091,62 @@
     return ui.contextNotes ? ui.contextNotes.value.trim() : '';
   }
 
+  function localIsoDate(date=new Date()){
+    return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
+  }
+
+  function governanceReviewState(reviewDate, status, today=localIsoDate()){
+    if(status !== 'recorded-separately') return { status: 'not-applicable', current: false };
+    const value = String(reviewDate || '').trim();
+    if(!value) return { status: 'missing', current: false };
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value);
+    if(!match) return { status: 'invalid', current: false };
+    const parsed = new Date(`${value}T00:00:00Z`);
+    const valid = Number.isFinite(parsed.getTime())
+      && parsed.getUTCFullYear() === Number(match[1])
+      && parsed.getUTCMonth() + 1 === Number(match[2])
+      && parsed.getUTCDate() === Number(match[3]);
+    if(!valid) return { status: 'invalid', current: false };
+    if(value < today) return { status: 'overdue', current: false };
+    if(value === today) return { status: 'due-today', current: true };
+    return { status: 'current', current: true };
+  }
+
   function normalizeDataGovernance(record={}){
     const allowedStatuses = ['not-recorded', 'recorded-separately', 'classroom-only', 'withdrawn'];
     const status = allowedStatuses.includes(record.status || record.dataUseStatus)
       ? (record.status || record.dataUseStatus)
       : 'not-recorded';
     const approvedUses = record.approved_uses || {};
+    const reviewDate = String(record.review_date || record.governanceReviewDate || '').trim();
+    const reviewState = governanceReviewState(reviewDate, status);
     return {
       governance_schema_version: GOVERNANCE_SCHEMA_VERSION,
       status,
       authority_evidence_stored_in_choice_train: false,
       governance_reference: String(record.governance_reference || record.governanceReference || '').trim(),
-      review_date: String(record.review_date || record.governanceReviewDate || '').trim(),
+      review_date: reviewDate,
+      review_status: reviewState.status,
+      review_current: reviewState.current,
       approved_uses: {
         research_analysis: approvedUses.research_analysis === true || record.researchAnalysisApproved === true,
         eeg_linkage: approvedUses.eeg_linkage === true || record.eegLinkageApproved === true,
         model_development: approvedUses.model_development === true || record.modelDevelopmentApproved === true
       },
       interpretation_boundary: 'Local declaration only. Consent or other lawful-authority evidence must be held and governed separately by the school or research team.'
+    };
+  }
+
+  function governancePurposeCheck(governance, purpose){
+    const record = normalizeDataGovernance(governance || {});
+    const reasons = [];
+    if(record.status !== 'recorded-separately') reasons.push(`status-${record.status}`);
+    if(!record.approved_uses[purpose]) reasons.push(`purpose-${purpose}-not-approved`);
+    if(record.status === 'recorded-separately' && !record.review_current) reasons.push(`review-${record.review_status}`);
+    return {
+      allowed: reasons.length === 0,
+      reasons,
+      review_status: record.review_status
     };
   }
 
@@ -1130,19 +1168,51 @@
     return learner ? normalizeDataGovernance(learner.baseline || {}) : normalizeDataGovernance();
   }
 
+  function updateDataGovernanceLifecycleStatus(governance=dataGovernanceSnapshot()){
+    if(!ui.dataGovernanceLifecycleStatus) return;
+    let message = 'No research or model-development authority is recorded in ChoiceTrain for this pupil.';
+    let ready = false;
+    if(governance.status === 'classroom-only'){
+      message = 'Classroom use only. Research, EEG linkage, and model-development exports remain restricted.';
+    } else if(governance.status === 'withdrawn'){
+      message = 'Authority is marked withdrawn. Restricted research and model-development use must remain blocked.';
+    } else if(governance.status === 'recorded-separately'){
+      if(governance.review_status === 'missing') message = 'Authority is declared, but its review date is missing. Add the next governance review date before restricted model-development export.';
+      else if(governance.review_status === 'invalid') message = 'Authority is declared, but the review date is invalid. Correct it before restricted model-development export.';
+      else if(governance.review_status === 'overdue') message = `Authority review became overdue on ${governance.review_date}. Reconfirm it in the approved record system before restricted model-development export.`;
+      else if(governance.review_status === 'due-today'){
+        message = `Authority review is due today (${governance.review_date}). It is currently accepted, but should be reviewed before further collection or export.`;
+        ready = true;
+      } else {
+        message = `Authority is recorded separately and its next review is ${governance.review_date}. Purpose-specific declarations still control restricted use.`;
+        ready = true;
+      }
+    }
+    ui.dataGovernanceLifecycleStatus.textContent = message;
+    ui.dataGovernanceLifecycleStatus.classList.toggle('invalid', !ready);
+  }
+
   function updateAiExportGovernanceStatus(scopeCheck=null){
     if(!ui.aiExportGovernanceStatus) return;
+    updateDataGovernanceLifecycleStatus();
     if(scopeCheck && !scopeCheck.allowed){
-      ui.aiExportGovernanceStatus.textContent = `Model-development export blocked for ${scopeCheck.blocked_count} of ${scopeCheck.participant_count} pupil profile(s) in this scope. Record current authority and approved model-development use for every included pupil.`;
+      const overdue = scopeCheck.blocked_reason_counts && scopeCheck.blocked_reason_counts['review-overdue'];
+      const missing = scopeCheck.blocked_reason_counts && scopeCheck.blocked_reason_counts['review-missing'];
+      const reviewDetail = overdue
+        ? ` ${overdue} profile review(s) are overdue.`
+        : missing
+          ? ` ${missing} profile review date(s) are missing.`
+          : '';
+      ui.aiExportGovernanceStatus.textContent = `Model-development export blocked for ${scopeCheck.blocked_count} of ${scopeCheck.participant_count} pupil profile(s) in this scope.${reviewDetail} Record current authority and approved model-development use for every included pupil.`;
       ui.aiExportGovernanceStatus.classList.add('invalid');
       return;
     }
     const governance = dataGovernanceSnapshot();
-    const ready = governance.status === 'recorded-separately' && governance.approved_uses.model_development;
-    ui.aiExportGovernanceStatus.textContent = ready
+    const purposeCheck = governancePurposeCheck(governance, 'model_development');
+    ui.aiExportGovernanceStatus.textContent = purposeCheck.allowed
       ? 'Selected pupil is marked ready for pseudonymised model-development export. The separately held authority must still be current and applicable.'
-      : 'Model-development export blocked for the selected pupil until authority is recorded separately and model-development use is approved.';
-    ui.aiExportGovernanceStatus.classList.toggle('invalid', !ready);
+      : `Model-development export blocked for the selected pupil: ${purposeCheck.reasons.map(reason => reason.replace(/-/g, ' ')).join('; ')}.`;
+    ui.aiExportGovernanceStatus.classList.toggle('invalid', !purposeCheck.allowed);
   }
 
   function choosePromptVariant(type, replacements={}, index=1){
@@ -2758,7 +2828,7 @@
   }
 
   function saveLearners(){
-    persistJson(LEARNERS_KEY, state.learners);
+    return persistJson(LEARNERS_KEY, state.learners);
   }
 
   function settingsSnapshot(){
@@ -7809,6 +7879,85 @@
     flash('good', 'Archived pruned');
   }
 
+  async function deleteCurrentPupilData(){
+    const learnerName = currentPupilName();
+    if(!learnerName || learnerName === 'Unknown'){
+      if(ui.pupilDataDeletionStatus) ui.pupilDataDeletionStatus.textContent = 'Select a pupil before requesting deletion.';
+      return;
+    }
+    await refreshStoredHistory();
+    const sessions = state.history.sessions.filter(session => session && session.learner === learnerName);
+    const photos = state.customImages.filter(photo => photo && photo.learner === learnerName);
+    const confirmed = window.confirm(
+      `Delete ${learnerName}'s local ChoiceTrain profile, ${sessions.length} session record(s), and ${photos.length} personalised photo(s) from this browser? `
+      + 'Export anything the school must retain first. Downloaded files and backups are not deleted. This cannot be undone.'
+    );
+    if(!confirmed){
+      if(ui.pupilDataDeletionStatus) ui.pupilDataDeletionStatus.textContent = 'Deletion cancelled. No local pupil data was removed.';
+      return;
+    }
+
+    clearTimeout(state.timers.persist);
+    resetSession();
+    const previousLearners = state.learners;
+    const remainingLearners = { ...state.learners };
+    delete remainingLearners[learnerName];
+    if(!persistJson(LEARNERS_KEY, remainingLearners)){
+      if(ui.pupilDataDeletionStatus) ui.pupilDataDeletionStatus.textContent = 'Deletion stopped because the pupil profile store could not be updated.';
+      flash('try', 'Pupil data was not deleted');
+      return;
+    }
+
+    const deletedPhotoIds = new Set(photos.map(photo => photo.id));
+    const remainingPhotos = state.customImages.filter(photo => !deletedPhotoIds.has(photo.id));
+    const clearFamiliarFace = photos.some(photo => photo.src && photo.src === state.familiarFace);
+    const nextFamiliarFace = clearFamiliarFace ? null : state.familiarFace;
+    try {
+      const db = await openDb();
+      if(db){
+        const tx = db.transaction([IDB_SESSIONS_STORE, IDB_ASSETS_STORE], 'readwrite');
+        const sessionStore = tx.objectStore(IDB_SESSIONS_STORE);
+        const assetStore = tx.objectStore(IDB_ASSETS_STORE);
+        sessions.forEach(session => sessionStore.delete(session.session_id));
+        assetStore.put({ key: FAMILIAR_FACE_ASSET_KEY, value: nextFamiliarFace, updated_at_wall_ms: wallMs() });
+        assetStore.put({ key: CUSTOM_IMAGES_ASSET_KEY, value: remainingPhotos, updated_at_wall_ms: wallMs() });
+        await txComplete(tx);
+      } else {
+        const fallback = readJson('choice_train_sessions_fallback_v130') || [];
+        if(!persistJson('choice_train_sessions_fallback_v130', fallback.filter(session => session && session.learner !== learnerName))){
+          throw new Error('The fallback session store could not be updated.');
+        }
+      }
+    } catch(_error){
+      persistJson(LEARNERS_KEY, previousLearners);
+      if(ui.pupilDataDeletionStatus) ui.pupilDataDeletionStatus.textContent = 'Deletion could not be completed. The pupil profile was restored; check browser storage and retry.';
+      flash('try', 'Pupil data deletion failed');
+      return;
+    }
+
+    state.learners = remainingLearners;
+    state.customImages = remainingPhotos;
+    state.familiarFace = nextFamiliarFace;
+    state.selectedPhotoIds.clear();
+    if(state.stagedRecommendation && state.stagedRecommendation.learner_name === learnerName){
+      state.stagedRecommendation = null;
+      renderStagedRecommendationNotice();
+    }
+    await refreshStoredHistory();
+    if(!Object.keys(state.learners).length){
+      state.learners['New pupil'] = buildDefaultLearner('New pupil');
+      saveLearners();
+    }
+    loadPupilList(Object.keys(state.learners).sort((a, b) => a.localeCompare(b))[0]);
+    renderPhotoLibrary();
+    refreshContentConfiguration();
+    refreshDashboard(true);
+    if(ui.pupilDataDeletionStatus){
+      ui.pupilDataDeletionStatus.textContent = `${learnerName}'s local profile, ${sessions.length} session record(s), and ${photos.length} personalised photo(s) were deleted from this browser. Copies downloaded or stored elsewhere must be handled separately.`;
+    }
+    flash('good', 'Selected pupil data deleted locally');
+  }
+
   function currentLearnerRecord(){
     const name = currentPupilName();
     const learner = normalizeLearner(name, state.learners[name] || buildDefaultLearner(name));
@@ -9919,12 +10068,7 @@
       const governance = participant.learner_name && state.learners[participant.learner_name]
         ? dataGovernanceForLearner(participant.learner_name)
         : null;
-      const governanceEligible = !!(
-        governance
-        && governance.status === 'recorded-separately'
-        && governance.approved_uses
-        && governance.approved_uses.model_development
-      );
+      const governanceEligible = !!(governance && governancePurposeCheck(governance, 'model_development').allowed);
       return {
         learner_alias: participant.learner_alias,
         session_count: participant.sessions.length,
@@ -12830,15 +12974,23 @@
     const participantNames = Array.from(new Set((sessions || [])
       .map(session => String(session && session.learner || '').trim())
       .filter(Boolean)));
+    const blockedReasonCounts = {};
     const blocked = participantNames.filter(name => {
-      if(!state.learners[name]) return true;
-      const governance = dataGovernanceForLearner(name);
-      return governance.status !== 'recorded-separately' || !governance.approved_uses.model_development;
+      if(!state.learners[name]){
+        blockedReasonCounts['profile-missing'] = (blockedReasonCounts['profile-missing'] || 0) + 1;
+        return true;
+      }
+      const check = governancePurposeCheck(dataGovernanceForLearner(name), 'model_development');
+      check.reasons.forEach(reason => {
+        blockedReasonCounts[reason] = (blockedReasonCounts[reason] || 0) + 1;
+      });
+      return !check.allowed;
     });
     return {
       allowed: participantNames.length > 0 && blocked.length === 0,
       participant_count: participantNames.length,
-      blocked_count: blocked.length
+      blocked_count: blocked.length,
+      blocked_reason_counts: blockedReasonCounts
     };
   }
 
@@ -12942,6 +13094,7 @@
         consent_or_other_authority_status: 'recorded-separately-local-declaration',
         participant_profiles_checked: governanceCheck.participant_count,
         all_participants_model_development_use_approved: governanceCheck.allowed,
+        all_participant_authority_reviews_current: governanceCheck.allowed,
         authority_evidence_included: false,
         human_review_required: true,
         automated_decision_making_enabled: false,
@@ -13098,6 +13251,7 @@
     bindAction(ui.adminExportResearchBtn, exportEegMarkers);
     bindAction(ui.adminExportHistoryBtn, exportStoredHistory);
     bindAction(ui.adminExportAiDatasetBtn, exportPseudonymisedAiDataset);
+    bindAction(ui.deleteCurrentPupilDataBtn, deleteCurrentPupilData);
     bindAction(ui.addPupil, () => {
       const name = ui.newPupilName.value.trim();
       if(!name) return;

@@ -100,13 +100,14 @@
     {
       "id": "privacy_safe_ai_export",
       "status": "implemented-and-verified",
-      "summary": "A deny-by-default, purpose-gated, pseudonymised model-development export uses an allowlist and excludes direct identifiers, free text, images, exact dates, and raw coordinates.",
+      "summary": "A deny-by-default, purpose-and-review-gated, pseudonymised model-development export uses an allowlist and excludes direct identifiers, free text, images, exact dates, and raw coordinates.",
       "implementation_evidence": [
         { "path": "choice_train_V1.8.0-alpha.js", "contains": "async function exportPseudonymisedAiDataset()" },
         { "path": "schemas/choice-train-model-dataset-v1.schema.json", "contains": "ChoiceTrain privacy-minimised model-development dataset core contract v1" }
       ],
       "automated_evidence": [
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "model-development export is denied by default without a recorded authority declaration" },
+        { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "model-development export fails closed when the recorded authority review is overdue" },
         { "path": "tests/choice-train-v180-alpha.spec.js", "contains": "pseudonymised AI research export excludes direct identifiers and free text" }
       ],
       "limitations": ["Pseudonymised data remains personal data and still requires an approved purpose, authority, secure transfer, retention, bias review, and human oversight."]
