@@ -6,9 +6,9 @@
     channel: 'stable',
     source_file: 'choice_train_V1.7.1.html',
     source_script: 'choice_train_V1.7.1.js',
-    based_on_branch: 'main',
-    based_on_commit: '185fdd2',
-    build_date: '2026-11-07',
+    based_on_branch: 'hotfix/v1.7.1-responsive-scaling',
+    based_on_commit: '5062c60838719d34c7f8be9348734afba1f358a4',
+    build_date: '2026-11-13',
     published_entry: 'index.html',
     live_url: 'https://dioncroft.github.io/choice_train/',
     repo_url: 'https://github.com/DionCroft/choice_train'
