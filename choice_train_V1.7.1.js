@@ -7,7 +7,7 @@
     source_file: 'choice_train_V1.7.1.html',
     source_script: 'choice_train_V1.7.1.js',
     based_on_branch: 'hotfix/v1.7.1-responsive-scaling',
-    based_on_commit: '5062c60838719d34c7f8be9348734afba1f358a4',
+    based_on_commit: 'dce7e8f4340ae16eadbff346fcf72727846f8ae7',
     build_date: '2026-11-13',
     published_entry: 'index.html',
     live_url: 'https://dioncroft.github.io/choice_train/',
