@@ -24,6 +24,8 @@ V1.7 adds a presentation layer around the existing static runtime rather than re
 
 The views share one application state and one set of DOM controls. Navigation changes visibility and focus; it does not create duplicate settings. Admin groups declare their destinations with `data-admin-pages`; a body-level destination state exposes only the groups relevant to Overview, Sessions, Learners, EEG, or System. Header-aware scrolling is deferred until the full-width layout and stored-history hydration settle. A 1.2-second hold gesture protects the learner-to-teacher return control from accidental taps, while keyboard activation remains immediate.
 
+Teacher progression remains numerically stored for backward compatibility, but the UI presents named stages. Task `auto` is labelled `Auto advance`; manual task values and historical exports remain unchanged. The two blank-screen settings share one duration but have separate state, event names, and export fields. The prompt-answer blank runs only in two-stage mode after prompt exposure and before `stimulus_onset`; the existing between-question blank remains after feedback.
+
 ## Presentation and Audio
 
 The versioned stylesheet keeps presentation concerns separate from the inherited static interface. Atkinson Hyperlegible Next is served locally under the SIL Open Font License. It is one selectable interface option; the runtime also retains a familiar sans-serif alternative and per-pupil text scaling.
@@ -54,7 +56,7 @@ V1.7 exports include a `sensory_preferences` object containing the selected font
 - `tests/choice-train.spec.js` provides Playwright regression and visual smoke coverage.
 - `tests/choice-train-v170.spec.js` verifies the stable V1.7 workspace, theme, accessibility, export, and responsive-layout contract.
 - `scripts/run-browser-tests.js` starts the local static server and test process.
-- `npm run audit:visual:v171` uses the visual-audit script to create 20 ignored, synthetic-data screenshots and a bounds manifest for repeatable desktop, tablet, mobile, six-choice, state, and theme review.
+- `npm run audit:visual:v171` uses the visual-audit script to create 22 ignored, synthetic-data screenshots and a bounds manifest for repeatable teacher-control, desktop, tablet, mobile, six-choice, state, and theme review.
 - `.github/workflows/ci.yml` validates branches and pull requests.
 - `.github/workflows/pages.yml` reruns the browser suite before deploying `main` to GitHub Pages.
 
@@ -62,4 +64,4 @@ V1.7 exports include a `sensory_preferences` object containing the selected font
 
 Current versioned files stay at the root with `index.html`. Superseded snapshots move to `releases/` and remain unchanged. Release metadata is stamped with `scripts/stamp-build.ps1` after a candidate has passed the browser suite.
 
-A candidate can be pushed on a feature branch, but promotion requires the complete automated suite, documented review, a metadata stamp, and explicit product-owner approval. Promotion updates the stable versioned HTML, JavaScript, and CSS plus `index.html`; merely adding candidate files does not publish them. V1.7.1 passes 82 Playwright checks, while the visual audit remains review evidence rather than a screenshot-baseline gate. Physical school-device, staff, learner, privacy, and research-timing validation remain separate deployment and study-readiness activities.
+A candidate can be pushed on a feature branch, but promotion requires the complete automated suite, documented review, a metadata stamp, and explicit product-owner approval. Promotion updates the stable versioned HTML, JavaScript, and CSS plus `index.html`; merely adding candidate files does not publish them. V1.7.1 passes 84 Playwright checks, while the visual audit remains review evidence rather than a screenshot-baseline gate. Physical school-device, staff, learner, privacy, and research-timing validation remain separate deployment and study-readiness activities.

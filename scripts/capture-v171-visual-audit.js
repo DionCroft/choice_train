@@ -115,6 +115,8 @@ async function main() {
 
   try {
     await capture(browser, manifest, 'teacher-workspace', desktop);
+    await capture(browser, manifest, 'teacher-session-controls', desktop, page => page.locator('#sessionTaskType').scrollIntoViewIfNeeded());
+    await capture(browser, manifest, 'teacher-sensory-controls', desktop, page => page.locator('#themeChoice').scrollIntoViewIfNeeded());
     await capture(browser, manifest, 'admin-overview', desktop, page => page.locator('#adminPanelTab').click());
     await capture(browser, manifest, 'learner-active-calm-light', { width: 1440, height: 900 }, page => configureLearner(page));
     await capture(browser, manifest, 'learner-active-low-stimulation-dark', { width: 1440, height: 900 }, page => configureLearner(page, { theme: 'low-stimulation-dark' }));

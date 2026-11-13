@@ -45,9 +45,9 @@ Stable release validation completed:
 
 - JavaScript syntax check passed for `choice_train_V1.7.1.js`
 - `index.html` is byte-identical to `choice_train_V1.7.1.html`
-- all 82 Playwright tests passed together: 56 broad regression/archive checks and 26 V1.7-specific checks
+- all 84 Playwright tests passed together: 58 broad regression/archive checks and 26 V1.7-specific checks
 - the V1.7 checks include focused workspace navigation, staff and learner contrast, semantic-token completeness, runtime theme colours, local-only requests, sensory persistence, reduced motion, learner containment, reward and reward-disabled flows, export metadata, and tablet/mobile sizing
-- the repeatable visual audit produced 20 synthetic-data captures spanning teacher, Admin, active learner, reward, reward-disabled feedback, break, tablet, mobile, dedicated six-choice device layouts, and every theme
+- the repeatable visual audit produced 22 synthetic-data captures spanning teacher session/sensory controls, Admin, active learner, reward, reward-disabled feedback, break, tablet, mobile, dedicated six-choice device layouts, and every theme
 - the tested version retains the static GitHub Pages deployment model
 
 ## Feedback Outcomes
@@ -58,10 +58,10 @@ Stable release validation completed:
 | Daily settings | Several settings needed during ordinary classroom setup are only available in the Admin Panel. | Move the requested presentation, timing, answer-count, and task-selection controls into the Teacher Panel without duplicating element IDs or state. |
 | Advanced settings | Research and performance controls are mixed with daily session controls. | Keep touch scaling/debugging, live trail, performance, live dashboard, single-target sequencing, and auto-level path in Admin. Clarify the single-target setting. |
 | Student-friendly mode | `applyViewMode('learner')` forcibly checks the option, so a teacher cannot keep it switched off. | Default it to on, but respect and persist the teacher's explicit choice. |
-| Current level | The Teacher Panel shows only a number. | Add a live, plain-English level/task description beside the numeric level. |
+| Current level | A numeric level and separate task selector made progression harder to interpret. | Place a named `Current Level for Auto Advance` selector beside Task and label the automatic task option `Auto advance`. |
 | Apply preferences | Settings are already auto-saved, while `Apply preferences` also changes prompt controls. The label does not explain this. | Rename the action, explain what is automatic, and provide visible save confirmation. |
 | Start/reset rules | Runtime behavior exists but the consequences are not explained beside the buttons. | Explain that Start begins a fresh session with displayed settings and Reset clears the current unsaved attempt while retaining the pupil profile, settings, and saved history. |
-| Blank interval | There is an inter-trial delay but no configurable blank learner screen. | Add an optional blank inter-trial screen and duration, off by default to preserve existing behavior. |
+| Blank intervals | Staff need to distinguish memory demand between prompt/answers from pacing between questions. | Provide separate `Between Q&A Screens` and `Between questions` options with one shared duration and distinct event/export fields. |
 | Teacher view control | `Teacher view` is redundant in desktop mode because Teacher/Admin tabs already control the panel. | Remove the redundant desktop button and retain the floating return control from learner mode. |
 | Granular progression | V1.6.0 now supports per-pupil, per-task session filters for Find object and Find category. | Keep automatic category-by-level progression as a separately designed follow-up so the established level sequence remains understandable. |
 | Six-answer device fit | Dense one-stage activities could require scrolling on smaller school displays, and a scroll gesture could activate a choice. | V1.7.1 fits dense tasks automatically, adds a Teacher item-size preset, and rejects moved touch gestures. |
@@ -75,13 +75,14 @@ Stable release validation completed:
 - Resolved in `V1.7.0`: disabling both rewards and auto advance no longer traps the learner; the feedback surface keeps `Next` and `Repeat` available.
 - Resolved in `V1.7.0`: Admin history hydration no longer shifts the selected destination into a large blank area, and a 390-pixel mobile learner viewport retains the regulation controls.
 - Resolved in `V1.7.1`: automatic scaling no longer enlarges dense choices on smaller devices; six-answer iPad-, Kindle-, phone-, and laptop-sized layouts stay inside the learner viewport.
+- Resolved in `V1.7.1`: named progression, task selection, Auto Advance flow, themes, sensory settings, and both blank-screen options now follow the requested Teacher workflow.
 
 ### Medium priority
 
 - All styling and markup remain embedded in large versioned HTML files. This preserves the static deployment model but increases release-diff size and maintenance risk.
 - V1.7 moves its new presentation rules into a separate versioned stylesheet, but the inherited HTML and JavaScript remain large single files. A module-level refactor is deferred until after school workflow validation to avoid changing tested task logic and persistence at the same time as the interface.
 - Settings auto-save on both `input` and `change`; the debounce limits writes, but text/number changes can still trigger repeated pupil-profile persistence.
-- The current `Current level` input allows a manual task override that may not match the level description unless both are displayed together.
+- Dashboard/reporting changes remain intentionally deferred until further school feedback defines the first useful teacher report.
 - Automated Chromium contrast and screenshot checks do not establish suitability for a learner or replace physical Safari, Silk, touchscreen, keyboard, and assistive-technology review.
 
 ### Preserved behavior

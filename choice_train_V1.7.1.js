@@ -1140,6 +1140,10 @@
     return !!(ui.useBlankInterval && ui.useBlankInterval.checked);
   }
 
+  function promptAnswerBlankEnabled(){
+    return !!(ui.usePromptAnswerBlank && ui.usePromptAnswerBlank.checked && ui.useTwoStage && ui.useTwoStage.checked);
+  }
+
   function blankIntervalMs(){
     return clamp(safeNumber(ui.blankIntervalSec && ui.blankIntervalSec.value, 1), 0.25, 10) * 1000;
   }
@@ -1232,9 +1236,10 @@
 
   function updateSessionReadiness(){
     const learner = currentPupilName();
+    const selectedLevel = clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10);
     const selectedTask = ui.sessionTaskType && ui.sessionTaskType.value !== 'auto'
       ? taskLabel(ui.sessionTaskType.value)
-      : `Level ${clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10)}`;
+      : `${levelSpec(selectedLevel).name} (Auto advance)`;
     if(ui.readinessPupil) ui.readinessPupil.textContent = learner === 'Unknown' ? 'Select a pupil' : currentPupilAlias();
     if(ui.readinessTask) ui.readinessTask.textContent = selectedTask;
     if(ui.readinessLength) ui.readinessLength.textContent = `${safeNumber(ui.sessionMinutes && ui.sessionMinutes.value, 3)} minutes`;
@@ -1697,6 +1702,7 @@
       responseWindowSec: ui.responseWindowSec.value,
       itiSec: ui.itiSec.value,
       useBlankInterval: ui.useBlankInterval.checked,
+      usePromptAnswerBlank: ui.usePromptAnswerBlank.checked,
       blankIntervalSec: ui.blankIntervalSec.value,
       eegResearchMode: ui.eegResearchMode.checked,
       autoBlockPauses: ui.autoBlockPauses.checked,
@@ -1773,6 +1779,7 @@
     if(ui.responseWindowSec) ui.responseWindowSec.value = settings.responseWindowSec || 6;
     if(ui.itiSec) ui.itiSec.value = settings.itiSec || 0.75;
     if(ui.useBlankInterval) ui.useBlankInterval.checked = !!settings.useBlankInterval;
+    if(ui.usePromptAnswerBlank) ui.usePromptAnswerBlank.checked = !!settings.usePromptAnswerBlank;
     if(ui.blankIntervalSec) ui.blankIntervalSec.value = settings.blankIntervalSec || 1;
     if(ui.eegResearchMode) ui.eegResearchMode.checked = !!settings.eegResearchMode;
     if(ui.autoBlockPauses) ui.autoBlockPauses.checked = settings.autoBlockPauses !== false;
@@ -2809,16 +2816,16 @@
   function levelSpec(level){
     const scale = getAdaptiveTouchScale();
     const specs = {
-      1: { kind: 'touch-screen', size: 250 * scale, movable: false, subtitle: 'Level 1: build touchscreen confidence. Any touch in the panel counts.' },
-      2: { kind: 'touch-object', size: 240 * scale, movable: false, subtitle: 'Level 2: touch the pictured target itself.' },
-      3: { kind: 'moving-target', size: 175 * scale, movable: true, subtitle: 'Level 3: track and touch the moving target.' },
-      4: { kind: 'find-object', size: 150 * scale, movable: false, subtitle: 'Level 4: choose the named object from a small set.' },
-      5: { kind: 'discriminate-object', size: 145 * scale, movable: false, subtitle: 'Level 5: choose the named item from two options.' },
-      6: { kind: 'find-category', size: 140 * scale, movable: false, subtitle: 'Level 6: use reasoning to pick the correct category item.' },
-      7: { kind: 'cpat-sustained', size: 170 * scale, movable: false, subtitle: 'Level 7: sustained attention. Tap only when the target appears.' },
-      8: { kind: 'cpat-selective', size: 160 * scale, movable: false, subtitle: 'Level 8: selective-spatial attention. Find the correct target among distractors.' },
-      9: { kind: 'cpat-orienting', size: 160 * scale, movable: false, subtitle: 'Level 9: orienting attention. Use the cue, then reorient when needed.' },
-      10: { kind: 'cpat-executive', size: 160 * scale, movable: false, subtitle: 'Level 10: executive attention. Ignore conflict and follow the rule.' }
+      1: { name: 'Touchscreen confidence', kind: 'touch-screen', size: 250 * scale, movable: false, subtitle: 'Touchscreen confidence: any touch in the panel counts.' },
+      2: { name: 'Find a pictured object', kind: 'touch-object', size: 240 * scale, movable: false, subtitle: 'Find a pictured object: touch the pictured target itself.' },
+      3: { name: 'Track a moving object', kind: 'moving-target', size: 175 * scale, movable: true, subtitle: 'Track a moving object: follow and touch the moving target.' },
+      4: { name: 'Find a named object', kind: 'find-object', size: 150 * scale, movable: false, subtitle: 'Find a named object: choose the named object from a small set.' },
+      5: { name: 'Discriminate between objects', kind: 'discriminate-object', size: 145 * scale, movable: false, subtitle: 'Discriminate between objects: choose the named item from two options.' },
+      6: { name: 'Category reasoning', kind: 'find-category', size: 140 * scale, movable: false, subtitle: 'Category reasoning: use reasoning to pick the correct category item.' },
+      7: { name: 'Sustained attention', kind: 'cpat-sustained', size: 170 * scale, movable: false, subtitle: 'Sustained attention: tap only when the target appears.' },
+      8: { name: 'Selective-spatial attention', kind: 'cpat-selective', size: 160 * scale, movable: false, subtitle: 'Selective-spatial attention: find the correct target among distractors.' },
+      9: { name: 'Orienting attention', kind: 'cpat-orienting', size: 160 * scale, movable: false, subtitle: 'Orienting attention: use the cue, then reorient when needed.' },
+      10: { name: 'Executive attention', kind: 'cpat-executive', size: 160 * scale, movable: false, subtitle: 'Executive attention: ignore conflict and follow the rule.' }
     };
     return specs[clamp(level || 1, 1, 10)];
   }
@@ -2826,10 +2833,11 @@
   function updateCurrentLevelDescription(){
     if(!ui.currentLevelDescription) return;
     const level = clamp(safeNumber(ui.startLevel && ui.startLevel.value, 1), 1, 10);
+    const spec = levelSpec(level);
     const selectedTask = ui.sessionTaskType ? ui.sessionTaskType.value : 'auto';
     ui.currentLevelDescription.textContent = selectedTask === 'auto'
-      ? levelSpec(level).subtitle
-      : `Level ${level}: ${taskLabel(selectedTask)} is selected for this session instead of the automatic level task.`;
+      ? spec.subtitle
+      : `Manual task selected: ${taskLabel(selectedTask)}. Auto Advance will return to ${spec.name}.`;
   }
 
   function getSingleTargetLayout(index, movable){
@@ -4299,6 +4307,29 @@
       updateStats();
     };
 
+    const beginPromptAnswerBlank = () => {
+      const durationMs = blankIntervalMs();
+      state.phase = 'blank';
+      if(ui.blankIndicator) ui.blankIndicator.textContent = 'Get ready';
+      showScreen('screenBlank');
+      setFooter('', 'Pause');
+      logEvent('prompt_answer_blank_onset', {
+        trial_id: state.currentTrial.trial_id,
+        question_index: question.questionIndex,
+        task_kind: question.kind,
+        duration_ms: durationMs
+      });
+      state.timers.blank = window.setTimeout(() => {
+        logEvent('prompt_answer_blank_offset', {
+          trial_id: state.currentTrial.trial_id,
+          question_index: question.questionIndex,
+          task_kind: question.kind,
+          duration_ms: durationMs
+        });
+        revealChoice();
+      }, durationMs);
+    };
+
     makePromptPreview(question);
     logCueShown(question);
     if(ui.useTwoStage.checked || question.forcePromptStage){
@@ -4322,7 +4353,10 @@
         attention_domain: question.attentionDomain || ''
       });
       speak(question.prompt);
-      state.timers.preview = window.setTimeout(revealChoice, question.promptDelayMs || safeNumber(ui.delaySec.value, 1) * 1000);
+      state.timers.preview = window.setTimeout(
+        promptAnswerBlankEnabled() ? beginPromptAnswerBlank : revealChoice,
+        question.promptDelayMs || safeNumber(ui.delaySec.value, 1) * 1000
+      );
     } else {
       speak(question.prompt);
       revealChoice();
@@ -4535,6 +4569,7 @@
     const durationMs = blankIntervalMs();
     state.questionIndex = nextQuestionIndex;
     state.phase = 'blank';
+    if(ui.blankIndicator) ui.blankIndicator.textContent = 'Pause between questions';
     showScreen('screenBlank');
     setFooter('', 'Pause');
     logEvent('inter_trial_blank_onset', {
@@ -5457,6 +5492,10 @@
       current_level: state.currentLevel,
       response_window_ms: responseWindowMs(),
       inter_trial_interval_ms: interTrialDelayMs(),
+      prompt_answer_blank_enabled: promptAnswerBlankEnabled(),
+      prompt_answer_blank_ms: promptAnswerBlankEnabled() ? blankIntervalMs() : 0,
+      between_question_blank_enabled: blankIntervalEnabled(),
+      between_question_blank_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
       blank_interval_enabled: blankIntervalEnabled(),
       blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
       learner_context: learnerContextSnapshot(),
@@ -5513,6 +5552,10 @@
         theme_used: currentThemeChoice(),
         sensory_preferences: sensoryPreferenceSnapshot(),
         student_friendly_mode: studentFriendlyModeEnabled(),
+        prompt_answer_blank_enabled: promptAnswerBlankEnabled(),
+        prompt_answer_blank_ms: promptAnswerBlankEnabled() ? blankIntervalMs() : 0,
+        between_question_blank_enabled: blankIntervalEnabled(),
+        between_question_blank_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
         blank_interval_enabled: blankIntervalEnabled(),
         blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
         support_level: state.promptState.highestLevel,
@@ -5528,6 +5571,10 @@
       sensory_preferences: sensoryPreferenceSnapshot(),
       student_friendly_mode: studentFriendlyModeEnabled(),
       content_configuration: exportableContentConfiguration(),
+      prompt_answer_blank_enabled: promptAnswerBlankEnabled(),
+      prompt_answer_blank_ms: promptAnswerBlankEnabled() ? blankIntervalMs() : 0,
+      between_question_blank_enabled: blankIntervalEnabled(),
+      between_question_blank_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
       blank_interval_enabled: blankIntervalEnabled(),
       blank_interval_ms: blankIntervalEnabled() ? blankIntervalMs() : 0,
       photo_library_metadata: photoLibraryMetadata(),
@@ -5825,7 +5872,7 @@
       'autoTouchScale', 'showTouchDebug', 'useTwoStage', 'useReward', 'useTextPrompt', 'useImagePrompt',
       'useFace', 'ttsToggle', 'ttsLabelsToggle', 'studentFriendlyMode', 'autoAdvance', 'trackTrail', 'performanceMode',
       'liveDashboardDuringLearner', 'singleTargetStart', 'autoLevelPath', 'singleTargetReps', 'sessionTaskType',
-      'moveSampleMs', 'dashboardRefreshMs', 'responseWindowSec', 'itiSec', 'useBlankInterval', 'blankIntervalSec',
+      'moveSampleMs', 'dashboardRefreshMs', 'responseWindowSec', 'itiSec', 'usePromptAnswerBlank', 'useBlankInterval', 'blankIntervalSec',
       'eegResearchMode', 'autoBlockPauses',
       'allowLearnerHelp', 'allowLearnerBreak', 'allowLearnerStop', 'activeControlEnabled', 'eegBlockSize',
       'eegAutoPauseSec', 'researchCondition', 'eegExportFormat', 'faceName', 'contextNotes', 'rewardChoice',

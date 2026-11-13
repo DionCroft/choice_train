@@ -19,6 +19,15 @@ All notable changes to ChoiceTrain are listed here.
 - added six-choice one-stage regression coverage for 768x1024 iPad, 600x960 Kindle, 1366x768 laptop, and 390x844 phone viewports
 - expanded the synthetic visual audit from 17 to 20 views with dedicated six-choice device captures
 
+### Teacher workflow follow-up
+
+- placed `Task for this session` beside a named `Current Level for Auto Advance` selector and renamed the automatic task option to `Auto advance`
+- moved question-to-question Auto advance into the same progression group and retained existing saved level values for backward compatibility
+- moved Theme into a dedicated collapsible `Sensory and Display Preferences` section immediately after Session Controls
+- split optional blank screens into `Between Q&A Screens` and `Between questions`, with one shared duration and separate event/export fields
+- expanded the visual audit to 22 views with dedicated session-control and sensory-control captures
+- deliberately deferred dashboard/reporting changes until further school feedback is available
+
 ### Release boundary
 
 - the responsive changes address an anonymised school-trial usability finding; physical Safari and Kindle Silk checks remain part of ongoing device validation

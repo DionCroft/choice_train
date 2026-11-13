@@ -28,6 +28,8 @@ This dictionary documents the principal exported and locally stored fields used 
 | `context_notes` | string | Daily teacher observations | Potentially sensitive |
 | `theme_used` | string | Active visual theme ID | Access context |
 | `student_friendly_mode` | boolean | Whether technical learner content was hidden | Access context |
+| `prompt_answer_blank_enabled` / `_ms` | boolean / number | Whether and how long a blank appeared between a two-stage prompt and its answers | Educational/research context |
+| `between_question_blank_enabled` / `_ms` | boolean / number | Whether and how long a blank appeared between completed questions | Educational/research context |
 | `trials` | array | Trial-level prompts, options, responses and outcomes | Research/educational |
 | `events` / `eeg_markers` | array | Time-ordered runtime events | Research |
 

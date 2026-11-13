@@ -544,6 +544,19 @@ td {
   gap: 10px;
 }
 
+.blankOptionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.blankOption {
+  padding: 12px;
+  border: 1px solid var(--shell-border);
+  border-radius: var(--shell-radius-md);
+  background: var(--shell-surface-soft);
+}
+
 .preferencePreview {
   margin-top: 12px;
   padding: 15px;
@@ -1311,6 +1324,7 @@ body.panel-view-admin th {
   .panelSwitch,
   .teacherWorkspaceNav,
   .sensoryGrid,
+  .blankOptionGrid,
   .sessionReadinessGrid {
     grid-template-columns: 1fr;
   }

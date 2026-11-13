@@ -69,11 +69,11 @@ Teachers and TAs can use it to:
 - select or add a pupil
 - set session length
 - choose the number of questions
-- review the current level and its task description
+- choose a named Current Level for Auto Advance and review its task description
 - choose a task for the session
 - set answer count, prompt delay, question window, and inter-trial interval
 - choose two-stage, text, image, reward, selected-label speech, and auto-advance options
-- add an optional timed blank screen between questions
+- add optional timed blank screens between prompt and answers, between questions, or both
 - add context notes
 - choose a theme
 - choose learner item size when Automatic needs adjusting for an individual pupil
@@ -279,14 +279,14 @@ ChoiceTrain avoids medical or diagnostic wording here. These notes are for class
 ### First Session With a Pupil
 
 1. Add or select the pupil and use an alias where appropriate.
-2. Choose the starting level, task, question count, and session length.
+2. Choose the named Auto Advance starting stage, task, question count, and session length.
 3. Choose prompt, speech, reward, and timing options that suit the pupil.
 4. Add familiar photos and a short context note if useful.
 5. Press `Start session`, then hand over or turn the screen towards the pupil.
 
 ### Each Later Session
 
-1. Select the pupil and check the saved level and task description.
+1. Select the pupil and check the saved Auto Advance stage and task description.
 2. Review today's context, timing, prompts, and reward settings.
 3. Press `Start session`.
 4. At the end, review the basic results and download the session if required.
@@ -308,9 +308,14 @@ The app automatically arranges five or six answers into a dense grid on smaller 
 
 After a response, `Auto advance` can move to the next task automatically. If auto advance is off, use `Next` or `Repeat`. Those controls stay available when the reward screen is disabled; the learner sees concise feedback rather than a star celebration.
 
-### Optional Blank Screen
+### Optional Blank Screens
 
-Turn on `Show blank screen` to add a calm pause after feedback and before the next question. Set `Blank duration` between 0.25 and 10 seconds. This is off by default and the selected timing is included in the session export.
+Use either or both options under Session Controls:
+
+- `Between Q&A Screens` adds a blank after the prompt and before answer choices when two-stage prompt mode is on. This intentionally increases the memory challenge.
+- `Between questions` adds a calm pause after feedback and before the next question.
+
+`Blank duration` sets the time for both options from 0.25 to 10 seconds. Both are off by default and are logged and exported separately.
 
 ---
 

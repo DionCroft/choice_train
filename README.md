@@ -104,7 +104,7 @@ The Teacher Panel is intended for everyday classroom use. It focuses on the cont
 - start session
 - reset session
 - export or download session
-- current level
+- named Current Level for Auto Advance
 - live level and task description
 - session length
 - number of questions
@@ -112,9 +112,9 @@ The Teacher Panel is intended for everyday classroom use. It focuses on the cont
 - manual task selection
 - prompt delay, question window, and inter-trial interval
 - two-stage, text, image, reward, selected-label speech, and auto-advance options
-- optional blank screen between questions
+- optional blank screens between prompt and answers, between questions, or both
 - context notes
-- theme selection
+- a dedicated Sensory and Display Preferences section containing theme, text, item size, motion, sound, and celebration controls
 - learner item size, with `Automatic (recommended)` as the default for mixed school devices
 - student-friendly mode
 - speech on or off
@@ -167,9 +167,14 @@ Settings save locally as they are changed. `Save pupil preferences` additionally
 6. Choose `Find category`, select at least two categories with eligible content, check that the summary reports fair question categories, then start the session.
 7. Choose `Plain White` from the theme selector for a quiet white activity surface.
 
-## Optional Blank Interval
+## Optional Blank Screens
 
-Teachers can enable a calm blank screen between completed questions and set its duration from 0.25 to 10 seconds. It is off by default, is recorded in the event log, and is included in session exports so staff and researchers can interpret the pacing used.
+Teachers can independently enable:
+
+- `Between Q&A Screens`, which inserts a blank after the prompt and before answers in two-stage mode to increase the memory challenge
+- `Between questions`, which inserts a calm pause after feedback and before the next question
+
+Both options use the shared `Blank duration` setting from 0.25 to 10 seconds. They are off by default, logged as distinct events, and included separately in session exports so staff and researchers can interpret the pacing used.
 
 ## Student-Friendly Mode
 
@@ -506,11 +511,11 @@ npm run audit:visual:v171
 The `V1.7.1` release is validated with:
 
 - `node --check choice_train_V1.7.1.js`
-- 82 passing Playwright browser tests covering the live entry point, archived-release loading, levels 1-10, AT and EEG flows, focused Teacher/Admin navigation, Student-friendly mode, prompt wording, blank intervals, reset behavior, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, all semantic themes, local-only operation, reward and no-reward flows, and desktop/tablet/mobile layout
+- 84 passing Playwright browser tests covering the live entry point, archived-release loading, levels 1-10, AT and EEG flows, focused Teacher/Admin navigation, Student-friendly mode, named progression stages, both blank-screen paths, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, all semantic themes, local-only operation, reward and no-reward flows, and desktop/tablet/mobile layout
 
-The V1.7-specific suite contains 26 checks, including six-choice fit on iPad-, Kindle-, phone-, and laptop-sized viewports and rejection of drag-to-scroll gestures. The broader regression suite contributes the remaining 56 checks.
+The V1.7-specific suite contains 26 checks, including six-choice fit on iPad-, Kindle-, phone-, and laptop-sized viewports and rejection of drag-to-scroll gestures. The broader regression suite contributes the remaining 58 checks.
 
-`npm run audit:visual:v171` creates a repeatable local visual-review set with 20 synthetic-data captures covering teacher and Admin workspaces, active learner tasks, reward and reward-disabled feedback, break mode, tablet, mobile, six-choice device layouts, and every theme. The generated screenshots are ignored by Git because they are review evidence rather than product assets.
+`npm run audit:visual:v171` creates a repeatable local visual-review set with 22 synthetic-data captures covering teacher setup, session and sensory controls, Admin, active learner tasks, reward and reward-disabled feedback, break mode, tablet, mobile, six-choice device layouts, and every theme. The generated screenshots are ignored by Git because they are review evidence rather than product assets.
 
 ## Current Limitations
 

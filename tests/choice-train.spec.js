@@ -117,6 +117,7 @@ async function configureSession(page, overrides = {}) {
     startLevel: 1,
     itiSec: 0.2,
     responseWindowSec: 1,
+    usePromptAnswerBlank: false,
     useBlankInterval: false,
     blankIntervalSec: 1,
     ...overrides
@@ -781,6 +782,7 @@ test('teacher panel is simple on first load and admin settings are collapsed by 
   await expect(page.locator('summary:has-text("Daily Teacher Setup")')).toBeVisible();
   await expect(page.locator('summary:has-text("Pupil Personalisation")')).toBeHidden();
   await expect(page.locator('summary:has-text("Session Controls")')).toBeVisible();
+  await expect(page.locator('summary:has-text("Sensory and Display Preferences")')).toBeVisible();
   await expect(page.locator('summary:has-text("Context Notes")')).toBeVisible();
   await expect(page.locator('summary:has-text("Basic Results")')).toBeHidden();
   await expect(page.locator('#teacherPanelTab')).toHaveAttribute('aria-pressed', 'true');
@@ -805,25 +807,41 @@ test('teacher panel exposes daily classroom controls and quick-start guidance', 
   await expect(page.locator('#useImagePrompt')).toBeVisible();
   await expect(page.locator('#ttsLabelsToggle')).toBeVisible();
   await expect(page.locator('#autoAdvance')).toBeVisible();
+  await expect(page.locator('#usePromptAnswerBlank')).toBeVisible();
   await expect(page.locator('#targetScale')).toBeHidden();
   await expect(page.locator('#practitionerModeBtn')).toHaveCount(0);
 
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
-test('level description follows the number and manual task selection', async ({ page }) => {
+test('named Auto Advance level sits beside task selection and follows manual task changes', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
-  await page.locator('#startLevel').fill('8');
-  await expect(page.locator('#currentLevelDescription')).toContainText('selective-spatial attention');
+  await expect(page.locator('label[for="startLevel"]')).toHaveText('Current Level for Auto Advance');
+  await expect(page.locator('#sessionTaskType option').first()).toHaveText('Auto advance');
+  await expect(page.locator('#startLevel')).toHaveJSProperty('tagName', 'SELECT');
+  await expect(page.locator('#startLevel option').first()).toHaveText('Touchscreen confidence');
+  const positions = await page.locator('#sessionTaskType, #startLevel').evaluateAll(nodes => nodes.map(node => node.getBoundingClientRect().top));
+  expect(Math.abs(positions[0] - positions[1])).toBeLessThan(8);
+  await page.locator('#startLevel').selectOption('8');
+  await expect(page.locator('#currentLevelDescription')).toContainText('Selective-spatial attention');
   await page.locator('#sessionTaskType').selectOption('touch-object');
-  await expect(page.locator('#currentLevelDescription')).toContainText('Touch object is selected');
+  await expect(page.locator('#currentLevelDescription')).toContainText('Manual task selected: Touch object');
   await page.locator('#beginFlow').click();
   await waitForChoiceScreen(page);
   await expect(page.locator('#footerHint')).toContainText('Touch object is selected for this session');
 
   expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('sensory and display preferences follow Session Controls and contain Theme', async ({ page }) => {
+  await gotoApp(page);
+  const order = await page.locator('details[data-teacher-view="today"] > summary').evaluateAll(nodes => nodes.map(node => node.textContent.trim()));
+  expect(order.indexOf('Sensory and Display Preferences')).toBe(order.indexOf('Session Controls') + 1);
+  const sensorySection = page.locator('details:has(> summary:has-text("Sensory and Display Preferences"))');
+  await expect(sensorySection.locator('#themeChoice')).toBeVisible();
+  await expect(sensorySection.locator('#itemSizePreset')).toBeVisible();
 });
 
 test('saving pupil preferences clearly confirms the applied prompt style', async ({ page }) => {
@@ -880,6 +898,40 @@ test('optional blank interval appears between questions and is exported', async 
   expect(payload.blank_interval_enabled).toBe(true);
   expect(payload.blank_interval_ms).toBe(1000);
   expect(payload.events.some(event => event.type === 'inter_trial_blank_onset')).toBeTruthy();
+
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('optional Q&A blank appears after a two-stage prompt and exports separately', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+
+  await startConfiguredSession(page, {
+    startLevel: 2,
+    sessionMax: 1,
+    useTwoStage: true,
+    autoAdvance: true,
+    delaySec: 0.25,
+    usePromptAnswerBlank: true,
+    useBlankInterval: false,
+    blankIntervalSec: 0.5,
+    sessionTaskType: 'touch-object'
+  });
+  await expect(page.locator('#screenPrompt.active')).toBeVisible();
+  await expect(page.locator('#screenBlank.active')).toBeVisible({ timeout: 2_000 });
+  await expect(page.locator('#blankIndicator')).toHaveText('Get ready');
+  await waitForChoiceScreen(page);
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+
+  const payload = await exportJsonAfter(page, async () => {
+    await page.locator('#summaryExport').click();
+  });
+  expect(payload.prompt_answer_blank_enabled).toBe(true);
+  expect(payload.prompt_answer_blank_ms).toBe(500);
+  expect(payload.between_question_blank_enabled).toBe(false);
+  expect(payload.events.some(event => event.type === 'prompt_answer_blank_onset')).toBeTruthy();
+  expect(payload.events.some(event => event.type === 'prompt_answer_blank_offset')).toBeTruthy();
 
   expect(errors, errors.join('\n')).toEqual([]);
 });
@@ -949,7 +1001,7 @@ test('student-friendly mode hides technical learner labels and admin content', a
   const errors = attachErrorTracking(page);
   await gotoApp(page);
 
-  await page.locator('#startLevel').fill('2');
+  await page.locator('#startLevel').selectOption('2');
   await page.locator('#sessionMax').fill('1');
   await page.locator('#learnerModeBtn').click();
   await page.locator('#beginFlow').click();

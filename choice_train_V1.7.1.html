@@ -336,7 +336,7 @@
             <summary>First session with a pupil</summary>
             <ol class="stepList">
               <li>Add or select the pupil and use an alias where appropriate.</li>
-              <li>Choose the starting level, task, question count, and session length.</li>
+              <li>Choose the Auto Advance stage, task, question count, and session length.</li>
               <li>Choose prompt, speech, reward, and timing options that suit the pupil.</li>
               <li>Add familiar photos and a short context note if useful.</li>
               <li>Select <b>Start session</b>, then hand over or turn the screen towards the pupil.</li>
@@ -345,7 +345,7 @@
           <details>
             <summary>Each later session</summary>
             <ol class="stepList">
-              <li>Select the pupil and check the saved level and task description.</li>
+              <li>Select the pupil and check the saved Auto Advance stage and task description.</li>
               <li>Review today's context, timing, prompts, and reward settings.</li>
               <li>Select <b>Start session</b>.</li>
               <li>At the end, review the basic results and download the session if required.</li>
@@ -366,12 +366,6 @@
 
         <div class="teacherGrid" style="margin-top:10px">
           <div>
-            <label for="startLevel">Current level</label>
-            <input id="startLevel" type="number" min="1" max="10" value="1" />
-            <div class="helperText">The numbered stage where the pupil should begin today.</div>
-            <div id="currentLevelDescription" class="levelSummary" aria-live="polite">Level 1: build touchscreen confidence. Any touch in the panel counts.</div>
-          </div>
-          <div>
             <label for="sessionMinutes">Session length</label>
             <input id="sessionMinutes" type="number" min="1" max="10" value="3" />
             <div class="helperText">How long the activity should run before stopping automatically.</div>
@@ -381,20 +375,6 @@
             <input id="sessionMax" type="number" min="1" max="20" value="8" />
             <div class="helperText">How many tasks the pupil will attempt in one session.</div>
           </div>
-          <div>
-            <label for="themeChoice">Theme</label>
-            <select id="themeChoice">
-              <option value="calm-light">Calm Light</option>
-              <option value="calm-blue">Calm Blue</option>
-              <option value="soft-green">Soft Green</option>
-              <option value="warm-neutral">Warm Neutral</option>
-              <option value="high-contrast">High Contrast</option>
-              <option value="low-stimulation-dark">Low Stimulation Dark</option>
-              <option value="light-classroom">Light Classroom</option>
-              <option value="plain-white">Plain White</option>
-            </select>
-            <div class="helperText">Choose a colour theme that feels comfortable for the learner and classroom.</div>
-          </div>
         </div>
 
         <div class="row" style="margin-top:10px">
@@ -402,75 +382,6 @@
           <label class="toggle"><input id="studentFriendlyMode" type="checkbox" checked /> Student-friendly mode</label>
         </div>
         <div class="helperText">Speech reads prompts aloud. Student-friendly mode hides technical controls and keeps the learner view calm and simple.</div>
-
-        <div class="controlGroup">
-          <div class="controlGroupTitle">Sensory and display preferences</div>
-          <div class="sensoryGrid">
-            <div>
-              <label for="fontChoice">Text style</label>
-              <select id="fontChoice">
-                <option value="high-legibility">High legibility</option>
-                <option value="familiar">Familiar system font</option>
-              </select>
-              <div class="helperText">Changes the letter style without changing the task.</div>
-            </div>
-            <div>
-              <label for="textScale">Text size</label>
-              <select id="textScale">
-                <option value="0.9">Compact</option>
-                <option value="1" selected>Standard</option>
-                <option value="1.15">Large</option>
-                <option value="1.3">Extra large</option>
-              </select>
-              <div class="helperText">Increases prompts and controls across the learner view.</div>
-            </div>
-            <div>
-              <label for="itemSizePreset">Learner item size</label>
-              <select id="itemSizePreset">
-                <option value="auto" selected>Automatic (recommended)</option>
-                <option value="compact">Compact</option>
-                <option value="standard">Standard</option>
-                <option value="large">Large</option>
-                <option value="custom" hidden>Custom (Admin)</option>
-              </select>
-              <div class="helperText">Automatic fits all answer choices to the available screen. Use Compact only when a learner benefits from seeing more space around each item.</div>
-            </div>
-            <div>
-              <label for="motionPreference">Motion</label>
-              <select id="motionPreference">
-                <option value="reduced">Reduced</option>
-                <option value="gentle" selected>Gentle</option>
-                <option value="full">Full</option>
-              </select>
-              <div class="helperText">Reduced motion removes decorative movement and fast transitions.</div>
-            </div>
-            <div>
-              <label for="feedbackSoundMode">Feedback sounds</label>
-              <select id="feedbackSoundMode">
-                <option value="off">Off</option>
-                <option value="low" selected>Low</option>
-                <option value="standard">Standard</option>
-              </select>
-              <div class="helperText">Controls short local feedback sounds separately from speech.</div>
-            </div>
-            <div>
-              <label for="celebrationIntensity">Celebrations</label>
-              <select id="celebrationIntensity">
-                <option value="quiet">Quiet</option>
-                <option value="gentle" selected>Gentle</option>
-                <option value="lively">Lively</option>
-              </select>
-              <div class="helperText">Adjusts reward movement and sound without changing scores.</div>
-            </div>
-            <div style="align-self:end">
-              <button id="soundPreviewBtn" type="button">Preview sound</button>
-            </div>
-          </div>
-          <div id="preferencePreview" class="preferencePreview" aria-live="polite">
-            <strong>Clear, calm and ready</strong>
-            <span>This preview uses the selected text size, motion and feedback preferences.</span>
-          </div>
-        </div>
 
         <div class="sessionReadiness" aria-live="polite">
           <div class="sessionReadinessHeader">
@@ -482,7 +393,7 @@
           </div>
           <div class="sessionReadinessGrid">
             <div class="sessionReadinessItem">Pupil<b id="readinessPupil">Not selected</b></div>
-            <div class="sessionReadinessItem">Activity<b id="readinessTask">Current level</b></div>
+            <div class="sessionReadinessItem">Activity<b id="readinessTask">Touchscreen confidence (Auto advance)</b></div>
             <div class="sessionReadinessItem">Length<b id="readinessLength">3 minutes</b></div>
             <div class="sessionReadinessItem">Questions<b id="readinessQuestions">8</b></div>
           </div>
@@ -492,14 +403,9 @@
           <div class="controlGroupTitle">Questions and timing</div>
           <div class="teacherGrid">
             <div>
-              <label for="maxObjects">Maximum answer options</label>
-              <input id="maxObjects" type="number" min="2" max="6" value="4" />
-              <div class="helperText">The largest number of choices that can appear on screen at once.</div>
-            </div>
-            <div>
               <label for="sessionTaskType">Task for this session</label>
               <select id="sessionTaskType">
-                <option value="auto">Use the current level</option>
+                <option value="auto">Auto advance</option>
                 <option value="touch-screen">Touch screen</option>
                 <option value="touch-object">Touch object</option>
                 <option value="moving-target">Moving target</option>
@@ -513,7 +419,34 @@
                 <option value="cpat-orienting">AT orienting</option>
                 <option value="cpat-executive">AT executive control</option>
               </select>
-              <div class="helperText">Use the pupil's current level or choose one task type for this session.</div>
+              <div class="helperText">Select Auto advance to follow the pupil's named progression stage, or choose one task for this session.</div>
+            </div>
+            <div>
+              <label for="startLevel">Current Level for Auto Advance</label>
+              <select id="startLevel">
+                <option value="1">Touchscreen confidence</option>
+                <option value="2">Find a pictured object</option>
+                <option value="3">Track a moving object</option>
+                <option value="4">Find a named object</option>
+                <option value="5">Discriminate between objects</option>
+                <option value="6">Category reasoning</option>
+                <option value="7">Sustained attention</option>
+                <option value="8">Selective-spatial attention</option>
+                <option value="9">Orienting attention</option>
+                <option value="10">Executive attention</option>
+              </select>
+              <div class="helperText">Auto Advance Stage the pupil will begin today.</div>
+              <div id="currentLevelDescription" class="levelSummary" aria-live="polite">Touchscreen confidence: any touch in the panel counts.</div>
+            </div>
+            <div>
+              <label>Session flow</label>
+              <label class="toggle"><input id="autoAdvance" type="checkbox" checked /> Auto advance</label>
+              <div class="helperText">Moves to the next question automatically after feedback. Turn it off to use Next or Repeat.</div>
+            </div>
+            <div>
+              <label for="maxObjects">Maximum answer options</label>
+              <input id="maxObjects" type="number" min="2" max="6" value="4" />
+              <div class="helperText">The largest number of choices that can appear on screen at once.</div>
             </div>
             <div>
               <label for="delaySec">Prompt delay (seconds)</label>
@@ -672,20 +605,26 @@
           </div>
           <div class="row" style="margin-top:8px">
             <label class="toggle"><input id="ttsLabelsToggle" type="checkbox" /> Speak selected label</label>
-            <label class="toggle"><input id="autoAdvance" type="checkbox" checked /> Auto advance</label>
           </div>
           <div class="helperText">Two-stage prompts show the instruction before the answers. Auto advance moves on without requiring the pupil or teacher to press Next.</div>
         </div>
         <div class="controlGroup">
-          <div class="controlGroupTitle">Optional blank screen between questions</div>
-          <div class="row">
-            <label class="toggle"><input id="useBlankInterval" type="checkbox" /> Show blank screen</label>
-            <div style="flex:1 1 160px">
-              <label for="blankIntervalSec">Blank duration (seconds)</label>
-              <input id="blankIntervalSec" type="number" min="0.25" max="10" step="0.25" value="1" />
+          <div class="controlGroupTitle">Optional blank screens</div>
+          <div class="blankOptionGrid">
+            <div class="blankOption">
+              <label class="toggle"><input id="usePromptAnswerBlank" type="checkbox" /> Between Q&amp;A Screens</label>
+              <div class="helperText">Adds a gap between prompt and answer screens in two-stage prompt mode to increase the memory challenge of tasks.</div>
+            </div>
+            <div class="blankOption">
+              <label class="toggle"><input id="useBlankInterval" type="checkbox" /> Between questions</label>
+              <div class="helperText">Adds a calm, empty pause after feedback and before the next question. Leave it off if the pupil benefits from a continuous flow.</div>
             </div>
           </div>
-          <div class="helperText">Adds a calm, empty pause after feedback and before the next question. Leave it off if the pupil benefits from a continuous flow.</div>
+          <div style="margin-top:10px;max-width:260px">
+            <label for="blankIntervalSec">Blank duration (seconds)</label>
+            <input id="blankIntervalSec" type="number" min="0.25" max="10" step="0.25" value="1" />
+            <div class="helperText">Sets the duration used by either blank-screen option.</div>
+          </div>
         </div>
         <section id="findObjectConfig" class="taskConfig" hidden>
           <div class="controlGroupTitle">Find object content</div>
@@ -714,7 +653,7 @@
           <div id="findCategoryConfigSummary" class="configSummary" role="status"></div>
         </section>
         <div class="taskConfig">
-          <div class="helperText"><b>Discriminate object</b> currently asks the learner to choose one named item from two options. It does not yet guarantee visually similar alternatives; the numeric level sequence is unchanged.</div>
+          <div class="helperText"><b>Discriminate object</b> currently asks the learner to choose one named item from two options. It does not yet guarantee visually similar alternatives; the progression sequence is unchanged.</div>
         </div>
         <div id="sessionSetupStatus" class="configSummary" hidden role="alert"></div>
         <div class="row">
@@ -728,6 +667,95 @@
           <button id="fullscreenBtn">Fullscreen</button>
         </div>
         <div class="helperText"><b>Start session</b> begins a fresh session using the settings currently shown. <b>Reset session</b> clears the current unsaved attempt and returns to the welcome screen; it keeps the pupil profile, saved settings, and stored session history. Use Download session to save a school-friendly JSON file.</div>
+      </div>
+    </details>
+
+    <details class="section menuSection teacherSection" data-teacher-view="today" open>
+      <summary>Sensory and Display Preferences</summary>
+      <div class="menuBody">
+        <div class="sectionIntro">
+          <span class="sectionTag">Teacher Panel</span>
+          <div class="helperText">Adjust the learner view for the current pupil and device. These presentation choices do not change scoring.</div>
+        </div>
+        <div class="sensoryGrid">
+          <div>
+            <label for="themeChoice">Theme</label>
+            <select id="themeChoice">
+              <option value="calm-light">Calm Light</option>
+              <option value="calm-blue">Calm Blue</option>
+              <option value="soft-green">Soft Green</option>
+              <option value="warm-neutral">Warm Neutral</option>
+              <option value="high-contrast">High Contrast</option>
+              <option value="low-stimulation-dark">Low Stimulation Dark</option>
+              <option value="light-classroom">Light Classroom</option>
+              <option value="plain-white">Plain White</option>
+            </select>
+            <div class="helperText">Choose a colour theme that feels comfortable for the learner and classroom.</div>
+          </div>
+          <div>
+            <label for="fontChoice">Text style</label>
+            <select id="fontChoice">
+              <option value="high-legibility">High legibility</option>
+              <option value="familiar">Familiar system font</option>
+            </select>
+            <div class="helperText">Changes the letter style without changing the task.</div>
+          </div>
+          <div>
+            <label for="textScale">Text size</label>
+            <select id="textScale">
+              <option value="0.9">Compact</option>
+              <option value="1" selected>Standard</option>
+              <option value="1.15">Large</option>
+              <option value="1.3">Extra large</option>
+            </select>
+            <div class="helperText">Increases prompts and controls across the learner view.</div>
+          </div>
+          <div>
+            <label for="itemSizePreset">Learner item size</label>
+            <select id="itemSizePreset">
+              <option value="auto" selected>Automatic (recommended)</option>
+              <option value="compact">Compact</option>
+              <option value="standard">Standard</option>
+              <option value="large">Large</option>
+              <option value="custom" hidden>Custom (Admin)</option>
+            </select>
+            <div class="helperText">Automatic fits answer images and choices to the available screen. Use Compact only when a learner benefits from seeing more space around each item.</div>
+          </div>
+          <div>
+            <label for="motionPreference">Motion</label>
+            <select id="motionPreference">
+              <option value="reduced">Reduced</option>
+              <option value="gentle" selected>Gentle</option>
+              <option value="full">Full</option>
+            </select>
+            <div class="helperText">Reduced motion removes decorative movement and fast transitions.</div>
+          </div>
+          <div>
+            <label for="feedbackSoundMode">Feedback sounds</label>
+            <select id="feedbackSoundMode">
+              <option value="off">Off</option>
+              <option value="low" selected>Low</option>
+              <option value="standard">Standard</option>
+            </select>
+            <div class="helperText">Controls short local feedback sounds separately from speech.</div>
+          </div>
+          <div>
+            <label for="celebrationIntensity">Celebrations</label>
+            <select id="celebrationIntensity">
+              <option value="quiet">Quiet</option>
+              <option value="gentle" selected>Gentle</option>
+              <option value="lively">Lively</option>
+            </select>
+            <div class="helperText">Adjusts reward movement and sound without changing scores.</div>
+          </div>
+          <div style="align-self:end">
+            <button id="soundPreviewBtn" type="button">Preview sound</button>
+          </div>
+        </div>
+        <div id="preferencePreview" class="preferencePreview" aria-live="polite">
+          <strong>Clear, calm and ready</strong>
+          <span>This preview uses the selected theme, text size, item size, motion and feedback preferences.</span>
+        </div>
       </div>
     </details>
 
@@ -809,7 +837,7 @@
         <div class="row" style="margin-top:8px">
           <label class="toggle"><input id="autoLevelPath" type="checkbox" checked /> Auto level path</label>
         </div>
-        <div class="helperText">Auto level path automatically follows the numbered progression. Single-target first stage affects mixed sessions only when that path is off. Performance mode keeps touch logging lighter for tablets and touchscreens.</div>
+        <div class="helperText">Auto level path automatically follows the named progression stages. Single-target first stage affects mixed sessions only when that path is off. Performance mode keeps touch logging lighter for tablets and touchscreens.</div>
       </div>
     </details>
 
@@ -1370,8 +1398,8 @@
           </div>
         </section>
 
-        <section class="screen blankScreen" id="screenBlank" aria-label="Pause between questions">
-          <span class="blankIndicator">Pause between questions</span>
+        <section class="screen blankScreen" id="screenBlank" aria-label="Blank screen pause">
+          <span class="blankIndicator" id="blankIndicator">Pause</span>
         </section>
 
         <section class="screen" id="screenBreak">
