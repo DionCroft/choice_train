@@ -1,6 +1,6 @@
 # ChoiceTrain User Guide
 
-**Published version:** `V1.7.0`
+**Published version:** `V1.7.1`
 **Project:** ChoiceTrain for ShowMe  
 **Repository:** https://github.com/DionCroft/choice_train  
 **Live site:** https://dioncroft.github.io/choice_train/
@@ -30,15 +30,15 @@ ChoiceTrain is designed to:
 
 ChoiceTrain is a **teaching and research-support tool**. It is **not** a diagnostic, medical, or clinical system.
 
-### About V1.7.0
+### About V1.7.1
 
-V1.7.0 is the published GitHub Pages build. To open the same version locally after starting a server from the repository root, use:
+V1.7.1 is the published GitHub Pages build. To open the same version locally after starting a server from the repository root, use:
 
-`http://localhost:8000/choice_train_V1.7.0.html`
+`http://localhost:8000/choice_train_V1.7.1.html`
 
 The release passed the automated engineering gate, but schools should still approve their own usability, safeguarding, consent, privacy, retention, and device processes before using identifiable pupil data.
 
-The automated repository matrix contains 77 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
+The automated repository matrix contains 82 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
 
 ---
 
@@ -76,6 +76,7 @@ Teachers and TAs can use it to:
 - add an optional timed blank screen between questions
 - add context notes
 - choose a theme
+- choose learner item size when Automatic needs adjusting for an individual pupil
 - enable or disable speech
 - upload personalised photos
 - start, reset, or export a session
@@ -91,7 +92,7 @@ It includes:
 - heatmaps and detailed analytics
 - Attention Training settings
 - auto level path
-- touch scaling
+- custom item scaling
 - advanced export options
 - build and version information
 - research and fidelity settings
@@ -100,7 +101,7 @@ The Admin Panel is hidden by default and is intended for advanced users rather t
 
 ### V1.7 Workspace Navigation
 
-V1.7.0 gives each role a focused workspace:
+V1.7.1 gives each role a focused workspace:
 
 - `Today` contains pupil selection, session readiness, daily settings, context and the primary start action.
 - `Personalise` contains pupil baseline preferences, images, categories and content choices.
@@ -292,6 +293,17 @@ ChoiceTrain avoids medical or diagnostic wording here. These notes are for class
 
 Settings save locally as they are changed. `Save pupil preferences` also applies the selected prompt style to the text, image, and speech controls and displays a save confirmation.
 
+### Learner Item Size and Small Screens
+
+Use `Today` > `Sensory and display preferences` > `Learner item size` when preparing a session:
+
+- `Automatic (recommended)` fits the answer layout to the available screen and is the best starting point across school devices.
+- `Compact` leaves more surrounding space when a learner can use smaller targets.
+- `Standard` keeps the normal fixed item size.
+- `Large` increases targets when the activity has enough room.
+
+The app automatically arranges five or six answers into a dense grid on smaller screens. Teachers should not normally need browser zoom, and the Admin `Custom item scale (%)` setting is not whole-page zoom. If a device still clips content, return to `Automatic`, rotate the device once, and use the hosted site rather than opening the file directly. A deliberate drag across an answer is treated as movement rather than a selection.
+
 `Reset session` clears the current unsaved attempt and returns to the welcome screen. It keeps the pupil profile, saved settings, and stored session history.
 
 After a response, `Auto advance` can move to the next task automatically. If auto advance is off, use `Next` or `Repeat`. Those controls stay available when the reward screen is disabled; the learner sees concise feedback rather than a star celebration.
@@ -456,14 +468,15 @@ Themes are intended as configurable classroom presentation options. Teachers sho
 
 Theme choice is stored locally and may also follow the selected pupil profile on that device.
 
-In V1.7.0, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
+In V1.7.1, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
 
-### Alpha Display and Sensory Preferences
+### Display and Sensory Preferences
 
-V1.7.0 adds:
+V1.7.1 provides:
 
 - high-legibility or familiar sans-serif font
 - 90%, 100%, 115% or 130% text size
+- automatic, compact, standard, or large learner-item sizing
 - reduced, gentle or full motion
 - off, low or standard feedback sounds
 - quiet, gentle or lively celebrations
@@ -474,7 +487,7 @@ Atkinson Hyperlegible Next is bundled locally as the high-legibility option. It 
 
 ### Reward and Sound
 
-V1.7.0 uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
+V1.7.1 uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
 
 Feedback cues are generated locally on the device. They can be muted, do not use a microphone and are not recordings. ChoiceTrain stops active tones before speaking a prompt to reduce overlap. In a research session, audio and reward onset are logged so presentation conditions can be interpreted.
 

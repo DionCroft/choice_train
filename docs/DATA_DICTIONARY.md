@@ -1,6 +1,6 @@
 # ChoiceTrain Data Dictionary
 
-This dictionary documents the principal exported and locally stored fields used by the stable V1.7.0 application. It is an implementation reference, not a clinical scoring manual.
+This dictionary documents the principal exported and locally stored fields used by the stable V1.7.1 application. It is an implementation reference, not a clinical scoring manual.
 
 ## Data Principles
 
@@ -8,7 +8,7 @@ This dictionary documents the principal exported and locally stored fields used 
 - Ordinary session exports omit raw image bytes and retain labels or content metadata.
 - Context notes and pupil aliases can still be personal data.
 - No field is a diagnosis, medical finding, or validated measure unless a future protocol establishes that separately.
-- V1.7.0 uses export schema version 4.
+- V1.7.1 uses export schema version 4.
 
 ## Core Export Fields
 
@@ -16,7 +16,7 @@ This dictionary documents the principal exported and locally stored fields used 
 | --- | --- | --- | --- |
 | `app` | string | Application name | Low |
 | `schema_version` | number | Export structure version | Low |
-| `build.version` | string | Runtime version, for example `1.7.0` | Low |
+| `build.version` | string | Runtime version, for example `1.7.1` | Low |
 | `build.channel` | string | Release channel such as stable or alpha | Low |
 | `pupil_alias` / learner identity fields | string | School-selected name or alias | Personal |
 | `date` / timestamps | ISO string or epoch | Session and event timing | Personal when linked |
@@ -31,7 +31,7 @@ This dictionary documents the principal exported and locally stored fields used 
 | `trials` | array | Trial-level prompts, options, responses and outcomes | Research/educational |
 | `events` / `eeg_markers` | array | Time-ordered runtime events | Research |
 
-## V1.7.0 Sensory Preferences
+## V1.7.1 Sensory Preferences
 
 `sensory_preferences` is included in the session overview and research context:
 
@@ -39,6 +39,7 @@ This dictionary documents the principal exported and locally stored fields used 
 | --- | --- | --- |
 | `font` | `high-legibility`, `familiar` | Selected interface font path |
 | `text_scale` | `0.9`, `1`, `1.15`, `1.3` | Interface text multiplier |
+| `item_size_preset` | `auto`, `compact`, `standard`, `large`, `custom` | Learner target-layout preference; `auto` adapts to the available viewport |
 | `motion` | `reduced`, `gentle`, `full` | Animation intensity |
 | `feedback_sound` | `off`, `low`, `standard` | Generated sound level |
 | `celebration_intensity` | `quiet`, `gentle`, `lively` | Reward presentation level |

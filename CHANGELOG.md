@@ -2,6 +2,27 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.7.1] - 2026-11-13
+
+### Fixed
+
+- corrected automatic learner-item scaling, which previously enlarged targets on smaller displays and could push five- or six-choice activities outside the visible area
+- added a dense, viewport-aware answer layout for iPad-, Kindle-, phone-, and short-laptop-sized screens without requiring browser zoom
+- prevented a finger movement intended to scroll from being recorded as an answer
+- recalculated learner layout from the visual viewport after resize and orientation changes
+
+### Added
+
+- added a plain-language `Learner item size` control to Teacher setup with `Automatic (recommended)`, `Compact`, `Standard`, and `Large` presets
+- retained the numerical scale as an Admin-only custom item scale and clarified that it is not whole-page browser zoom
+- included the item-size preset in pupil preferences and session exports
+- added six-choice one-stage regression coverage for 768x1024 iPad, 600x960 Kindle, 1366x768 laptop, and 390x844 phone viewports
+- expanded the synthetic visual audit from 17 to 20 views with dedicated six-choice device captures
+
+### Release boundary
+
+- the responsive changes address an anonymised school-trial usability finding; physical Safari and Kindle Silk checks remain part of ongoing device validation
+
 ## [1.7.0] - 2026-11-07
 
 ### Promoted

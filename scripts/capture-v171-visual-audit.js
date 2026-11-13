@@ -5,8 +5,8 @@ const { spawn } = require('child_process');
 const { chromium } = require('@playwright/test');
 
 const rootDir = path.resolve(__dirname, '..');
-const baseUrl = 'http://127.0.0.1:4173/choice_train_V1.7.0.html';
-const outputDir = path.join(rootDir, 'test-results', 'v170-visual-audit');
+const baseUrl = 'http://127.0.0.1:4173/choice_train_V1.7.1.html';
+const outputDir = path.join(rootDir, 'test-results', 'v171-visual-audit');
 let serverProcess = null;
 
 function wait(ms) {
@@ -56,6 +56,8 @@ async function configureLearner(page, options = {}) {
   await setValue(page, 'themeChoice', options.theme || 'calm-light');
   await setValue(page, 'startLevel', options.level || 4);
   await setValue(page, 'sessionMax', options.questions || 2);
+  if (options.task) await setValue(page, 'sessionTaskType', options.task);
+  if (options.maxObjects) await setValue(page, 'maxObjects', options.maxObjects);
   await page.locator('#quickStartSessionBtn').click();
   await page.locator('#screenChoice.active').waitFor({ state: 'visible' });
 }
@@ -133,6 +135,9 @@ async function main() {
     });
     await capture(browser, manifest, 'learner-tablet', { width: 820, height: 1180 }, page => configureLearner(page));
     await capture(browser, manifest, 'learner-mobile', { width: 390, height: 844 }, page => configureLearner(page, { level: 2 }));
+    await capture(browser, manifest, 'six-choice-ipad', { width: 768, height: 1024 }, page => configureLearner(page, { level: 6, task: 'find-object', maxObjects: 6 }));
+    await capture(browser, manifest, 'six-choice-kindle', { width: 600, height: 960 }, page => configureLearner(page, { level: 6, task: 'find-object', maxObjects: 6 }));
+    await capture(browser, manifest, 'six-choice-short-laptop', { width: 1366, height: 768 }, page => configureLearner(page, { level: 6, task: 'find-object', maxObjects: 6 }));
 
     const themes = ['calm-light', 'calm-blue', 'soft-green', 'warm-neutral', 'high-contrast', 'low-stimulation-dark', 'light-classroom', 'plain-white'];
     for (const theme of themes) {
@@ -147,7 +152,7 @@ async function main() {
     path.join(outputDir, 'manifest.json'),
     `${JSON.stringify({ generated_at: new Date().toISOString(), captures: manifest }, null, 2)}\n`
   );
-  process.stdout.write(`Captured ${manifest.length} V1.7 visual-audit views in ${outputDir}\n`);
+  process.stdout.write(`Captured ${manifest.length} V1.7.1 visual-audit views in ${outputDir}\n`);
 }
 
 main().catch(error => {

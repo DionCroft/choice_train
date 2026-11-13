@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
 
-const APP_PATH = '/choice_train_V1.7.0.html';
+const APP_PATH = '/choice_train_V1.7.1.html';
 
 function trackErrors(page) {
   const errors = [];
@@ -40,13 +40,52 @@ async function exportJson(page) {
   return JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
 }
 
-test('V1.7.0 stable loads its product shell without browser errors', async ({ page }) => {
+async function startSixChoiceLearnerSession(page) {
+  await gotoAlpha(page);
+  await setCheckbox(page, 'ttsToggle', false);
+  await setCheckbox(page, 'useTwoStage', false);
+  await setCheckbox(page, 'useReward', false);
+  await setCheckbox(page, 'autoAdvance', false);
+  await setCheckbox(page, 'useBlankInterval', false);
+  await setValue(page, 'sessionTaskType', 'find-object');
+  await setValue(page, 'startLevel', 6);
+  await setValue(page, 'sessionMax', 1);
+  await setValue(page, 'maxObjects', 6);
+  await page.locator('#quickStartSessionBtn').click();
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+  await expect(page.locator('#choiceGrid button.choice')).toHaveCount(6);
+}
+
+async function denseChoiceLayout(page) {
+  return page.evaluate(() => {
+    const viewport = { width: innerWidth, height: innerHeight };
+    const play = document.querySelector('#playArea').getBoundingClientRect();
+    const grid = document.querySelector('#choiceGrid').getBoundingClientRect();
+    const cards = Array.from(document.querySelectorAll('#choiceGrid button.choice')).map(node => {
+      const rect = node.getBoundingClientRect();
+      return { top: rect.top, right: rect.right, bottom: rect.bottom, left: rect.left };
+    });
+    const screen = document.querySelector('#screenChoice');
+    return {
+      viewport,
+      play: { top: play.top, right: play.right, bottom: play.bottom, left: play.left },
+      grid: { top: grid.top, right: grid.right, bottom: grid.bottom, left: grid.left },
+      cards,
+      columns: getComputedStyle(document.querySelector('#choiceGrid')).gridTemplateColumns.split(' ').length,
+      screenOverflow: screen.scrollHeight - screen.clientHeight,
+      documentOverflowX: document.documentElement.scrollWidth - innerWidth,
+      documentOverflowY: document.documentElement.scrollHeight - innerHeight
+    };
+  });
+}
+
+test('V1.7.1 stable loads its product shell without browser errors', async ({ page }) => {
   const errors = trackErrors(page);
   await gotoAlpha(page);
-  await expect(page).toHaveTitle(/V1\.7\.0(?: \(Offline\))?$/);
-  await expect(page.locator('#versionInfo')).toContainText('V1.7.0');
-  await expect(page.locator('.releaseRibbon')).toContainText('V1.7.0 stable');
-  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.0.html');
+  await expect(page).toHaveTitle(/V1\.7\.1(?: \(Offline\))?$/);
+  await expect(page.locator('#versionInfo')).toContainText('V1.7.1');
+  await expect(page.locator('.releaseRibbon')).toContainText('V1.7.1 stable');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.1.html');
   await expect(page.locator('body')).toHaveClass(/panel-view-teacher/);
   expect(errors, errors.join('\n')).toEqual([]);
 });
@@ -167,7 +206,7 @@ test('staff workspace uses one semantic product palette', async ({ page }) => {
 });
 
 test('V1.7 component styles do not bypass semantic colour tokens', () => {
-  const css = fs.readFileSync('choice_train_V1.7.0.css', 'utf8');
+  const css = fs.readFileSync('choice_train_V1.7.1.css', 'utf8');
   const componentCss = css.slice(css.indexOf('html {'));
   expect(componentCss).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
 });
@@ -428,7 +467,7 @@ test('admin export centre provides a complete local session export', async ({ pa
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_.+_session\.json$/);
   const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
-  expect(payload.build.version).toBe('1.7.0');
+  expect(payload.build.version).toBe('1.7.1');
   expect(payload).toHaveProperty('trials');
   expect(payload).toHaveProperty('eeg_markers');
   expect(payload).toHaveProperty('sensory_preferences');
@@ -465,16 +504,19 @@ test('sensory and display preferences persist and apply immediately', async ({ p
   await gotoAlpha(page);
   await setValue(page, 'fontChoice', 'familiar');
   await setValue(page, 'textScale', '1.15');
+  await setValue(page, 'itemSizePreset', 'compact');
   await setValue(page, 'motionPreference', 'reduced');
   await setValue(page, 'feedbackSoundMode', 'off');
   await setValue(page, 'celebrationIntensity', 'quiet');
   await expect(page.locator('body')).toHaveClass(/font-familiar/);
   await expect(page.locator('body')).toHaveClass(/motion-reduced/);
   await expect(page.locator('#preferencePreview')).toContainText('115% text');
+  await expect(page.locator('#preferencePreview')).toContainText('compact item sizing');
   await page.waitForTimeout(350);
   await page.reload();
   await expect(page.locator('#fontChoice')).toHaveValue('familiar');
   await expect(page.locator('#textScale')).toHaveValue('1.15');
+  await expect(page.locator('#itemSizePreset')).toHaveValue('compact');
   await expect(page.locator('#motionPreference')).toHaveValue('reduced');
   await expect(page.locator('#feedbackSoundMode')).toHaveValue('off');
   await expect(page.locator('#celebrationIntensity')).toHaveValue('quiet');
@@ -614,17 +656,19 @@ test('V1.7 exports include sensory preferences and sound metadata', async ({ pag
   await setValue(page, 'themeChoice', 'calm-light');
   await setValue(page, 'fontChoice', 'high-legibility');
   await setValue(page, 'textScale', '1.3');
+  await setValue(page, 'itemSizePreset', 'compact');
   await setValue(page, 'motionPreference', 'gentle');
   await setValue(page, 'feedbackSoundMode', 'low');
   await setValue(page, 'celebrationIntensity', 'lively');
   await page.locator('#soundPreviewBtn').click();
   const payload = await exportJson(page);
-  expect(payload.build.version).toBe('1.7.0');
+  expect(payload.build.version).toBe('1.7.1');
   expect(payload.schema_version).toBe(4);
   expect(payload.session_overview.theme_used).toBe('calm-light');
   expect(payload.session_overview.sensory_preferences).toEqual({
     font: 'high-legibility',
     text_scale: 1.3,
+    item_size_preset: 'compact',
     motion: 'gentle',
     feedback_sound: 'low',
     celebration_intensity: 'lively'
@@ -648,6 +692,54 @@ test('tablet learner layout keeps large controls and a two-column choice surface
   const box = await target.boundingBox();
   expect(box.width).toBeGreaterThanOrEqual(150);
   expect(box.height).toBeGreaterThanOrEqual(180);
+});
+
+for (const device of [
+  { name: 'iPad portrait', width: 768, height: 1024, expectedColumns: 3 },
+  { name: 'Kindle portrait', width: 600, height: 960, expectedColumns: 3 },
+  { name: 'short laptop', width: 1366, height: 768, expectedColumns: 3 },
+  { name: 'phone portrait', width: 390, height: 844, expectedColumns: 2 }
+]) {
+  test(`six-choice one-stage activity fits the ${device.name} viewport`, async ({ page }) => {
+    await page.setViewportSize({ width: device.width, height: device.height });
+    await startSixChoiceLearnerSession(page);
+    await expect(page.locator('#choiceGrid')).toHaveClass(/choiceGrid--dense/);
+    const layout = await denseChoiceLayout(page);
+    expect(layout.columns).toBe(device.expectedColumns);
+    expect(layout.screenOverflow).toBeLessThanOrEqual(1);
+    expect(layout.documentOverflowX).toBeLessThanOrEqual(2);
+    expect(layout.documentOverflowY).toBeLessThanOrEqual(2);
+    layout.cards.forEach(card => {
+      expect(card.left).toBeGreaterThanOrEqual(layout.play.left - 1);
+      expect(card.right).toBeLessThanOrEqual(layout.play.right + 1);
+      expect(card.top).toBeGreaterThanOrEqual(layout.play.top - 1);
+      expect(card.bottom).toBeLessThanOrEqual(layout.play.bottom + 1);
+      expect(card.right).toBeLessThanOrEqual(layout.viewport.width + 1);
+      expect(card.bottom).toBeLessThanOrEqual(layout.viewport.height + 1);
+    });
+  });
+}
+
+test('moving a finger to scroll does not select an answer', async ({ page }) => {
+  await page.setViewportSize({ width: 600, height: 960 });
+  await startSixChoiceLearnerSession(page);
+  const firstChoice = page.locator('#choiceGrid button.choice').first();
+  await firstChoice.evaluate(node => {
+    const dispatchTouch = (type, touches, changedTouches=touches) => {
+      const event = new Event(type, { bubbles: true, cancelable: true });
+      Object.defineProperties(event, {
+        touches: { value: touches },
+        changedTouches: { value: changedTouches }
+      });
+      node.dispatchEvent(event);
+    };
+    dispatchTouch('touchstart', [{ clientX: 80, clientY: 220 }]);
+    dispatchTouch('touchmove', [{ clientX: 80, clientY: 285 }]);
+    dispatchTouch('touchend', [], [{ clientX: 80, clientY: 285 }]);
+  });
+  await expect(page.locator('#screenChoice.active')).toBeVisible();
+  await expect(page.locator('#screenReward.active')).toHaveCount(0);
+  await expect(page.locator('#choiceGrid button.choice.correct, #choiceGrid button.choice.incorrect')).toHaveCount(0);
 });
 
 test('mobile learner layout stays within the viewport', async ({ page }) => {

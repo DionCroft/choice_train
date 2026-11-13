@@ -6,7 +6,7 @@
     "test:browser": "node scripts/run-browser-tests.js",
     "test:browser:headed": "node scripts/run-browser-tests.js --headed",
     "test:browser:ui": "node scripts/run-browser-tests.js --ui",
-    "audit:visual:v170": "node scripts/capture-v170-visual-audit.js"
+    "audit:visual:v171": "node scripts/capture-v171-visual-audit.js"
   },
   "devDependencies": {
     "@playwright/test": "^1.54.1"

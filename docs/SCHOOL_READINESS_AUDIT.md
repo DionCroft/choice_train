@@ -1,8 +1,8 @@
 # ChoiceTrain School-Readiness Audit
 
-**Audit date:** 7 November 2026
+**Audit date:** 13 November 2026
 
-**Published release:** `V1.7.0`
+**Published release:** `V1.7.1`
 
 **Reviewed candidate:** `V1.7.0-alpha`, promoted to stable V1.7.0
 **Purpose:** Prepare ChoiceTrain for initial teacher-led pupil testing at Brackensfield while preserving the existing learner, research, EEG, analytics, personalisation, and export features.
@@ -12,6 +12,8 @@
 The immediate usability scope was implemented in `V1.5.0`. `V1.6.0` adds teacher-controlled category catalogues and per-session content filters without changing the established level meanings. A broader automatic progression hierarchy remains deliberately deferred for practitioner design.
 
 `V1.7.0` promotes the reviewed product-readiness candidate. It separates teacher, learner, and admin/research workspaces; adds configurable legibility and sensory presentation; introduces an original train progress reward and local generated sounds; and applies a consistent semantic colour system across all workspaces, themes, states, and runtime visuals. It changes the live `index.html` without changing the established learning pathway.
+
+`V1.7.1` responds to anonymised first-use school feedback that six answers could overflow on iPad, Kindle, and some laptop displays, and that attempting to scroll could select an answer. The update keeps the V1.7.0 learning pathway while adding automatic item fitting, a simple Teacher size preset, visual-viewport relayout, and gesture cancellation.
 
 ### V1.7 Release Status
 
@@ -41,11 +43,11 @@ The detailed protocol and acceptance criteria are in [V1.7.0_USABILITY_TEST_PLAN
 
 Stable release validation completed:
 
-- JavaScript syntax check passed for `choice_train_V1.7.0.js`
-- `index.html` is byte-identical to `choice_train_V1.7.0.html`
-- all 77 Playwright tests passed together: 56 broad regression/archive checks and 21 V1.7-specific checks
+- JavaScript syntax check passed for `choice_train_V1.7.1.js`
+- `index.html` is byte-identical to `choice_train_V1.7.1.html`
+- all 82 Playwright tests passed together: 56 broad regression/archive checks and 26 V1.7-specific checks
 - the V1.7 checks include focused workspace navigation, staff and learner contrast, semantic-token completeness, runtime theme colours, local-only requests, sensory persistence, reduced motion, learner containment, reward and reward-disabled flows, export metadata, and tablet/mobile sizing
-- the repeatable visual audit produced 17 synthetic-data captures spanning teacher, Admin, active learner, reward, reward-disabled feedback, break, tablet, mobile, and every theme
+- the repeatable visual audit produced 20 synthetic-data captures spanning teacher, Admin, active learner, reward, reward-disabled feedback, break, tablet, mobile, dedicated six-choice device layouts, and every theme
 - the tested version retains the static GitHub Pages deployment model
 
 ## Feedback Outcomes
@@ -62,6 +64,7 @@ Stable release validation completed:
 | Blank interval | There is an inter-trial delay but no configurable blank learner screen. | Add an optional blank inter-trial screen and duration, off by default to preserve existing behavior. |
 | Teacher view control | `Teacher view` is redundant in desktop mode because Teacher/Admin tabs already control the panel. | Remove the redundant desktop button and retain the floating return control from learner mode. |
 | Granular progression | V1.6.0 now supports per-pupil, per-task session filters for Find object and Find category. | Keep automatic category-by-level progression as a separately designed follow-up so the established level sequence remains understandable. |
+| Six-answer device fit | Dense one-stage activities could require scrolling on smaller school displays, and a scroll gesture could activate a choice. | V1.7.1 fits dense tasks automatically, adds a Teacher item-size preset, and rejects moved touch gestures. |
 
 ## Additional Audit Findings
 
@@ -71,6 +74,7 @@ Stable release validation completed:
 - Resolved in `V1.5.0`: modern browsers use Pointer Events only, while older browsers receive separate touch and mouse fallbacks. This prevents dual Pointer/Touch emission from inflating raw research logs.
 - Resolved in `V1.7.0`: disabling both rewards and auto advance no longer traps the learner; the feedback surface keeps `Next` and `Repeat` available.
 - Resolved in `V1.7.0`: Admin history hydration no longer shifts the selected destination into a large blank area, and a 390-pixel mobile learner viewport retains the regulation controls.
+- Resolved in `V1.7.1`: automatic scaling no longer enlarges dense choices on smaller devices; six-answer iPad-, Kindle-, phone-, and laptop-sized layouts stay inside the learner viewport.
 
 ### Medium priority
 

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const APP_PATH = '/choice_train_V1.7.0.html';
+const APP_PATH = '/choice_train_V1.7.1.html';
 
 async function gotoApp(page) {
   await page.goto(APP_PATH);
@@ -85,12 +85,12 @@ function attachErrorTracking(page) {
   return errors;
 }
 
-test('live index loads the V1.7.0 stable build', async ({ page }) => {
+test('live index loads the V1.7.1 stable build', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await page.goto('/');
   await expect(page.locator('#beginFlow')).toBeVisible();
-  await expect(page.locator('#versionInfo')).toContainText('V1.7.0');
-  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.0.html');
+  await expect(page.locator('#versionInfo')).toContainText('V1.7.1');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.1.html');
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
@@ -768,7 +768,7 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("Attention Training terms")').click();
   await expect(page.getByText('Exploratory engagement is an in-app practice metric', { exact: false })).toBeVisible();
-  await page.locator('summary:has-text("V1.7.0 teacher, learner, and research guide")').click();
+  await page.locator('summary:has-text("V1.7.1 teacher, learner, and research guide")').click();
   await expect(page.locator('text=Traffic Lights')).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
