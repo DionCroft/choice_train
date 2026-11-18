@@ -2,6 +2,22 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.7.2] - 2026-11-18
+
+### Changed
+
+- separated the optional prompt-to-answer blank duration from the between-question blank duration
+- placed each duration beside its corresponding Teacher setting with plain-language guidance
+- retained independent event and export fields for the two timing conditions
+- migrated the former shared V1.7.1 duration into both controls when older saved settings are loaded
+- preserved the legacy `blank_interval_ms` export as the between-question value for downstream compatibility
+
+### Validated
+
+- added regression coverage for independent exported durations and legacy-settings migration
+- added a dedicated visual-audit capture for the two teacher-facing duration controls
+- retained the responsive iPad, Kindle, phone, laptop, learner, Attention Training, EEG, export, history, photo, theme, and local-only checks
+
 ## [1.7.1] - 2026-11-13
 
 ### Fixed

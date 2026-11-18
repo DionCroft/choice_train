@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>ChoiceTrain for ShowMe V1.7.1</title>
+  <title>ChoiceTrain for ShowMe V1.7.2</title>
   <style>
     :root{
       --bg:#0a1019; --panel:#121a27; --panel2:#0f1724; --text:#e8eefb; --muted:#9fb0d0;
@@ -284,7 +284,7 @@
       .editorPreview{min-height:220px;padding:10px}
     }
   </style>
-  <link rel="stylesheet" href="choice_train_V1.7.1.css" />
+  <link rel="stylesheet" href="choice_train_V1.7.2.css" />
 </head>
 <body>
 <a class="skipLink" href="#playArea">Skip to learner activity</a>
@@ -297,7 +297,7 @@
           <div class="brandEyebrow">Developed for ShowMe</div>
           <div class="title">ChoiceTrain for ShowMe</div>
           <div class="sub">A local-first classroom workspace for personalised learning, Attention Training, progress review, and research-ready exports.</div>
-          <div class="releaseRibbon"><span aria-hidden="true">&#9679;</span> V1.7.1 stable workspace</div>
+          <div class="releaseRibbon"><span aria-hidden="true">&#9679;</span> V1.7.2 stable workspace</div>
         </div>
       </div>
       <div class="panelSwitch">
@@ -614,16 +614,21 @@
             <div class="blankOption">
               <label class="toggle"><input id="usePromptAnswerBlank" type="checkbox" /> Between Q&amp;A Screens</label>
               <div class="helperText">Adds a gap between prompt and answer screens in two-stage prompt mode to increase the memory challenge of tasks.</div>
+              <div class="blankDurationField">
+                <label for="promptAnswerBlankSec">Q&amp;A blank duration (seconds)</label>
+                <input id="promptAnswerBlankSec" type="number" min="0.25" max="10" step="0.25" value="1" />
+                <div class="helperText">How long the blank appears after the prompt and before the answers.</div>
+              </div>
             </div>
             <div class="blankOption">
               <label class="toggle"><input id="useBlankInterval" type="checkbox" /> Between questions</label>
               <div class="helperText">Adds a calm, empty pause after feedback and before the next question. Leave it off if the pupil benefits from a continuous flow.</div>
+              <div class="blankDurationField">
+                <label for="betweenQuestionBlankSec">Between-question duration (seconds)</label>
+                <input id="betweenQuestionBlankSec" type="number" min="0.25" max="10" step="0.25" value="1" />
+                <div class="helperText">How long the blank appears after feedback and before the next question.</div>
+              </div>
             </div>
-          </div>
-          <div style="margin-top:10px;max-width:260px">
-            <label for="blankIntervalSec">Blank duration (seconds)</label>
-            <input id="blankIntervalSec" type="number" min="0.25" max="10" step="0.25" value="1" />
-            <div class="helperText">Sets the duration used by either blank-screen option.</div>
           </div>
         </div>
         <section id="findObjectConfig" class="taskConfig" hidden>
@@ -1240,13 +1245,13 @@
         <div id="adminBuildSection" class="section adminAnchor" data-admin-pages="system" style="padding-top:14px">
           <div class="sub">About / Build Info</div>
           <div class="aboutGrid">
-            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.7.1</div></div>
+            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.7.2</div></div>
             <div class="dashCard"><div class="k">Status</div><div class="v" id="aboutChannel">Experimental</div></div>
             <div class="dashCard"><div class="k">Base commit</div><div class="v mono" id="aboutCommit">loading</div></div>
             <div class="dashCard"><div class="k">Build date</div><div class="v" id="aboutBuildDate">loading</div></div>
           </div>
           <div class="metaList">
-            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.7.1.html</b></div>
+            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.7.2.html</b></div>
             <div class="metaItem"><span>Published entry</span><b class="mono" id="aboutPublishedEntry">index.html</b></div>
             <div class="metaItem"><span>Live URL</span><b class="mono" id="aboutLiveUrl">https://dioncroft.github.io/choice_train/</b></div>
             <div class="metaItem"><span>Repository</span><b class="mono" id="aboutRepoUrl">https://github.com/DionCroft/choice_train</b></div>
@@ -1314,7 +1319,7 @@
         </div>
       </details>
       <details class="docsDetails">
-        <summary>V1.7.1 teacher, learner, and research guide</summary>
+        <summary>V1.7.2 teacher, learner, and research guide</summary>
         <div class="docsBody">
           <p><b>Teacher Panel</b> is designed for everyday classroom setup. Use it to select a pupil, choose a theme, add context notes, personalise content, and start or export a session quickly.</p>
           <p><b>Admin Panel</b> stays collapsed by default. Open it only when you need advanced analytics, Attention Training tuning, touch debugging, EEG preparation, or fidelity and research settings.</p>
@@ -1476,6 +1481,6 @@
   </div>
 </div>
 
-<script src="choice_train_V1.7.1.js"></script>
+<script src="choice_train_V1.7.2.js"></script>
 </body>
 </html>

@@ -1,6 +1,6 @@
 # ChoiceTrain User Guide
 
-**Published version:** `V1.7.1`
+**Published version:** `V1.7.2`
 **Project:** ChoiceTrain for ShowMe  
 **Repository:** https://github.com/DionCroft/choice_train  
 **Live site:** https://dioncroft.github.io/choice_train/
@@ -30,15 +30,15 @@ ChoiceTrain is designed to:
 
 ChoiceTrain is a **teaching and research-support tool**. It is **not** a diagnostic, medical, or clinical system.
 
-### About V1.7.1
+### About V1.7.2
 
-V1.7.1 is the published GitHub Pages build. To open the same version locally after starting a server from the repository root, use:
+V1.7.2 is the published GitHub Pages build. To open the same version locally after starting a server from the repository root, use:
 
-`http://localhost:8000/choice_train_V1.7.1.html`
+`http://localhost:8000/choice_train_V1.7.2.html`
 
 The release passed the automated engineering gate, but schools should still approve their own usability, safeguarding, consent, privacy, retention, and device processes before using identifiable pupil data.
 
-The automated repository matrix contains 82 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
+The automated repository matrix contains 85 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
 
 ---
 
@@ -101,7 +101,7 @@ The Admin Panel is hidden by default and is intended for advanced users rather t
 
 ### V1.7 Workspace Navigation
 
-V1.7.1 gives each role a focused workspace:
+V1.7.2 gives each role a focused workspace:
 
 - `Today` contains pupil selection, session readiness, daily settings, context and the primary start action.
 - `Personalise` contains pupil baseline preferences, images, categories and content choices.
@@ -315,7 +315,7 @@ Use either or both options under Session Controls:
 - `Between Q&A Screens` adds a blank after the prompt and before answer choices when two-stage prompt mode is on. This intentionally increases the memory challenge.
 - `Between questions` adds a calm pause after feedback and before the next question.
 
-`Blank duration` sets the time for both options from 0.25 to 10 seconds. Both are off by default and are logged and exported separately.
+`Q&A blank duration` sets the prompt-to-answer pause, while `Between-question duration` sets the pause after feedback. Each accepts 0.25 to 10 seconds. Both options are off by default and are logged and exported separately. When an existing V1.7.1 installation is upgraded, its former shared duration is copied into both new controls.
 
 ---
 
@@ -473,11 +473,11 @@ Themes are intended as configurable classroom presentation options. Teachers sho
 
 Theme choice is stored locally and may also follow the selected pupil profile on that device.
 
-In V1.7.1, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
+In V1.7.2, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
 
 ### Display and Sensory Preferences
 
-V1.7.1 provides:
+V1.7.2 provides:
 
 - high-legibility or familiar sans-serif font
 - 90%, 100%, 115% or 130% text size
@@ -492,7 +492,7 @@ Atkinson Hyperlegible Next is bundled locally as the high-legibility option. It 
 
 ### Reward and Sound
 
-V1.7.1 uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
+V1.7.2 uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
 
 Feedback cues are generated locally on the device. They can be muted, do not use a microphone and are not recordings. ChoiceTrain stops active tones before speaking a prompt to reduce overlap. In a research session, audio and reward onset are logged so presentation conditions can be interpreted.
 

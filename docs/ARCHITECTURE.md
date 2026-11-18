@@ -7,14 +7,15 @@ ChoiceTrain is a local-first static web application. It deliberately avoids a se
 ## Runtime
 
 - `index.html` is the published entry point.
-- `choice_train_V1.7.1.html` is the current versioned interface snapshot and matches `index.html`.
-- `choice_train_V1.7.1.js` contains application state, question generation, persistence, analytics, exports, accessibility behaviour, and research markers.
-- `choice_train_V1.7.1.css` contains the stable workspace and learner presentation layer.
+- `choice_train_V1.7.2.html` is the current versioned interface snapshot and matches `index.html`.
+- `choice_train_V1.7.2.js` contains application state, question generation, persistence, analytics, exports, accessibility behaviour, and research markers.
+- `choice_train_V1.7.2.css` contains the stable workspace and learner presentation layer.
+- `choice_train_V1.7.1.*` preserves the previous stable build and is not loaded by `index.html`.
 - `choice_train_V1.7.0.*` preserves the previous stable build and is not loaded by `index.html`.
 - `choice_train_V1.7.0-alpha.*` preserves the reviewed candidate for release traceability and is not loaded by `index.html`.
 - `assets/` contains local branding and font files; `LICENSES/` records third-party licences.
 
-## V1.7.1 Workspace Model
+## V1.7.2 Workspace Model
 
 V1.7 adds a presentation layer around the existing static runtime rather than replacing its learning and research model:
 
@@ -24,7 +25,7 @@ V1.7 adds a presentation layer around the existing static runtime rather than re
 
 The views share one application state and one set of DOM controls. Navigation changes visibility and focus; it does not create duplicate settings. Admin groups declare their destinations with `data-admin-pages`; a body-level destination state exposes only the groups relevant to Overview, Sessions, Learners, EEG, or System. Header-aware scrolling is deferred until the full-width layout and stored-history hydration settle. A 1.2-second hold gesture protects the learner-to-teacher return control from accidental taps, while keyboard activation remains immediate.
 
-Teacher progression remains numerically stored for backward compatibility, but the UI presents named stages. Task `auto` is labelled `Auto advance`; manual task values and historical exports remain unchanged. The two blank-screen settings share one duration but have separate state, event names, and export fields. The prompt-answer blank runs only in two-stage mode after prompt exposure and before `stimulus_onset`; the existing between-question blank remains after feedback.
+Teacher progression remains numerically stored for backward compatibility, but the UI presents named stages. Task `auto` is labelled `Auto advance`; manual task values and historical exports remain unchanged. The two blank-screen settings have independent durations, state, event names, and export fields. The prompt-answer blank runs only in two-stage mode after prompt exposure and before `stimulus_onset`; the between-question blank remains after feedback. When V1.7.2 loads an older settings record, the former shared duration is copied into both new controls. The legacy export fields continue to represent the between-question blank for downstream compatibility.
 
 ## Presentation and Audio
 
@@ -56,7 +57,7 @@ V1.7 exports include a `sensory_preferences` object containing the selected font
 - `tests/choice-train.spec.js` provides Playwright regression and visual smoke coverage.
 - `tests/choice-train-v170.spec.js` verifies the stable V1.7 workspace, theme, accessibility, export, and responsive-layout contract.
 - `scripts/run-browser-tests.js` starts the local static server and test process.
-- `npm run audit:visual:v171` uses the visual-audit script to create 22 ignored, synthetic-data screenshots and a bounds manifest for repeatable teacher-control, desktop, tablet, mobile, six-choice, state, and theme review.
+- `npm run audit:visual:v172` uses the visual-audit script to create 23 ignored, synthetic-data screenshots and a bounds manifest for repeatable teacher-control, independent blank-duration, desktop, tablet, mobile, six-choice, state, and theme review.
 - `.github/workflows/ci.yml` validates branches and pull requests.
 - `.github/workflows/pages.yml` reruns the browser suite before deploying `main` to GitHub Pages.
 
@@ -64,4 +65,4 @@ V1.7 exports include a `sensory_preferences` object containing the selected font
 
 Current versioned files stay at the root with `index.html`. Superseded snapshots move to `releases/` and remain unchanged. Release metadata is stamped with `scripts/stamp-build.ps1` after a candidate has passed the browser suite.
 
-A candidate can be pushed on a feature branch, but promotion requires the complete automated suite, documented review, a metadata stamp, and explicit product-owner approval. Promotion updates the stable versioned HTML, JavaScript, and CSS plus `index.html`; merely adding candidate files does not publish them. V1.7.1 passes 84 Playwright checks, while the visual audit remains review evidence rather than a screenshot-baseline gate. Physical school-device, staff, learner, privacy, and research-timing validation remain separate deployment and study-readiness activities.
+A candidate can be pushed on a feature branch, but promotion requires the complete automated suite, documented review, a metadata stamp, and explicit product-owner approval. Promotion updates the stable versioned HTML, JavaScript, and CSS plus `index.html`; merely adding candidate files does not publish them. V1.7.2 passes 85 Playwright checks, while the visual audit remains review evidence rather than a screenshot-baseline gate. Physical school-device, staff, learner, privacy, and research-timing validation remain separate deployment and study-readiness activities.

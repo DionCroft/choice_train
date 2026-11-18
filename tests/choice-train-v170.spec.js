@@ -1,7 +1,7 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
 
-const APP_PATH = '/choice_train_V1.7.1.html';
+const APP_PATH = '/choice_train_V1.7.2.html';
 
 function trackErrors(page) {
   const errors = [];
@@ -79,13 +79,13 @@ async function denseChoiceLayout(page) {
   });
 }
 
-test('V1.7.1 stable loads its product shell without browser errors', async ({ page }) => {
+test('V1.7.2 stable loads its product shell without browser errors', async ({ page }) => {
   const errors = trackErrors(page);
   await gotoAlpha(page);
-  await expect(page).toHaveTitle(/V1\.7\.1(?: \(Offline\))?$/);
-  await expect(page.locator('#versionInfo')).toContainText('V1.7.1');
-  await expect(page.locator('.releaseRibbon')).toContainText('V1.7.1 stable');
-  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.1.html');
+  await expect(page).toHaveTitle(/V1\.7\.2(?: \(Offline\))?$/);
+  await expect(page.locator('#versionInfo')).toContainText('V1.7.2');
+  await expect(page.locator('.releaseRibbon')).toContainText('V1.7.2 stable');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.2.html');
   await expect(page.locator('body')).toHaveClass(/panel-view-teacher/);
   expect(errors, errors.join('\n')).toEqual([]);
 });
@@ -206,7 +206,7 @@ test('staff workspace uses one semantic product palette', async ({ page }) => {
 });
 
 test('V1.7 component styles do not bypass semantic colour tokens', () => {
-  const css = fs.readFileSync('choice_train_V1.7.1.css', 'utf8');
+  const css = fs.readFileSync('choice_train_V1.7.2.css', 'utf8');
   const componentCss = css.slice(css.indexOf('html {'));
   expect(componentCss).not.toMatch(/#[0-9a-f]{3,8}\b|rgba?\(/i);
 });
@@ -467,7 +467,7 @@ test('admin export centre provides a complete local session export', async ({ pa
   const download = await downloadPromise;
   expect(download.suggestedFilename()).toMatch(/^ChoiceTrain_.+_session\.json$/);
   const payload = JSON.parse(fs.readFileSync(await download.path(), 'utf8'));
-  expect(payload.build.version).toBe('1.7.1');
+  expect(payload.build.version).toBe('1.7.2');
   expect(payload).toHaveProperty('trials');
   expect(payload).toHaveProperty('eeg_markers');
   expect(payload).toHaveProperty('sensory_preferences');
@@ -662,7 +662,7 @@ test('V1.7 exports include sensory preferences and sound metadata', async ({ pag
   await setValue(page, 'celebrationIntensity', 'lively');
   await page.locator('#soundPreviewBtn').click();
   const payload = await exportJson(page);
-  expect(payload.build.version).toBe('1.7.1');
+  expect(payload.build.version).toBe('1.7.2');
   expect(payload.schema_version).toBe(4);
   expect(payload.session_overview.theme_used).toBe('calm-light');
   expect(payload.session_overview.sensory_preferences).toEqual({

@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const APP_PATH = '/choice_train_V1.7.1.html';
+const APP_PATH = '/choice_train_V1.7.2.html';
 
 async function gotoApp(page) {
   await page.goto(APP_PATH);
@@ -85,12 +85,12 @@ function attachErrorTracking(page) {
   return errors;
 }
 
-test('live index loads the V1.7.1 stable build', async ({ page }) => {
+test('live index loads the V1.7.2 stable build', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await page.goto('/');
   await expect(page.locator('#beginFlow')).toBeVisible();
-  await expect(page.locator('#versionInfo')).toContainText('V1.7.1');
-  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.1.html');
+  await expect(page.locator('#versionInfo')).toContainText('V1.7.2');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.2.html');
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
@@ -119,7 +119,8 @@ async function configureSession(page, overrides = {}) {
     responseWindowSec: 1,
     usePromptAnswerBlank: false,
     useBlankInterval: false,
-    blankIntervalSec: 1,
+    promptAnswerBlankSec: 1,
+    betweenQuestionBlankSec: 1,
     ...overrides
   };
   const selectFields = new Set(['sessionTaskType', 'researchCondition', 'eegExportFormat']);
@@ -769,7 +770,7 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("Attention Training terms")').click();
   await expect(page.getByText('Exploratory engagement is an in-app practice metric', { exact: false })).toBeVisible();
-  await page.locator('summary:has-text("V1.7.1 teacher, learner, and research guide")').click();
+  await page.locator('summary:has-text("V1.7.2 teacher, learner, and research guide")').click();
   await expect(page.locator('text=Traffic Lights')).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -808,6 +809,9 @@ test('teacher panel exposes daily classroom controls and quick-start guidance', 
   await expect(page.locator('#ttsLabelsToggle')).toBeVisible();
   await expect(page.locator('#autoAdvance')).toBeVisible();
   await expect(page.locator('#usePromptAnswerBlank')).toBeVisible();
+  await expect(page.locator('#promptAnswerBlankSec')).toBeVisible();
+  await expect(page.locator('#useBlankInterval')).toBeVisible();
+  await expect(page.locator('#betweenQuestionBlankSec')).toBeVisible();
   await expect(page.locator('#targetScale')).toBeHidden();
   await expect(page.locator('#practitionerModeBtn')).toHaveCount(0);
 
@@ -884,7 +888,7 @@ test('optional blank interval appears between questions and is exported', async 
     sessionTaskType: 'touch-object',
     itiSec: 0.2,
     useBlankInterval: true,
-    blankIntervalSec: 1
+    betweenQuestionBlankSec: 0.75
   });
   await clickCorrectChoice(page);
   await expect(page.locator('#screenBlank.active')).toBeVisible({ timeout: 3_000 });
@@ -896,7 +900,8 @@ test('optional blank interval appears between questions and is exported', async 
     await page.locator('#summaryExport').click();
   });
   expect(payload.blank_interval_enabled).toBe(true);
-  expect(payload.blank_interval_ms).toBe(1000);
+  expect(payload.between_question_blank_ms).toBe(750);
+  expect(payload.blank_interval_ms).toBe(750);
   expect(payload.events.some(event => event.type === 'inter_trial_blank_onset')).toBeTruthy();
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -913,8 +918,9 @@ test('optional Q&A blank appears after a two-stage prompt and exports separately
     autoAdvance: true,
     delaySec: 0.25,
     usePromptAnswerBlank: true,
-    useBlankInterval: false,
-    blankIntervalSec: 0.5,
+    useBlankInterval: true,
+    promptAnswerBlankSec: 0.5,
+    betweenQuestionBlankSec: 1.5,
     sessionTaskType: 'touch-object'
   });
   await expect(page.locator('#screenPrompt.active')).toBeVisible();
@@ -929,11 +935,22 @@ test('optional Q&A blank appears after a two-stage prompt and exports separately
   });
   expect(payload.prompt_answer_blank_enabled).toBe(true);
   expect(payload.prompt_answer_blank_ms).toBe(500);
-  expect(payload.between_question_blank_enabled).toBe(false);
+  expect(payload.between_question_blank_enabled).toBe(true);
+  expect(payload.between_question_blank_ms).toBe(1500);
   expect(payload.events.some(event => event.type === 'prompt_answer_blank_onset')).toBeTruthy();
   expect(payload.events.some(event => event.type === 'prompt_answer_blank_offset')).toBeTruthy();
 
   expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('legacy shared blank duration migrates to both independent controls', async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('choice_train_settings_v140', JSON.stringify({ blankIntervalSec: 1.75 }));
+  });
+  await gotoApp(page);
+
+  await expect(page.locator('#promptAnswerBlankSec')).toHaveValue('1.75');
+  await expect(page.locator('#betweenQuestionBlankSec')).toHaveValue('1.75');
 });
 
 test('reset returns to welcome without changing saved session settings', async ({ page }) => {

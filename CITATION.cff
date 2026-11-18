@@ -5,8 +5,8 @@ type: software
 authors:
   - given-names: Dion
     family-names: Croft
-version: 1.6.0
-date-released: 2026-11-06
+version: 1.7.2
+date-released: 2026-11-18
 repository-code: https://github.com/DionCroft/choice_train
 url: https://dioncroft.github.io/choice_train/
 abstract: A local-first, touch-first teaching and research-support application for SEND classrooms, with personalised content, Attention Training activities, structured exports, and EEG-ready event markers.
