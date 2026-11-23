@@ -7,7 +7,7 @@
     source_file: 'choice_train_V1.7.3.html',
     source_script: 'choice_train_V1.7.3.js',
     based_on_branch: 'release/v1.7.3',
-    based_on_commit: 'pending',
+    based_on_commit: '46a6116d5970c2ad127ceba46aff576c5792fad6',
     build_date: '2026-11-23',
     published_entry: 'index.html',
     live_url: 'https://dioncroft.github.io/choice_train/',
