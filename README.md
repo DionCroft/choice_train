@@ -7,9 +7,9 @@
 
 ChoiceTrain is a static, browser-based learning and research-support tool designed for SEND classrooms. It combines touch-first learner activities, teacher-friendly session setup, personalised pupil content, and research-ready session logging in a single offline-friendly web app.
 
-The current stable release is `V1.7.2`. Historical versioned builds and the reviewed V1.7 alpha candidate remain available for traceability.
+The current stable release is `V1.7.3`. Historical versioned builds and the reviewed V1.7 alpha candidate remain available for traceability.
 
-`V1.7.2` is a focused teacher-workflow update to V1.7.1. It gives the prompt-to-answer blank and between-question blank independent duration controls while retaining the responsive learner layout, touch protections, focused workspaces, semantic colour system, configurable sensory presentation, local audio, and research features introduced across V1.7.0 and V1.7.1. See the [design decision record](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md), [colour-system audit](docs/V1.7.0_COLOUR_SYSTEM_AUDIT.md), [data dictionary](docs/DATA_DICTIONARY.md), and [school usability plan](docs/V1.7.0_USABILITY_TEST_PLAN.md). Release status confirms an engineering gate, not clinical efficacy or universal SEND suitability.
+`V1.7.3` lets teachers copy a profile's photos and reusable teaching settings without carrying over its identity, notes or results. The built-in Teacher icon has been removed; uploaded teacher photos can still be used alongside other stock images. See the [design decision record](docs/V1.7.0_ALPHA_DESIGN_DECISIONS.md), [colour-system audit](docs/V1.7.0_COLOUR_SYSTEM_AUDIT.md), [data dictionary](docs/DATA_DICTIONARY.md), and [school usability plan](docs/V1.7.0_USABILITY_TEST_PLAN.md). Release status confirms an engineering gate, not clinical efficacy or universal SEND suitability.
 
 Live site:
 `https://dioncroft.github.io/choice_train/`
@@ -61,20 +61,20 @@ It also notes the client-provided internal `ChoiceTrain.docx` project paper draf
 Published files:
 
 - `index.html`
-- `choice_train_V1.7.2.html`
-- `choice_train_V1.7.2.js`
-- `choice_train_V1.7.2.css`
+- `choice_train_V1.7.3.html`
+- `choice_train_V1.7.3.js`
+- `choice_train_V1.7.3.css`
 - `assets/showme-logo.png`
 
 The runtime is versioned so experimental builds can be tested locally before a stable snapshot is promoted into the GitHub Pages copy.
 
-### V1.7.2 Stable Release
+### V1.7.3 Stable Release
 
 The published versioned release is available locally at:
 
-- `choice_train_V1.7.2.html`
-- `choice_train_V1.7.2.js`
-- `choice_train_V1.7.2.css`
+- `choice_train_V1.7.3.html`
+- `choice_train_V1.7.3.js`
+- `choice_train_V1.7.3.css`
 
 Its main product decisions are:
 
@@ -93,7 +93,7 @@ These decisions remain subject to school testing and are not claims that one vis
 
 ## Teacher Panel and Admin Panel
 
-`V1.7.2` separates the interface into focused Teacher and Admin workspaces and keeps ordinary classroom settings away from research and debug controls.
+`V1.7.3` separates the interface into focused Teacher and Admin workspaces and keeps ordinary classroom settings away from research and debug controls.
 
 ### Teacher Panel
 
@@ -157,7 +157,7 @@ Settings save locally as they are changed. `Save pupil preferences` additionally
 
 `Reset session` clears only the current unsaved attempt and returns to the welcome screen. It does not delete the pupil profile, saved settings, or stored session history.
 
-### V1.7.2 Content Walkthrough
+### V1.7.3 Content Walkthrough
 
 1. In `Pupil Personalisation`, enter a name under `Create new category`, then select `Save category`.
 2. Choose that category under `Destination category` and use `Bulk photo import` to add one or more images.
@@ -215,7 +215,7 @@ The default view is intentionally calmer and more teacher-friendly than earlier 
 
 ## Context Notes
 
-`V1.7.2` retains the classroom-friendly `context notes` wording introduced in the previous release.
+`V1.7.3` retains the classroom-friendly `context notes` wording introduced in the previous release.
 
 Context notes are for daily classroom observations such as:
 
@@ -229,6 +229,8 @@ Context notes are for daily classroom observations such as:
 These notes are part of normal teacher use, are stored locally with the session context, and are included in exported session data.
 
 ## Pupil Profiles
+
+To reuse a setup, select a pupil in **Teacher workspace → Today** and choose **Copy existing profile**. Enter a new name and optionally an alias. The new profile starts with the same photos, content filters and teaching settings, but no previous notes, results or research records. Check that the photos and settings suit the new pupil before starting.
 
 Each pupil profile can store:
 
@@ -244,6 +246,8 @@ Each pupil profile can store:
 Pupil data is kept locally on the device using browser storage.
 
 ## Photo Personalisation
+
+The generic Teacher icon is no longer a stock choice. A personalised teacher photo can still appear alongside other stock images when **Both stock and personalised** is selected.
 
 Teachers can upload and manage multiple personalised photos for a pupil. Examples include:
 
@@ -410,7 +414,7 @@ This local data can include:
 - heatmap data
 - research markers
 
-The current `V1.7.2` build does not send session data to any external service.
+The current `V1.7.3` build does not send session data to any external service.
 
 ## Future LLM-Assisted Recommendations
 
@@ -475,12 +479,12 @@ Then open:
 
 If you want the published snapshot directly, open:
 
-- `choice_train_V1.7.2.html`
+- `choice_train_V1.7.3.html`
 
 Keep the paired script and stylesheet beside it:
 
-- `choice_train_V1.7.2.js`
-- `choice_train_V1.7.2.css`
+- `choice_train_V1.7.3.js`
+- `choice_train_V1.7.3.css`
 
 ## GitHub Pages Deployment
 
@@ -508,12 +512,12 @@ npm run test:browser
 npm run audit:visual:v172
 ```
 
-The `V1.7.2` release is validated with:
+The `V1.7.3` release is validated with:
 
-- `node --check choice_train_V1.7.2.js`
-- 85 passing Playwright browser tests covering the live entry point, archived-release loading, levels 1-10, AT and EEG flows, focused Teacher/Admin navigation, Student-friendly mode, named progression stages, independent blank-screen timing and legacy-settings migration, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, all semantic themes, local-only operation, reward and no-reward flows, and desktop/tablet/mobile layout
+- `node --check choice_train_V1.7.3.js`
+- 87 passing Playwright browser tests covering the live entry point, archived-release loading, levels 1-10, AT and EEG flows, focused Teacher/Admin navigation, Student-friendly mode, named progression stages, independent blank-screen timing and legacy-settings migration, exports, history, category persistence, resilient bulk import, photo editing, filtered task generation, all semantic themes, local-only operation, reward and no-reward flows, and desktop/tablet/mobile layout
 
-The V1.7-specific suite contains 26 checks, including six-choice fit on iPad-, Kindle-, phone-, and laptop-sized viewports and rejection of drag-to-scroll gestures. The broader regression suite contributes the remaining 59 checks.
+The V1.7-specific suite contains 26 checks, including six-choice fit on iPad-, Kindle-, phone-, and laptop-sized viewports and rejection of drag-to-scroll gestures. The broader regression suite contributes the remaining 61 checks.
 
 `npm run audit:visual:v172` creates a repeatable local visual-review set with 23 synthetic-data captures covering teacher setup, session, independent blank-screen and sensory controls, Admin, active learner tasks, reward and reward-disabled feedback, break mode, tablet, mobile, six-choice device layouts, and every theme. The generated screenshots are ignored by Git because they are review evidence rather than product assets.
 
@@ -544,9 +548,10 @@ Planned or likely next steps include:
 Key files and folders:
 
 - `index.html` - current live entry file
-- `choice_train_V1.7.2.html` - current versioned HTML build
-- `choice_train_V1.7.2.js` - paired current runtime and schema
-- `choice_train_V1.7.2.css` - current workspace and learner presentation layer
+- `choice_train_V1.7.3.html` - current versioned HTML build
+- `choice_train_V1.7.3.js` - paired current runtime and schema
+- `choice_train_V1.7.3.css` - current workspace and learner presentation layer
+- `choice_train_V1.7.2.*` - preserved prior release with independent blank-screen durations
 - `choice_train_V1.7.1.*` - preserved previous stable build
 - `choice_train_V1.7.0.*` - preserved previous stable build
 - `choice_train_V1.7.0-alpha.*` - preserved reviewed candidate files for release traceability

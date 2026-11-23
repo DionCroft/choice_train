@@ -7,15 +7,16 @@ ChoiceTrain is a local-first static web application. It deliberately avoids a se
 ## Runtime
 
 - `index.html` is the published entry point.
-- `choice_train_V1.7.2.html` is the current versioned interface snapshot and matches `index.html`.
-- `choice_train_V1.7.2.js` contains application state, question generation, persistence, analytics, exports, accessibility behaviour, and research markers.
-- `choice_train_V1.7.2.css` contains the stable workspace and learner presentation layer.
+- `choice_train_V1.7.3.html` is the current versioned interface snapshot and matches `index.html`.
+- `choice_train_V1.7.3.js` contains application state, question generation, persistence, analytics, exports, accessibility behaviour, and research markers.
+- `choice_train_V1.7.3.css` contains the stable workspace and learner presentation layer.
+- `choice_train_V1.7.2.*` preserves the previous stable build.
 - `choice_train_V1.7.1.*` preserves the previous stable build and is not loaded by `index.html`.
 - `choice_train_V1.7.0.*` preserves the previous stable build and is not loaded by `index.html`.
 - `choice_train_V1.7.0-alpha.*` preserves the reviewed candidate for release traceability and is not loaded by `index.html`.
 - `assets/` contains local branding and font files; `LICENSES/` records third-party licences.
 
-## V1.7.2 Workspace Model
+## V1.7.3 Workspace Model
 
 V1.7 adds a presentation layer around the existing static runtime rather than replacing its learning and research model:
 
@@ -46,6 +47,8 @@ The application uses `localStorage` for settings and pupil profiles, and Indexed
 
 ## Data Boundaries
 
+Profile copying uses an allowlist of reusable teaching and presentation settings. It assigns each copied photo a new ID and owner and does not transfer notes, recorded outcomes, or research enrolment. The original and copied teaching setups then persist independently.
+
 ChoiceTrain does not call a cloud API. Pupil profiles, context notes, photographs, touch events, and session history stay in the current browser unless a user explicitly downloads an export.
 
 Ordinary exports include image labels and metadata but omit embedded image bytes. Future LLM and EEG integrations must remain opt-in and subject to consent, safeguarding, and data-governance review.
@@ -65,4 +68,4 @@ V1.7 exports include a `sensory_preferences` object containing the selected font
 
 Current versioned files stay at the root with `index.html`. Superseded snapshots move to `releases/` and remain unchanged. Release metadata is stamped with `scripts/stamp-build.ps1` after a candidate has passed the browser suite.
 
-A candidate can be pushed on a feature branch, but promotion requires the complete automated suite, documented review, a metadata stamp, and explicit product-owner approval. Promotion updates the stable versioned HTML, JavaScript, and CSS plus `index.html`; merely adding candidate files does not publish them. V1.7.2 passes 85 Playwright checks, while the visual audit remains review evidence rather than a screenshot-baseline gate. Physical school-device, staff, learner, privacy, and research-timing validation remain separate deployment and study-readiness activities.
+A candidate can be pushed on a feature branch, but promotion requires the complete automated suite, documented review, a metadata stamp, and explicit product-owner approval. Promotion updates the stable versioned HTML, JavaScript, and CSS plus `index.html`; merely adding candidate files does not publish them. V1.7.3 passes 87 Playwright checks, while the visual audit remains review evidence rather than a screenshot-baseline gate. Physical school-device, staff, learner, privacy, and research-timing validation remain separate deployment and study-readiness activities.

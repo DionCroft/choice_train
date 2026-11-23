@@ -2,6 +2,11 @@
 
 All notable changes to ChoiceTrain are listed here.
 
+## [1.7.3] - 2026-11-23
+
+- Added `Copy existing profile` to Daily Teacher Setup. It starts with blank name and alias fields and copies the selected pupil's photos and reusable teaching settings without copying notes, session history or research records.
+- Removed the built-in Teacher icon from activities. Uploaded teacher photos and all other stock choices remain available.
+
 ## [1.7.2] - 2026-11-18
 
 ### Changed

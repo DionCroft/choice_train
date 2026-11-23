@@ -1,6 +1,6 @@
 const fs = require('fs');
 const { test, expect } = require('@playwright/test');
-const APP_PATH = '/choice_train_V1.7.2.html';
+const APP_PATH = '/choice_train_V1.7.3.html';
 
 async function gotoApp(page) {
   await page.goto(APP_PATH);
@@ -85,12 +85,12 @@ function attachErrorTracking(page) {
   return errors;
 }
 
-test('live index loads the V1.7.2 stable build', async ({ page }) => {
+test('live index loads the V1.7.3 stable build', async ({ page }) => {
   const errors = attachErrorTracking(page);
   await page.goto('/');
   await expect(page.locator('#beginFlow')).toBeVisible();
-  await expect(page.locator('#versionInfo')).toContainText('V1.7.2');
-  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.2.html');
+  await expect(page.locator('#versionInfo')).toContainText('V1.7.3');
+  await expect(page.locator('#aboutSourceFile')).toHaveText('choice_train_V1.7.3.html');
   expect(errors, errors.join('\n')).toEqual([]);
 });
 
@@ -770,7 +770,7 @@ test('documentation section is available for practitioners', async ({ page }) =>
   await expect(page.locator('text=Documentation and terminology')).toBeVisible();
   await page.locator('summary:has-text("Attention Training terms")').click();
   await expect(page.getByText('Exploratory engagement is an in-app practice metric', { exact: false })).toBeVisible();
-  await page.locator('summary:has-text("V1.7.2 teacher, learner, and research guide")').click();
+  await page.locator('summary:has-text("V1.7.3 teacher, learner, and research guide")').click();
   await expect(page.locator('text=Traffic Lights')).toBeVisible();
 
   expect(errors, errors.join('\n')).toEqual([]);
@@ -1141,6 +1141,97 @@ test('teacher-created categories reject duplicates and persist across reloads', 
   await expect(page.locator('#photoCategory option[value="custom-musical-instruments"]')).toHaveText('Musical instruments');
 
   expect(errors, errors.join('\n')).toEqual([]);
+});
+
+async function uploadTeacherPhoto(page) {
+  await openTeacherDestination(page, 'personalise');
+  await page.locator('#photoLabel').fill('Teacher');
+  await page.locator('#photoCategory').selectOption('people');
+  await page.locator('#photoType').fill('Class staff');
+  await page.locator('#photoUpload').setInputFiles({
+    name: 'class-staff.svg',
+    mimeType: 'image/svg+xml',
+    buffer: Buffer.from('<svg xmlns="http://www.w3.org/2000/svg" width="80" height="80"><rect width="80" height="80" fill="#def"/></svg>')
+  });
+  await page.locator('#addPhotoBtn').click();
+  await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(1);
+}
+
+test('profile copy keeps photos and reusable settings but starts without the original identity or history', async ({ page }) => {
+  const errors = attachErrorTracking(page);
+  await gotoApp(page);
+  await uploadTeacherPhoto(page);
+  const sourcePhoto = await page.locator('#photoLibraryList img').getAttribute('src');
+  await openTeacherDestination(page, 'today');
+  await page.locator('#pupilAlias').fill('Original alias');
+  await page.locator('#themeChoice').selectOption('plain-white');
+  await setSelect(page, 'maintenanceStatus', 'emerging');
+  await page.locator('#contextNotes').evaluate(node => {
+    node.value = 'Original daily note';
+    node.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await startConfiguredSession(page, {
+    startLevel: 2, autoLevelPath: false, sessionTaskType: 'touch-object', autoAdvance: true,
+    usePromptAnswerBlank: true, promptAnswerBlankSec: 1.25, betweenQuestionBlankSec: 2.5
+  });
+  await clickCorrectChoice(page);
+  await waitForSummaryScreen(page);
+  await returnToTeacherWorkspace(page);
+  await openTeacherDestination(page, 'today');
+  const copyBtn = page.getByRole('button', { name: 'Copy existing profile' });
+  await copyBtn.click();
+  await expect(page.getByLabel('New pupil name')).toHaveValue('');
+  await expect(page.getByLabel('New pupil alias')).toHaveValue('');
+  await page.getByLabel('New pupil name').fill('pupil a');
+  await page.getByRole('button', { name: 'Create copy' }).click();
+  await expect(page.locator('#copyPupilStatus')).toContainText('unique pupil name');
+  await page.getByLabel('New pupil name').fill('Pupil Copy');
+  await page.getByRole('button', { name: 'Create copy' }).click();
+  await expect(page.locator('#copyPupilStatus')).toHaveText('Profile created for Pupil Copy.');
+  await expect(page.locator('#screenWelcome.active')).toBeVisible();
+  await page.reload();
+  await expect(page.locator('#pupilSelect')).toHaveValue('Pupil Copy');
+  await expect(page.locator('#pupilAlias')).toHaveValue('');
+  await expect(page.locator('#contextNotes')).toHaveValue('');
+  await expect(page.locator('#themeChoice')).toHaveValue('plain-white');
+  await expect(page.locator('#sessionTaskType')).toHaveValue('touch-object');
+  await expect(page.locator('#promptAnswerBlankSec')).toHaveValue('1.25');
+  await expect(page.locator('#betweenQuestionBlankSec')).toHaveValue('2.5');
+  const learners = await page.evaluate(() => JSON.parse(localStorage.getItem('choice_train_learners_v140')));
+  expect(learners['Pupil Copy']).toMatchObject({ alias: '', sessions: [], reviews: [], baseline: { maintenanceStatus: 'not-run' } });
+  expect(learners['Pupil A'].alias).toBe('Original alias');
+  expect(learners['Pupil A'].sessions).toHaveLength(1);
+  await page.locator('#betweenQuestionBlankSec').fill('3.5');
+  await openTeacherDestination(page, 'personalise');
+  await expect(page.locator('#photoLibraryList img')).toHaveAttribute('src', sourcePhoto);
+  await expect(page.locator('#photoLibraryList')).toContainText('Class staff');
+  await page.locator('#photoLibraryList').getByRole('button', { name: 'Remove', exact: true }).click();
+  await expect(page.locator('#photoLibraryList .photoCard')).toHaveCount(0);
+  await openTeacherDestination(page, 'today');
+  await page.locator('#pupilSelect').selectOption('Pupil A');
+  await expect(page.locator('#betweenQuestionBlankSec')).toHaveValue('2.5');
+  await openTeacherDestination(page, 'personalise');
+  await expect(page.locator('#photoLibraryList img')).toHaveAttribute('src', sourcePhoto);
+  expect(errors, errors.join('\n')).toEqual([]);
+});
+
+test('mixed choices keep the personalised Teacher photo and other stock images without the stock Teacher icon', async ({ page }) => {
+  await gotoApp(page);
+  await uploadTeacherPhoto(page);
+  await openTeacherDestination(page, 'today');
+  await configureSession(page, {
+    startLevel: 4, sessionTaskType: 'find-object', maxObjects: 6, responseWindowSec: 10
+  });
+  await page.locator('#teacherPanelTab').click();
+  await setCategorySelection(page, 'findObjectCategoryList', ['people']);
+  await page.locator('#findObjectSourceMode').selectOption('both');
+  await page.locator('#beginFlow').click();
+  await waitForChoiceScreen(page);
+  const choices = page.locator('#choiceGrid .choice');
+  await expect(choices.filter({ hasText: 'Teacher' })).toHaveCount(1);
+  await expect(choices.filter({ hasText: 'Teacher' }).locator('img')).toBeVisible();
+  await expect(choices.filter({ hasText: 'Friend' })).toBeVisible();
+  await expect(page.locator('#choiceGrid [data-id="people-teacher"]')).toHaveCount(0);
 });
 
 test('bulk import keeps its starting pupil and category while reporting per-file failures', async ({ page }) => {

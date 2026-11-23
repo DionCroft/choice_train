@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
-  <title>ChoiceTrain for ShowMe V1.7.2</title>
+  <title>ChoiceTrain for ShowMe V1.7.3</title>
   <style>
     :root{
       --bg:#0a1019; --panel:#121a27; --panel2:#0f1724; --text:#e8eefb; --muted:#9fb0d0;
@@ -284,7 +284,7 @@
       .editorPreview{min-height:220px;padding:10px}
     }
   </style>
-  <link rel="stylesheet" href="choice_train_V1.7.2.css" />
+  <link rel="stylesheet" href="choice_train_V1.7.3.css" />
 </head>
 <body>
 <a class="skipLink" href="#playArea">Skip to learner activity</a>
@@ -297,7 +297,7 @@
           <div class="brandEyebrow">Developed for ShowMe</div>
           <div class="title">ChoiceTrain for ShowMe</div>
           <div class="sub">A local-first classroom workspace for personalised learning, Attention Training, progress review, and research-ready exports.</div>
-          <div class="releaseRibbon"><span aria-hidden="true">&#9679;</span> V1.7.2 stable workspace</div>
+          <div class="releaseRibbon"><span aria-hidden="true">&#9679;</span> V1.7.3 stable workspace</div>
         </div>
       </div>
       <div class="panelSwitch">
@@ -359,6 +359,23 @@
           <button id="addPupil">Add pupil</button>
         </div>
         <div class="helperText">Choose the pupil profile or add a new one for today’s session.</div>
+
+        <div class="row" style="margin-top:8px">
+          <button type="button" id="copyPupilBtn" aria-controls="copyPupilForm" aria-expanded="false">Copy existing profile</button>
+        </div>
+        <form id="copyPupilForm" class="controlGroup" aria-label="Copy existing profile" hidden>
+          <div id="copyPupilSource" class="controlGroupTitle"></div>
+          <p class="helperText">Copies photos and reusable teaching settings, not the pupil's notes, results or research records. Only copy photos suitable for the new pupil.</p>
+          <div class="teacherGrid">
+            <div><label for="copyPupilName">New pupil name</label><input id="copyPupilName" type="text" required /></div>
+            <div><label for="copyPupilAlias">New pupil alias (optional)</label><input id="copyPupilAlias" type="text" /></div>
+          </div>
+          <div class="row" style="margin-top:8px">
+            <button type="submit" id="copyPupilSave" class="primary">Create copy</button>
+            <button type="button" id="copyPupilCancel">Cancel</button>
+          </div>
+        </form>
+        <div id="copyPupilStatus" class="helperText" role="status"></div>
 
         <label for="pupilAlias" style="margin-top:10px">Pupil alias</label>
         <input id="pupilAlias" type="text" placeholder="e.g. Pupil A" />
@@ -1245,13 +1262,13 @@
         <div id="adminBuildSection" class="section adminAnchor" data-admin-pages="system" style="padding-top:14px">
           <div class="sub">About / Build Info</div>
           <div class="aboutGrid">
-            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.7.2</div></div>
+            <div class="dashCard"><div class="k">Active release</div><div class="v mono" id="aboutRelease">V1.7.3</div></div>
             <div class="dashCard"><div class="k">Status</div><div class="v" id="aboutChannel">Experimental</div></div>
             <div class="dashCard"><div class="k">Base commit</div><div class="v mono" id="aboutCommit">loading</div></div>
             <div class="dashCard"><div class="k">Build date</div><div class="v" id="aboutBuildDate">loading</div></div>
           </div>
           <div class="metaList">
-            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.7.2.html</b></div>
+            <div class="metaItem"><span>Source file</span><b class="mono" id="aboutSourceFile">choice_train_V1.7.3.html</b></div>
             <div class="metaItem"><span>Published entry</span><b class="mono" id="aboutPublishedEntry">index.html</b></div>
             <div class="metaItem"><span>Live URL</span><b class="mono" id="aboutLiveUrl">https://dioncroft.github.io/choice_train/</b></div>
             <div class="metaItem"><span>Repository</span><b class="mono" id="aboutRepoUrl">https://github.com/DionCroft/choice_train</b></div>
@@ -1319,7 +1336,7 @@
         </div>
       </details>
       <details class="docsDetails">
-        <summary>V1.7.2 teacher, learner, and research guide</summary>
+        <summary>V1.7.3 teacher, learner, and research guide</summary>
         <div class="docsBody">
           <p><b>Teacher Panel</b> is designed for everyday classroom setup. Use it to select a pupil, choose a theme, add context notes, personalise content, and start or export a session quickly.</p>
           <p><b>Admin Panel</b> stays collapsed by default. Open it only when you need advanced analytics, Attention Training tuning, touch debugging, EEG preparation, or fidelity and research settings.</p>
@@ -1481,6 +1498,6 @@
   </div>
 </div>
 
-<script src="choice_train_V1.7.2.js"></script>
+<script src="choice_train_V1.7.3.js"></script>
 </body>
 </html>

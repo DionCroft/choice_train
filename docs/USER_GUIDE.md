@@ -1,6 +1,6 @@
 # ChoiceTrain User Guide
 
-**Published version:** `V1.7.2`
+**Published version:** `V1.7.3`
 **Project:** ChoiceTrain for ShowMe  
 **Repository:** https://github.com/DionCroft/choice_train  
 **Live site:** https://dioncroft.github.io/choice_train/
@@ -30,15 +30,15 @@ ChoiceTrain is designed to:
 
 ChoiceTrain is a **teaching and research-support tool**. It is **not** a diagnostic, medical, or clinical system.
 
-### About V1.7.2
+### About V1.7.3
 
-V1.7.2 is the published GitHub Pages build. To open the same version locally after starting a server from the repository root, use:
+V1.7.3 is the published GitHub Pages build. To open the same version locally after starting a server from the repository root, use:
 
-`http://localhost:8000/choice_train_V1.7.2.html`
+`http://localhost:8000/choice_train_V1.7.3.html`
 
 The release passed the automated engineering gate, but schools should still approve their own usability, safeguarding, consent, privacy, retention, and device processes before using identifiable pupil data.
 
-The automated repository matrix contains 85 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
+The automated repository matrix contains 87 passing browser tests. This is technical validation, not a substitute for the staff and learner protocol in [V1.7.0_USABILITY_TEST_PLAN.md](V1.7.0_USABILITY_TEST_PLAN.md).
 
 ---
 
@@ -101,7 +101,7 @@ The Admin Panel is hidden by default and is intended for advanced users rather t
 
 ### V1.7 Workspace Navigation
 
-V1.7.2 gives each role a focused workspace:
+V1.7.3 gives each role a focused workspace:
 
 - `Today` contains pupil selection, session readiness, daily settings, context and the primary start action.
 - `Personalise` contains pupil baseline preferences, images, categories and content choices.
@@ -175,6 +175,14 @@ If the app is currently showing the learner activity, press and hold the small l
 4. Choose the pupil from the pupil selector.
 
 Pupil profiles are stored locally on the device.
+
+### Copy an Existing Profile
+
+1. In `Teacher workspace` > `Today`, choose the profile you want to reuse.
+2. Select `Copy existing profile`. Both identity fields start blank. Enter a new pupil name and optionally a new alias, then select `Create copy`.
+3. Check the photos, starting stage, and settings for the new pupil before starting a session.
+
+The copy keeps the photo library, content choices and reusable teaching settings. It does not keep the original pupil's notes, history, or research records. Removing a photo from the copy does not remove it from the original. Uploaded teacher photos still work with `Both stock and personalised`; the generic Teacher icon is no longer included.
 
 Each pupil can retain:
 
@@ -473,11 +481,11 @@ Themes are intended as configurable classroom presentation options. Teachers sho
 
 Theme choice is stored locally and may also follow the selected pupil profile on that device.
 
-In V1.7.2, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
+In V1.7.3, every theme controls the full learner activity, including prompts, cards, choices, feedback, rewards, footer controls, cue effects, heatmaps, and charts. Correct and incorrect responses also use check/cross cues; progress and selection use labels, borders, shapes, or position as well as colour.
 
 ### Display and Sensory Preferences
 
-V1.7.2 provides:
+V1.7.3 provides:
 
 - high-legibility or familiar sans-serif font
 - 90%, 100%, 115% or 130% text size
@@ -492,7 +500,7 @@ Atkinson Hyperlegible Next is bundled locally as the high-legibility option. It 
 
 ### Reward and Sound
 
-V1.7.2 uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
+V1.7.3 uses an original train journey to show progress through the session. It applies general short-feedback and visible-progress principles without copying another product's artwork, characters, sounds or language.
 
 Feedback cues are generated locally on the device. They can be muted, do not use a microphone and are not recordings. ChoiceTrain stops active tones before speaking a prompt to reduce overlap. In a research session, audio and reward onset are logged so presentation conditions can be interpreted.
 
